@@ -1,0 +1,63 @@
+
+
+body{
+    background-color: #F8FBFF;
+    padding: 0;
+    margin: 0;
+}
+
+
+.heroBanner {
+  background-color: #081F65;
+  border-radius: 20px;
+  height: 230px;
+  position: relative;
+  margin-top: 20px;
+}
+
+.heroText {
+  padding: 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.heroLabel {
+  color: #C6DFFF;
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.heroText h1 {
+  color: white;
+  font-size: clamp(17px, 4vw, 25px);
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 16px;
+}
+
+.heroBTN {
+  background-color: white;
+  color: #081F65;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.heroBTN:hover {
+  background-color: #EAF1FF;
+  color: #081F65;
+}
+
+.heroModel {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  height: 260px;
+  max-width: none;
+  width: auto;
+  object-fit: contain;
+  object-position: bottom right;
+}
