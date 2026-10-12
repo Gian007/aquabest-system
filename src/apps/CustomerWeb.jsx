@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiArrowRight, FiChevronRight, FiDroplet, FiMapPin, FiPackage, FiShield, FiTruck, FiX, FiMinus, FiPlus, FiPhone, FiCheck } from 'react-icons/fi';
+import { FiArrowRight, FiChevronRight, FiDroplet, FiMapPin, FiPackage, FiShield, FiTruck, FiX, FiMinus, FiPlus, FiCheck } from 'react-icons/fi';
 import NavBarCustomer from './Component_Customer/navBarCustomer.jsx';
 import model from '../assets/model.png';
 import './customerWeb.css';
