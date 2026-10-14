@@ -10,7 +10,7 @@ import sampleData from '../data/sampleData.json';
 import model from '../assets/Model_Imgs/model.png';
 import explainingModel from '../assets/Model_Imgs/ExplainingModel.png';
 import ownBottle from '../assets/WaterBottleOffer/ownBottle.png';
-import buyBottle from '../assets/WaterBottleOffer/buyBottle.png';
+import buyBottle from '../assets/Model_Imgs/buyBottle.png';
 import bottleBundle from '../assets/WaterBottleOffer/bottleBundle.png';
 import './customerWeb.css';
 import './orderFlow.css';
