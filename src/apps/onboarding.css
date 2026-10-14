@@ -19,3 +19,55 @@
 @media (min-width:768px){.onboarding-shell{margin:35px auto;min-height:700px;border-radius:24px;box-shadow:0 15px 45px #d3e5f7}.why-care-card{min-height:240px}.why-care-card img{max-height:260px}.why-care-text{padding:34px}.why-care-text h3{font-size:23px}.why-care-text p{font-size:15px;max-width:300px}}
 
 .bulk-product-image{width:92px;height:100px;object-fit:contain;flex:0 0 92px;border-radius:12px;background:#eaf7fb}.bulk-card{align-items:center}.product-illustration.offer-illustration{background:#eef8ff}.customer-main{padding-bottom:35px}@media(max-width:390px){.bulk-product-image{width:70px;height:90px;flex-basis:70px}.why-care-card img{width:48%}}
+
+/* 2026-10-14 layout refinement: same-height product cards, portrait images fully visible. */
+.section-block .product-card { min-width:0; height:100%; }
+.section-block .product-card .product-illustration.offer-illustration {
+  display:flex; align-items:center; justify-content:center; height:158px; min-height:0;
+  width:100%; padding:8px; overflow:hidden; background:#eaf7fb; border-radius:13px;
+}
+.section-block .product-card .product-illustration.offer-illustration img.offer-bottle {
+  display:block; width:100%; max-width:100%; height:100%; max-height:100%;
+  object-fit:contain; object-position:center; flex-shrink:1;
+}
+.section-block .product-card h3 { min-height:2.5em; }
+.section-block .product-card .add-button { margin-top:auto; }
+@media (min-width:768px) {
+  .section-block .product-card .product-illustration.offer-illustration {height:225px;}
+  .section-block .product-card h3 {min-height:0;}
+}
+@media (max-width:360px) {
+  .section-block .product-card .product-illustration.offer-illustration {height:130px;padding:4px;}
+}
+
+/* Welcome layout: transparent PNG floats above the rounded phone input sheet. */
+.onboarding-shell {overflow:hidden; isolation:isolate;}
+.onboarding-shell .onboarding-top {justify-content:center; min-height:50px;}
+.onboarding-shell .onboarding-top img {object-position:center; width:150px;}
+.onboarding-shell .welcome-stage {gap:0; flex:1;}
+.welcome-stage h1 {font-size:clamp(24px,6vw,30px);max-width:320px; margin:22px 0 8px;}
+.welcome-stage > p {max-width:325px; margin:0 0 6px;}
+.welcome-stage .onboarding-photo {
+  height:clamp(270px,44vh,420px); min-height:240px; flex:1; margin-top:4px;
+  padding:0; border-radius:0; background:transparent; overflow:visible;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.welcome-stage .onboarding-photo img {
+  display:block; width:auto; max-width:115%; height:100%; max-height:100%;
+  object-fit:contain; object-position:center bottom;
+}
+.welcome-stage .welcome-phone-form {
+  z-index:2; position:relative; margin-top:-22px; padding:22px 18px;
+  border-radius:23px; background:#fff;
+  box-shadow:0 -8px 26px rgba(25,80,155,.09); gap:12px;
+}
+.welcome-stage .welcome-phone-form .order-primary {margin-top:6px;}
+@media (min-width:768px) {
+  .onboarding-shell {min-height:780px; margin:30px auto;}
+  .welcome-stage .onboarding-photo {height:390px;}
+}
+@media (max-width:370px) {
+  .welcome-stage h1 {margin-top:9px;}
+  .welcome-stage .onboarding-photo {height:260px;}
+  .welcome-stage .welcome-phone-form {padding:18px 14px;}
+}

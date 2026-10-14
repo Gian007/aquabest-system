@@ -28,13 +28,13 @@ export default function CustomerOnboarding({ onComplete, sampleCustomer }) {
   };
   return (
     <main className="onboarding-shell">
-      <div className="onboarding-top"><img src={logo} alt="AquaBest" /><span>{stage==='phone'?'01 / 03':stage==='otp'?'02 / 03':'03 / 03'}</span></div>
+      <div className="onboarding-top"><img src={logo} alt="AquaBest" /></div>
       {stage !== 'phone' && <button type="button" className="onboarding-back" onClick={() => { setStage(stage === 'otp' ? 'phone' : 'otp'); setError(''); }}><FiArrowLeft /> Back</button>}
-      <div className="onboarding-progress"><span className="done">Phone</span><span className={stage!=='phone'?'done':''}>Verify</span><span className={stage==='profile'?'done':''}>Details</span></div>
-      {stage === 'phone' && <section className="onboarding-step">
+      
+      {stage === 'phone' && <section className="onboarding-step welcome-stage">
         <h1>Welcome to AquaBest!</h1><p>Enter your mobile number to get started with your water orders.</p>
         <div className="onboarding-photo"><img src={deliveryModel} alt="AquaBest delivery staff helping a customer with a water container" /></div>
-        <form onSubmit={(event)=> { event.preventDefault(); setStage('otp'); setError(''); }} className="onboarding-form">
+        <form onSubmit={(event)=> { event.preventDefault(); setStage('otp'); setError(''); }} className="onboarding-form welcome-phone-form">
           <label htmlFor="start-phone">Mobile number</label>
           <div className="field-with-icon"><FiPhone /><input id="start-phone" autoComplete="tel" type="tel" inputMode="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="0917 123 4567" required /></div>
           <small>Use an 11-digit Philippine number beginning with 09.</small>
