@@ -1,26 +1,33 @@
-import { FiArrowLeft, FiArrowRight, FiClipboard, FiClock, FiRefreshCw } from 'react-icons/fi';
-import { selectedBottles } from './orderData.js';
 import { useState } from 'react';
+import { FiArrowLeft, FiArrowRight, FiCheckCircle, FiClock, FiClipboard, FiTruck, FiRefreshCcw } from 'react-icons/fi';
+import { bottleOptions } from './orderData.js';
 
-export default function MyOrders({ demoOrder, onBack, onNewOrder }) {
-  const [tab, setTab] = useState('ongoing');
-  const hasDemo = Boolean(demoOrder);
-  return (
-    <section className="order-screen" aria-labelledby="my-orders-title">
-      <div className="order-page-heading"><h1 id="my-orders-title">My Orders</h1><p>Ongoing requests and order history.</p></div>
-      <div className="order-tabs" role="tablist" aria-label="Order category">
-        <button type="button" role="tab" aria-selected={tab === 'ongoing'} onClick={() => setTab('ongoing')}>Ongoing {hasDemo ? '(Demo)' : ''}</button>
-        <button type="button" role="tab" aria-selected={tab === 'history'} onClick={() => setTab('history')}>Order History</button>
-      </div>
-      {tab === 'ongoing' && (hasDemo ? <div className="order-panel">
-        <div className="demo-tag">DEMO ONLY — NOT SUBMITTED</div>
-        <h2>Request preview</h2>
-        {selectedBottles(demoOrder.quantities).map((item) => <p key={item.id}>{demoOrder.quantities[item.id]} × {item.name} · {item.shape}</p>)}
-        <div className="tracking-preview"><FiClock /><span><strong>Not sent to AquaBest</strong><small>Live tracking becomes available after backend integration and staff confirmation.</small></span></div>
-        <button className="btn order-primary" type="button" onClick={onNewOrder}>Start Another Draft <FiArrowRight /></button>
-      </div> : <div className="order-panel empty-orders"><FiClipboard size={30} /><h2>No ongoing orders yet</h2><p>When real ordering is connected, confirmed requests and their progress will appear here.</p><button className="btn order-primary" type="button" onClick={onNewOrder}>Order Water <FiArrowRight /></button></div>)}
-      {tab === 'history' && <div className="order-panel empty-orders"><FiRefreshCw size={30} /><h2>No order history yet</h2><p>Completed orders and Order Again will appear after real orders are connected.</p></div>}
-      <button className="btn order-text-back" type="button" onClick={onBack}><FiArrowLeft /> Back to Home</button>
-    </section>
-  );
+function summary(items=[]) { return items.map(({sizeId,quantity}) => { const b=bottleOptions.find(v=>v.id===sizeId); return quantity+' × '+(b?.name||sizeId)+' '+(b?.shape||''); }).join(' · '); }
+export default function MyOrders({ orders=[], onBack, onNewOrder, onReorder }) {
+  const [tab,setTab]=useState('ongoing');
+  const [expanded,setExpanded]=useState(null);
+  const ongoing=orders.filter(o=>!['Completed','Cancelled'].includes(o.status));
+  const history=orders.filter(o=>['Completed','Cancelled'].includes(o.status));
+  const showing=tab==='ongoing'?ongoing:history;
+  return <section className="order-screen" aria-labelledby="my-orders-title">
+    <div className="order-page-heading"><h1 id="my-orders-title">My Orders</h1><p>Check the progress of your orders and previous transactions.</p></div>
+    <div className="order-tabs" role="tablist" aria-label="Order category">
+      <button type="button" role="tab" aria-selected={tab==='ongoing'} onClick={()=>setTab('ongoing')}>Ongoing ({ongoing.length})</button>
+      <button type="button" role="tab" aria-selected={tab==='history'} onClick={()=>setTab('history')}>Order History ({history.length})</button>
+    </div>
+    {showing.map(order=><article className="order-panel saved-order-card" key={order.id}>
+      <div className="saved-order-head"><strong>Order #{order.id}</strong><span className={'order-status '+(order.status==='Completed'?'completed':'')}>{order.status}</span></div>
+      <p>{summary(order.items)}</p><div className="saved-order-meta"><FiClock /> {order.createdAt} <span>· {order.paymentStatus}</span></div>
+      {tab==='ongoing' && <><button type="button" className="btn order-primary" onClick={()=>setExpanded(expanded===order.id?null:order.id)}><FiTruck /> {expanded===order.id?'Hide Progress':'Track Progress'} <FiArrowRight /></button>
+        {expanded===order.id && <div className="progress-detail" aria-label={'Tracking for '+order.id}>
+          {['Pending Confirmation','Confirmed','Preparing','Out for Delivery','Delivered'].map((stage,i)=><div className={'progress-point '+((order.currentStep??0)>=i?'complete':'')} key={stage}>{(order.currentStep??0)>=i?<FiCheckCircle/>:<FiClock/>}<span>{stage}</span></div>)}
+        </div>}
+      </>}
+      {tab==='history' && <button className="btn order-secondary" type="button" onClick={()=>onReorder(order)}><FiRefreshCcw /> Order Again</button>}
+    </article>)}
+    {!showing.length && <div className="order-panel empty-orders"><FiClipboard size={30}/><h2>No orders here yet</h2></div>}
+    <button type="button" className="btn order-primary" onClick={onNewOrder}>New Water Order <FiArrowRight /></button>
+    <button className="btn order-text-back" type="button" onClick={onBack}><FiArrowLeft/> Back to Home</button>
+    <p className="sample-disclosure">Sample orders for UI testing only. Live status requires backend connection.</p>
+  </section>;
 }

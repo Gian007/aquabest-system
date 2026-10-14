@@ -1,7 +1,7 @@
 import { FiArrowLeft, FiArrowRight, FiCalendar, FiClock, FiMapPin, FiPhone, FiUser } from 'react-icons/fi';
 import { isDelivery } from './orderData.js';
 
-export default function OrderDetailsStep2({ draft, updateDraft, onBack, onNext }) {
+export default function OrderDetailsStep2({ draft, updateDraft, onBack, onNext, verifiedPhone }) {
   const delivery = isDelivery(draft.service);
   const details = draft.details;
   const setDetail = (key, value) => updateDraft({ details: { ...details, [key]: value } });
@@ -27,14 +27,14 @@ export default function OrderDetailsStep2({ draft, updateDraft, onBack, onNext }
         <label htmlFor="recipient">Recipient / customer name</label>
         <input id="recipient" className="form-control" value={details.name} onChange={change('name')} required maxLength={80} autoComplete="name" placeholder="Full name" />
         <label htmlFor="phone"><FiPhone /> Phone number</label>
-        <input id="phone" className="form-control" type="tel" inputMode="tel" pattern="09[0-9]{9}" title="Enter an 11-digit Philippine mobile number starting with 09" value={details.phone} onChange={change('phone')} required placeholder="09XXXXXXXXX" autoComplete="tel" />
-        <small className="panel-hint">Phone OTP verification will be added when authentication is connected; this form does not verify the number.</small>
+        <input id="phone" className="form-control" type="tel" value={verifiedPhone || details.phone} readOnly aria-readonly="true" />
+        <small className="panel-hint">Phone is automatically filled from the onboarding step. Real verification requires Supabase Auth integration.</small>
       </div>
 
       <div className="order-panel">
         <h2><FiCalendar /> Preferred {delivery ? 'delivery' : 'pickup'} schedule</h2>
         <div className="schedule-grid">
-          <div><label htmlFor="schedule-date">Preferred date</label><input id="schedule-date" type="date" className="form-control" value={details.date} onChange={change('date')} required min={new Date().toLocaleDateString('en-CA')} /></div>
+          <div><label htmlFor="schedule-date">Preferred date</label><input id="schedule-date" type="date" className="form-control" value={details.date} onChange={change('date')} required min={new Date().toISOString().slice(0, 10)} /></div>
           <div><label htmlFor="schedule-time"><FiClock /> Time window</label><select id="schedule-time" className="form-select" value={details.time} onChange={change('time')} required>
             <option value="">Select time</option>
             <option value="Morning (9 AM–12 PM)">Morning (9 AM–12 PM)</option>
