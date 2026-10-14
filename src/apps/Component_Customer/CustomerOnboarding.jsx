@@ -27,7 +27,7 @@ export default function CustomerOnboarding({ onComplete, sampleCustomer }) {
     onComplete({ id: 'local-preview', phone: phone.replace(/\s/g, ''), fullName: profile.fullName.trim(), address: { ...profile.address } });
   };
   return (
-    <main className="onboarding-shell">
+    <main className={`onboarding-shell ${stage === "phone" ? "phone-entry-screen" : ""}`}>
       <div className="onboarding-top"><img src={logo} alt="AquaBest" /></div>
       {stage !== 'phone' && <button type="button" className="onboarding-back" onClick={() => { setStage(stage === 'otp' ? 'phone' : 'otp'); setError(''); }}><FiArrowLeft /> Back</button>}
       

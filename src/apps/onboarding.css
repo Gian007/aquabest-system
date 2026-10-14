@@ -71,3 +71,59 @@
   .welcome-stage .onboarding-photo {height:260px;}
   .welcome-stage .welcome-phone-form {padding:18px 14px;}
 }
+
+/* Full-height edge-to-edge phone entry at 393x852; no scrolling required.
+   Only the initial phone screen is fixed-height. OTP/profile remain scrollable. */
+.onboarding-shell.phone-entry-screen {
+  width:100%; max-width:470px; height:100vh; height:100dvh; min-height:0;
+  margin:0 auto; padding:0; gap:0;
+  display:flex; flex-direction:column; overflow:hidden;
+  background:linear-gradient(160deg,#f1f8ff,#fff 55%);
+}
+.phone-entry-screen .onboarding-top {
+  flex:0 0 auto; height:clamp(68px,10vh,86px); min-height:0;
+  margin:0; padding:12px 18px 4px; justify-content:center;
+}
+.phone-entry-screen .onboarding-top img {height:47px;width:145px;}
+.phone-entry-screen .welcome-stage {
+  display:flex; flex-direction:column; min-height:0; flex:1 1 auto;
+  margin:0; gap:0; overflow:hidden;
+}
+.phone-entry-screen .welcome-stage h1 {
+  flex:0 0 auto; margin:8px 20px 6px; font-size:clamp(22px,6.3vw,27px);
+  line-height:1.16; max-width:none;
+}
+.phone-entry-screen .welcome-stage > p {
+  flex:0 0 auto; margin:0 20px 4px; max-width:340px;
+  font-size:13px; line-height:1.45;
+}
+.phone-entry-screen .welcome-stage .onboarding-photo {
+  flex:1 1 0; min-height:0; height:auto; width:100%; max-width:none;
+  margin:0; padding:0; overflow:hidden; background:transparent;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.phone-entry-screen .welcome-stage .onboarding-photo img {
+  display:block; width:100%; height:100%; max-height:none; max-width:none;
+  object-fit:cover; object-position:center 22%; /* crop excess legs, keep upper bodies */
+}
+.phone-entry-screen .welcome-stage .welcome-phone-form {
+  flex:0 0 auto; z-index:3; width:100%; margin:-23px 0 0;
+  padding:20px 20px max(22px,env(safe-area-inset-bottom));
+  border-radius:24px 24px 0 0; box-shadow:0 -9px 25px rgba(17,48,94,.08);
+  background:white; gap:9px;
+}
+.phone-entry-screen .welcome-phone-form label {font-size:13px;}
+.phone-entry-screen .welcome-phone-form .field-with-icon input {min-height:46px;}
+.phone-entry-screen .welcome-phone-form small {font-size:11px; line-height:1.35;}
+.phone-entry-screen .welcome-phone-form .order-primary {min-height:47px;margin:3px 0 0;}
+.phone-entry-screen .onboarding-footer {display:none;}
+@media (min-width:768px) {
+  .onboarding-shell.phone-entry-screen {margin:0 auto;min-height:0;border-radius:0;box-shadow:none;}
+}
+@media (max-height:690px) {
+  .phone-entry-screen .onboarding-top {height:58px;padding-top:5px;}
+  .phone-entry-screen .welcome-stage h1 {font-size:21px;margin-top:3px;}
+  .phone-entry-screen .welcome-stage > p {font-size:12px;}
+  .phone-entry-screen .welcome-stage .welcome-phone-form {padding-top:13px;padding-bottom:14px;gap:6px;}
+  .phone-entry-screen .welcome-phone-form .order-primary {min-height:42px;}
+}
