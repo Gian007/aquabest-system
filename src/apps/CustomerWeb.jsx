@@ -5,7 +5,7 @@ import OrderWaterStep1 from './Component_Customer/OrderWaterStep1.jsx';
 import OrderDetailsStep2 from './Component_Customer/OrderDetailsStep2.jsx';
 import ReviewOrderStep3 from './Component_Customer/ReviewOrderStep3.jsx';
 import MyOrders from './Component_Customer/MyOrders.jsx';
-import model from '../assets/model.png';
+import model from '../assets/Model_Imgs/model.png';
 import bottleRound from '../assets/WaterBottleSize/bottle_5_round.png';
 import bottleSlim from '../assets/WaterBottleSize/bottle_5.png';
 import './customerWeb.css';
