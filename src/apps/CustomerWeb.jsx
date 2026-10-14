@@ -11,6 +11,7 @@ import model from '../assets/Model_Imgs/model.png';
 import explainingModel from '../assets/Model_Imgs/ExplainingModel.png';
 import ownBottle from '../assets/WaterBottleOffer/ownBottle.png';
 import buyBottle from '../assets/WaterBottleOffer/buyBottle.png';
+import bottleBundle from '../assets/WaterBottleOffer/bottleBundle.png';
 import './customerWeb.css';
 import './orderFlow.css';
 import './onboarding.css';
@@ -79,7 +80,7 @@ export default function CustomerWeb(){
             </article></div>
           </div>
         </section>
-        <section className="bulk-card" aria-labelledby="bulk-title"><span className="bulk-icon"><FiPackage size={25}/></span><div>
+        <section className="bulk-card" aria-labelledby="bulk-title"><img className="bulk-product-image" src={bottleBundle} alt="AquaBest bulk and custom water bottle services"/><div>
           <h2 id="bulk-title">Custom & Bulk Orders</h2><p>Offices, events, special sizes, or customer-provided labels.</p><a href="tel:09994544981" className="bulk-link">Call for a quotation <FiArrowRight size={15}/></a>
         </div></section>
         <section className="why-section" aria-labelledby="why-title"><h2 id="why-title" className="section-title">Why AquaBest?</h2>
