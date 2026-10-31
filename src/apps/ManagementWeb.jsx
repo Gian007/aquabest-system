@@ -3,7 +3,7 @@ import {
  FiHome,FiMonitor,FiClipboard,FiMenu,FiBell,FiDroplet,FiTruck,
  FiPackage,FiCreditCard,FiBarChart2,FiUsers,FiPlus,FiMinus,FiArrowRight,
  FiCheckCircle,FiClock,FiX,FiAlertTriangle,FiActivity,FiDollarSign,
- FiEdit3,FiRefreshCw,FiSave
+ FiEdit3,FiRefreshCw,FiSave,FiLogOut,FiLogIn
 } from 'react-icons/fi';
 import logo from '../assets/AquaBest logo.png';
 import { bottleOptions } from './Component_Customer/orderData.js';
@@ -28,9 +28,12 @@ const today=()=>new Date().toISOString().slice(0,10);
 
 export default function ManagementWeb(){
  const [page,setPage]=useState('dashboard');
+ const [loggedIn,setLoggedIn]=useState(true);
  const [wireframe,setWireframe]=useState(false);
  const [orders,setOrders]=useState(INITIAL_ORDERS);
  const [stock,setStock]=useState(INITIAL_STOCK);
+ const [stockLog,setStockLog]=useState([]);
+ const [stockError,setStockError]=useState('');
  const [sale,setSale]=useState(initialSale);
  const [filter,setFilter]=useState('All');
  const [selected,setSelected]=useState(null);
@@ -38,9 +41,10 @@ export default function ManagementWeb(){
  const [nextStatus,setNextStatus]=useState('');
  const [notification,setNotification]=useState('');
  const [reportPeriod,setReportPeriod]=useState('Today');
- const [newStock,setNewStock]=useState({id:'round5',type:'IN',quantity:1});
+ const [newStock,setNewStock]=useState({id:'round5',type:'IN',quantity:1,reason:''});
  const [stockOpen,setStockOpen]=useState(false);
  const go=(p)=>{setPage(p);setSelected(null);window.scrollTo(0,0)};
+ const logout=()=>{setSelected(null);setStockOpen(false);setLoggedIn(false);setPage('dashboard')};
  const active=orders.filter(o=>!['Completed','Cancelled'].includes(o.status));
  const payments=orders.filter(o=>o.paymentStatus==='Paid');
  const revenue=payments.reduce((sum,o)=>sum+o.amount,0);
@@ -52,12 +56,18 @@ export default function ManagementWeb(){
  const startSale=()=>{setSale(initialSale());go('pos')};
  const saveSale=()=>{
   if(!selectedQty)return;
+  if(sale.ownership==='store' && Object.entries(sale.quantities).some(([id,q])=>q>(stock.find(x=>x.id===id)?.quantity||0))){setNotification('Insufficient AquaBest bottle stock.');return;}
   const id='DEMO-'+String(Date.now()).slice(-6);
   const isPaid=sale.paymentStatus==='Paid';
   const record={id,customer:sale.customer.trim()||'Walk-in Customer',source:sale.source,items:Object.entries(sale.quantities).filter(([,q])=>q>0).map(([sizeId,quantity])=>({sizeId,quantity})),
    status:sale.service==='Walk-in'?(isPaid?'Completed':'Confirmed'):'Pending Confirmation',paymentStatus:sale.paymentStatus,method:sale.paymentMethod,
    reference:sale.reference,amount:selectedTotal,service:sale.service,ownership:sale.ownership,assigned:'Unassigned',date:today(),notes:sale.notes};
-  setOrders(old=>[record,...old]);setNotification('Sample transaction '+id+' created locally. No real customer charged.');
+  if(sale.ownership==='store'){
+   const events=record.items.map(item=>({id:id+'-'+item.sizeId,productId:item.sizeId,type:'OUT',quantity:item.quantity,reason:sale.arrangement==='returnable'?'Returnable bottle issued':'Container sold',orderId:id,automatic:true,time:new Date().toLocaleString('en-PH')}));
+   setStock(old=>old.map(x=>({...x,quantity:x.quantity-(record.items.find(i=>i.sizeId===x.id)?.quantity||0)})));
+   setStockLog(old=>[...events,...old]);
+  }
+  setOrders(old=>[record,...old]);setNotification('Demo order saved. '+(sale.ownership==='store'?'AquaBest bottle stock automatically deducted.':'Customer-owned container: no bottle stock deduction.'));
   setSale(initialSale());go('orders');
  };
  const changeOrder=(id,patch)=>setOrders(old=>old.map(o=>o.id===id?{...o,...patch}:o));
@@ -65,10 +75,19 @@ export default function ManagementWeb(){
  const current=orders.find(o=>o.id===selected);
  const applyOrder=()=>{if(!current)return;changeOrder(current.id,{status:nextStatus,assigned});setSelected(null);setNotification('Sample order updated locally.')};
  const applyPayment=()=>{if(!current)return;changeOrder(current.id,{paymentStatus:'Paid'});setSelected(null);setNotification('Demo payment recorded. Production requires actual payment verification.')};
- const adjustStock=()=>{let n=Number(newStock.quantity);if(!Number.isInteger(n)||n<1)return;setStock(old=>old.map(s=>s.id!==newStock.id?s:{...s,quantity:Math.max(0,s.quantity+(newStock.type==='IN'?n:-n))}));setStockOpen(false);setNotification('Demo inventory movement recorded locally.')};
+ const adjustStock=()=>{
+ const n=Number(newStock.quantity),item=stock.find(s=>s.id===newStock.id),reason=newStock.reason.trim();
+ if(!Number.isInteger(n)||n<1){setStockError('Enter a valid positive whole number.');return}
+ if(!reason){setStockError('Reason is required.');return}
+ if(newStock.type==='OUT'&&n>item.quantity){setStockError('Insufficient bottle stock.');return}
+ setStock(old=>old.map(s=>s.id===newStock.id?{...s,quantity:s.quantity+(newStock.type==='IN'?n:-n)}:s));
+ setStockLog(old=>[{id:'MAN-'+Date.now(),productId:newStock.id,type:newStock.type,quantity:n,reason,automatic:false,time:new Date().toLocaleString('en-PH')},...old]);
+ setStockOpen(false);setStockError('');setNewStock({id:'round5',type:'IN',quantity:1,reason:''});setNotification('Demo stock movement saved with reason.');
+ };
  const filtered=orders.filter(o=>filter==='All'||(filter==='Unpaid'?o.paymentStatus!=='Paid':o.status===filter));
  const section=<div className="mgmt-demo">Prototype only • prices, names, sales, assignments and orders are sample values. Nothing is written to a backend.</div>;
 
+ if(!loggedIn)return <div className="mgmt mgmt-signout"><div className="mgmt-logout-card"><img src={logo} alt="AquaBest"/><FiLogOut size={32}/><h1>Manager preview closed</h1><p>Demo logout only. Real authentication is not connected yet.</p><button className="mgmt-btn full" onClick={()=>setLoggedIn(true)}><FiLogIn/> Re-enter Demo</button><a href={import.meta.env.BASE_URL}>Customer Website</a></div></div>;
  return <div className={"mgmt "+(wireframe?"mgmt-wireframe":"")}>
   <header className="mgmt-header"><div className="mgmt-header-inner">
     <div className="mgmt-brand"><img src={logo} alt="AquaBest"/><div><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>Manager Workspace</strong></div></div>
