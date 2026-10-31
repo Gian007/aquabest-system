@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiTruck, FiPackage, FiCreditCard, FiClock, FiCheckCircle, FiArrowRight, FiAlertTriangle, FiMapPin, FiFileText, FiRefreshCcw, FiHistory } from 'react-icons/fi';
+import { FiTruck, FiPackage, FiCreditCard, FiClock, FiCheckCircle, FiArrowRight, FiAlertTriangle, FiMapPin, FiFileText, FiRefreshCcw, FiHistory, FiLogOut } from 'react-icons/fi';
 import { formatMoney } from '../data/managerDemo.js';
 
 // Demo trips only. Vehicle/route details and addresses are intentionally not fabricated as live data.
@@ -13,7 +13,7 @@ const terminal=['Delivered','Failed Delivery','Returned to Station'];
 function Summary({title,value,Icon}){return <div className="mgmt-stat"><div className="mgmt-stat-top"><span>{title}</span><Icon size={17}/></div><strong>{value}</strong></div>}
 function Title({tag,title,description}){return <div className="mgmt-heading"><div className="overline">{tag}</div><h1>{title}</h1><p>{description}</p></div>}
 function Label({children}){return <span className="mgmt-pill">{children}</span>}
-export default function DeliveryOperations({page,go,trips,setTrips,driver='Driver A',onMessage}){
+export default function DeliveryOperations({page,go,trips,setTrips,driver='Driver A',onMessage,onLogout}){
  const [selected,setSelected]=useState(null);
  const [tab,setTab]=useState('Active');
  const [bottleCount,setBottleCount]=useState('0');
@@ -107,6 +107,7 @@ export default function DeliveryOperations({page,go,trips,setTrips,driver='Drive
    <Title tag="Delivery access" title="More Modules" description="Your trip support, payment and account tools."/>
    <div className="mgmt-more">
     {[[FiPackage,'Bottle Handling','bottles'],[FiCreditCard,'Collections','collections'],[FiHistory,'Delivery History','history'],[FiTruck,'My Deliveries','deliveries']].map(([Icon,label,target])=><button key={target} onClick={()=>go(target)}><Icon/><strong>{label}</strong><small>Open {label.toLowerCase()}</small></button>)}
+    <button onClick={onLogout}><FiLogOut/><strong>Log Out</strong><small>Exit delivery demo</small></button>
    </div>
   </>}
   {selected&&chosen&&<div className="mgmt-drawer" role="presentation" onClick={()=>setSelected(null)}><div className="mgmt-sheet" role="dialog" aria-modal="true" aria-label="Trip details" onClick={e=>e.stopPropagation()}>
