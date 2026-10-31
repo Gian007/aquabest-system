@@ -10,6 +10,7 @@ import { bottleOptions } from './Component_Customer/orderData.js';
 import { DEMO_PRICES, DEMO_PRODUCTS, INITIAL_ORDERS, INITIAL_STOCK, formatMoney, orderSummary } from '../data/managerDemo.js';
 import { useEmployeeAvailability, availabilityFor, TeamAvailability } from './EmployeeAvailability.jsx';
 import ManagementHeaderActions from './ManagementHeaderActions.jsx';
+import ManagementNotifications from './ManagementNotifications.jsx';
 import './managementWeb.css';
 
 const modules=[
@@ -206,7 +207,7 @@ export default function ManagementWeb({role='manager'}){
      <Heading kicker="My work history" title="My Activity" subtitle="Your refill status and inventory changes for this demo session."/>
      <div className="mgmt-card">{staffHistory.length?staffHistory.map(a=><div className="mgmt-row" key={a.id}><div><strong className="mgmt-row-title">{a.label}</strong><div className="mgmt-sub">{a.time}</div></div><FiCheckCircle color="#244ea3"/></div>):<p className="mgmt-sub">No activity yet. Start a refill task or record an inventory movement.</p>}</div>{section}
     </>}
-    {page==='notifications'&&<><Heading kicker="Alerts" title="Notifications" subtitle="Incoming order requests and stock warnings."/><div className="mgmt-card mgmt-row"><FiClipboard/><div><strong>Pending Online Order</strong><p className="mgmt-sub">New online order awaiting confirmation.</p></div><button className="mgmt-btn secondary" onClick={()=>go('orders')}>View</button></div><div className="mgmt-card mgmt-row" style={{marginTop:9}}><FiAlertTriangle/><div><strong>Low Stock Warning</strong><p className="mgmt-sub">Review inventory minimum quantities.</p></div><button className="mgmt-btn secondary" onClick={()=>go('inventory')}>View</button></div></>}
+    {page==='notifications'&&<ManagementNotifications isStaff={isStaff} orders={orders} stock={stock} onNavigate={go}/>}
     {isStaff&&page==='more'&&<>
      <Heading kicker="Staff access" title="More Modules" subtitle="Your additional work tools and account."/>
      <div className="mgmt-more">
