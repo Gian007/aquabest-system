@@ -3,7 +3,7 @@ import { FiCheckCircle, FiClock, FiCoffee, FiBriefcase, FiCalendar, FiUsers, FiA
 
 // Local demo state only. Real availability must come from authenticated staff records.
 const KEY='aquabest-demo-employee-availability-v1';
-const PEOPLE=['Manager','Staff A','Staff B','Driver A'];
+const PEOPLE=['Owner','Manager','Staff A','Staff B','Driver A'];
 const defaults=()=>Object.fromEntries(PEOPLE.map(name=>[name,{onDuty:true,onBreak:false,updatedAt:null,history:[]}]));
 function read(){
  try {
