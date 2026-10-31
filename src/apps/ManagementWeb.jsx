@@ -29,7 +29,6 @@ const today=()=>new Date().toISOString().slice(0,10);
 export default function ManagementWeb(){
  const [page,setPage]=useState('dashboard');
  const [loggedIn,setLoggedIn]=useState(true);
- const [wireframe,setWireframe]=useState(false);
  const [orders,setOrders]=useState(INITIAL_ORDERS);
  const [stock,setStock]=useState(INITIAL_STOCK);
  const [stockLog,setStockLog]=useState([]);
@@ -88,10 +87,10 @@ export default function ManagementWeb(){
  const section=<div className="mgmt-demo">Prototype only • prices, names, sales, assignments and orders are sample values. Nothing is written to a backend.</div>;
 
  if(!loggedIn)return <div className="mgmt mgmt-signout"><div className="mgmt-logout-card"><img src={logo} alt="AquaBest"/><FiLogOut size={32}/><h1>Manager preview closed</h1><p>Demo logout only. Real authentication is not connected yet.</p><button className="mgmt-btn full" onClick={()=>setLoggedIn(true)}><FiLogIn/> Re-enter Demo</button><a href={import.meta.env.BASE_URL}>Customer Website</a></div></div>;
- return <div className={"mgmt "+(wireframe?"mgmt-wireframe":"")}>
+ return <div className="mgmt">
   <header className="mgmt-header"><div className="mgmt-header-inner">
-    <div className="mgmt-brand"><img src={logo} alt="AquaBest"/><div><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>Manager Workspace</strong></div></div>
-    <div className="mgmt-actions"><button className="mgmt-mode-switch" aria-pressed={wireframe} onClick={()=>setWireframe(v=>!v)}>{wireframe?"UI Design":"Wireframe"}</button><button className="mgmt-icobtn" aria-label="Notifications" onClick={()=>go('notifications')}><FiBell/></button><button className="mgmt-icobtn" aria-label="More" onClick={()=>go('more')}><FiMenu/></button></div>
+    <button type="button" className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>go('dashboard')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>Manager Workspace</strong></span></button>
+    <div className="mgmt-actions"><button className="mgmt-icobtn" aria-label="Notifications" onClick={()=>go('notifications')}><FiBell/></button><button className="mgmt-icobtn" aria-label="More" onClick={()=>go('more')}><FiMenu/></button></div>
   </div></header>
   <div className="mgmt-body">
    <aside className="mgmt-sidebar" aria-label="Management sections">{modules.map(([id,label,Icon])=><button key={id} className={'mgmt-sidebtn '+(page===id?'active':'')} onClick={()=>go(id)}><Icon/><span className="mgmt-side-text"><strong>{label}</strong><small>{({dashboard:'Daily operations overview',pos:'Walk-in and manual sales',orders:'Review and assign orders',refill:'Preparation work queue',delivery:'Dispatch and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and balances',reports:'Revenue and sales breakdown',staff:'Personnel assignments'})[id]}</small></span></button>)}<button className="mgmt-sidebtn mgmt-logout-link" onClick={logout}><FiLogOut/><span className="mgmt-side-text"><strong>Log Out</strong><small>Exit the demo workspace</small></span></button></aside>
