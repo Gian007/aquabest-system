@@ -57,3 +57,21 @@
 .mgmt-brand-button:hover{opacity:.88}
 .mgmt-brand-button:focus-visible{outline:2px solid #244ea3;outline-offset:4px}
 .mgmt-brand-label{display:block}
+
+/* Shared employee availability component: same palette on Manager and Staff. */
+.availability-card{margin-bottom:14px}
+.availability-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-weight:750;font-size:11px;white-space:nowrap;background:#eff3f8;color:#586577}
+.availability-dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.availability-pill.available{background:#e5f6ed;color:#138358}
+.availability-pill.busy{background:#e7f0ff;color:#215bb7}
+.availability-pill.break{background:#f1eafe;color:#7c48ae}
+.availability-pill.neutral{background:#eef0f3;color:#6b7480}
+.availability-actions{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}
+.availability-actions .mgmt-btn{font-size:11px;min-height:40px;padding:9px 12px}
+.availability-meta{display:flex;flex-wrap:wrap;gap:8px 15px;font-size:11px;color:#65788e;margin-top:12px}
+.availability-meta span{display:flex;align-items:center;gap:5px}
+.availability-history{margin-top:12px;border-top:1px solid #e6ecf4;padding-top:10px;font-size:12px}
+.availability-history summary{font-weight:700;color:#244ea3;cursor:pointer;margin-bottom:8px}
+.availability-history .mgmt-sub{margin-top:5px}
+.availability-hint{display:flex;align-items:start;gap:7px;background:#f1f6ff;color:#365985;font-size:11px;padding:10px;border-radius:10px;margin-top:8px}
+.availability-hint svg{flex-shrink:0;margin-top:2px}
