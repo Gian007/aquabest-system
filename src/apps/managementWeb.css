@@ -159,3 +159,32 @@
 .delivery-confirm .mgmt-field{margin:0}
 .delivery-confirm textarea{width:100%;border:1px solid #d9e2ec;border-radius:12px;padding:11px;min-height:85px}
 .delivery-paid{background:#eaf7ef;color:#14754b;display:flex;align-items:center;gap:8px}
+
+/* Owner business tools, styled with the existing AquaBest management palette. */
+.owner-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:12px 0}
+.owner-actions .mgmt-btn{display:inline-flex;align-items:center;gap:7px}
+.owner-form{margin:12px 0}.owner-form .mgmt-formgrid{gap:12px}
+.owner-subtitle{font-size:15px;font-weight:800;color:#1b2f63}
+.owner-directory{padding:6px 12px}
+.owner-person{display:flex;gap:12px;align-items:center;width:100%;background:transparent;border:0;border-bottom:1px solid #e5ecf5;text-align:left;padding:15px 5px;color:#1b2f63}
+.owner-person:last-child{border:0}.owner-person.selected{background:#edf4ff;border-radius:10px}
+.owner-person-name{display:flex;flex-direction:column;flex:1;min-width:0;gap:3px}.owner-person-name small{color:#78869b}
+.owner-avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#e9f2ff;color:#2453a3;flex-shrink:0}
+.owner-state{font-size:10px;display:inline-flex;width:fit-content;border-radius:99px;padding:5px 9px;background:#eef0f3;color:#748092;font-weight:800}
+.owner-state.active{background:#e4f6ef;color:#117d52}
+.owner-profile{margin-top:14px}.owner-profile .mgmt-stats{margin:12px 0}
+.owner-product-list{display:grid;gap:12px}
+.owner-product{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.owner-product-image{width:67px;height:67px;border-radius:12px;background:#eef4fd;color:#2d66ad;display:grid;place-items:center;overflow:hidden;flex-shrink:0}
+.owner-product-image img{width:100%;height:100%;object-fit:cover}
+.owner-product-info{display:flex;flex-direction:column;flex:1;min-width:145px;gap:5px;color:#1b2f63}
+.owner-product-info .mgmt-sub{margin:0}
+.owner-product-actions{display:flex;gap:7px;flex-wrap:wrap}
+.owner-product-actions .mgmt-btn{font-size:11px}
+.owner-product-upload{display:flex;gap:12px;align-items:center;margin:12px 0 18px}
+.owner-product-upload .owner-product-image{width:96px;height:96px}
+.owner-row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:end}
+.owner-empty{display:flex;align-items:center;flex-direction:column;gap:9px;padding:20px;color:#8c9db6;text-align:center}
+.owner-empty p{margin:0;font-size:12px}
+.owner-span{grid-column:1/-1}.owner-form textarea{width:100%;border:1px solid #d9e2ec;border-radius:12px;padding:11px;color:#1b2f63}
+@media(max-width:500px){.owner-product-actions{width:100%}.owner-product-actions .mgmt-btn{flex:1}.owner-person{gap:9px}.owner-profile .mgmt-stat{min-width:0}}
