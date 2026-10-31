@@ -16,6 +16,7 @@ export default function OwnerOperations({page,go,orders,stock,trips,availability
  const [verification,setVerification]=useState([]);
  const [period,setPeriod]=useState('All Demo Data');
  const [approvals,setApprovals]=useState([]);
+ const [auditFilter,setAuditFilter]=useState('All');
  const record=description=>{setAudit(old=>[{id:Date.now()+'-'+old.length,description,time:today()},...old]);onMessage(description+' (demo only)')};
  const paid=orders.filter(o=>o.paymentStatus==='Paid');
  const collected=paid.reduce((n,o)=>n+o.amount,0);
@@ -52,23 +53,27 @@ export default function OwnerOperations({page,go,orders,stock,trips,availability
  </>}
  {page==='employees'&&<EmployeeDirectory availability={availability} orders={orders} onEvent={record}/>}
   {page==='approvals'&&<>
-  <Title eyebrow="Financial controls" title="Payment Verification" description="Review electronic payment references and cash remittance records."/>
-  <div className="mgmt-card"><strong>Electronic Proofs</strong>{pendingElectronic.length?pendingElectronic.map(t=><div className="mgmt-row" key={t.id}><div><div className="mgmt-row-title">{t.orderId} · {t.paymentMethod}</div><div className="mgmt-sub">Reference: {t.reference||'Missing'} · {formatMoney(t.amount)}</div></div><button className="mgmt-btn secondary" onClick={()=>{setVerification(old=>[...old,t.id]);record('Marked payment proof reviewed for '+t.orderId+' (demo only)')}}>Review</button></div>):<p className="mgmt-sub">No pending electronic proofs in this demo session.</p>}</div>
-  <div className="mgmt-section-title"><h2>Driver Cash Remittance</h2></div>
-  <div className="mgmt-card">{trips.filter(t=>t.remittance==='Awaiting Remittance').map(t=><div className="mgmt-row" key={t.id}><div><strong>{t.orderId}</strong><div className="mgmt-sub">{formatMoney(t.collectedCash||0)} held by driver</div></div><button className="mgmt-btn secondary" disabled={approvals.includes(t.id)} onClick={()=>{setApprovals(old=>[...old,t.id]);record('Marked remittance review requested for '+t.orderId)}}>{approvals.includes(t.id)?'Reviewed':'Review'}</button></div>)}</div>
-  <div className="mgmt-notice">Review actions do not verify money or change financial status. Actual approvals require proof validation and shared backend audit records.</div>{demo}
+  <Title eyebrow="Payment review" title="Payment Verification" description="Check submitted GCash/bank references and cash received from drivers."/>
+  <div className="mgmt-notice">A reference number alone does not prove payment. Check the actual AquaBest account or physically count cash before acknowledging any transaction.</div>
+  <div className="mgmt-section-title"><h2>GCash & Bank Transfers</h2></div>
+  <div className="mgmt-card">{pendingElectronic.length?pendingElectronic.map(t=><div className="mgmt-row" key={t.id}><div><strong className="mgmt-row-title">{t.orderId} · {t.customer}</strong><p className="mgmt-sub">{t.paymentMethod} · {formatMoney(t.amount)} · Ref: {t.reference||'Missing'}</p><p className="mgmt-sub">Status: Pending verification</p></div><button className="mgmt-btn secondary" onClick={()=>{setVerification(old=>[...old,t.id]);record('Reviewed electronic payment proof for order '+t.orderId)}}>Mark Reviewed</button></div>):<div className="owner-empty"><FiCreditCard size={22}/><strong>No pending electronic payment proofs</strong><p>When a driver records a GCash or bank reference, it should appear here after the shared database is connected. This preview cannot verify real money.</p></div>}</div>
+  <div className="mgmt-section-title"><h2>Cash Collected by Drivers</h2></div>
+  <div className="mgmt-card">{trips.filter(t=>t.remittance==='Awaiting Remittance').length?trips.filter(t=>t.remittance==='Awaiting Remittance').map(t=><div className="mgmt-row" key={t.id}><div><strong className="mgmt-row-title">{t.orderId} · {t.driver}</strong><p className="mgmt-sub">{formatMoney(t.collectedCash||0)} collected · Pending handover</p></div><button className="mgmt-btn secondary" disabled={approvals.includes(t.id)} onClick={()=>{setApprovals(old=>[...old,t.id]);record('Reviewed pending cash remittance for order '+t.orderId)}}>{approvals.includes(t.id)?'Reviewed':'Mark Reviewed'}</button></div>):<div className="owner-empty"><FiDollarSign size={22}/><strong>No cash awaiting remittance</strong><p>Driver COD collections will be listed after delivery records synchronize with this workspace.</p></div>}</div>
+  <div className="mgmt-notice">Mark Reviewed is a demo checklist only. It does not set an order to Paid or acknowledge a real remittance. Production verification requires validated bank/GCash transactions, counting cash, and an immutable audit trail.</div>{demo}
  </>}
- {page==='products'&&<ProductCatalog onEvent={record}/>}
+  {page==='products'&&<ProductCatalog onEvent={record}/>}
  {page==='settings'&&<>
   <Title eyebrow="Configuration" title="Business Settings" description="Operating information, delivery fees and other business rules."/>
   <div className="mgmt-card"><strong>Store Operating Rules</strong><div className="mgmt-formgrid">{[['deliveryFee','Delivery fee (₱)'],['lowStock','Low-stock threshold'],['hours','Operating hours']].map(([key,l])=><div className="mgmt-field" key={key}><label>{l}</label><input value={draft[key]} onChange={e=>setDraft(old=>({...old,[key]:e.target.value}))}/></div>)}</div><div className="owner-actions"><button className="mgmt-btn" onClick={()=>{setSettings({...draft});record('Updated business operating settings')}}><FiSave/> Save Settings</button><button className="mgmt-btn secondary" onClick={()=>go('products')}>Manage Products & Prices</button></div><p className="mgmt-sub">Saved demo delivery fee: {settings.deliveryFee}</p></div>{demo}
  </>}
-  {page==='audit'&&<>
-  <Title eyebrow="Transparency" title="Audit & Activity Logs" description="See demo owner actions and recent administrative changes."/>
-  <div className="mgmt-stats"><Stat title="Owner Actions" value={audit.length} Icon={FiShield}/><Stat title="Sample Operational Records" value={activity} Icon={FiActivity}/></div>
-  <div className="mgmt-card">{audit.length?audit.map(e=><div className="mgmt-row" key={e.id}><div><strong className="mgmt-row-title">{e.description}</strong><div className="mgmt-sub">{e.time} · Demo Owner</div></div><FiCheckCircle color="#244ea3"/></div>):<p className="mgmt-sub">No owner configuration changes yet.</p>}</div>{demo}
+ {page==='audit'&&<>
+  <Title eyebrow="Change history" title="Audit & Activity Logs" description="Who changed employee, product, payment or business settings, and when."/>
+  <div className="mgmt-stats"><Stat title="Owner Actions" value={audit.length} Icon={FiShield}/><Stat title="Sample Operations" value={activity} Icon={FiActivity}/></div>
+  <div className="mgmt-controls">{['All','Employees','Products','Expenses','Payments','Settings'].map(f=><button key={f} className={auditFilter===f?'active':''} onClick={()=>setAuditFilter(f)}>{f}</button>)}</div>
+  <div className="mgmt-card">{audit.filter(e=>auditFilter==='All'||(auditFilter==='Employees'?/employee|profile|account|role/i.test(e.description):auditFilter==='Products'?/product/i.test(e.description):auditFilter==='Expenses'?/expense/i.test(e.description):auditFilter==='Payments'?/payment|remittance/i.test(e.description):/setting/i.test(e.description))).length?audit.filter(e=>auditFilter==='All'||(auditFilter==='Employees'?/employee|profile|account|role/i.test(e.description):auditFilter==='Products'?/product/i.test(e.description):auditFilter==='Expenses'?/expense/i.test(e.description):auditFilter==='Payments'?/payment|remittance/i.test(e.description):/setting/i.test(e.description))).map(e=><div className="mgmt-row" key={e.id}><div><strong className="mgmt-row-title">{e.description}</strong><p className="mgmt-sub">{e.time} · Demo Owner</p></div><FiCheckCircle color="#244ea3"/></div>):<div className="owner-empty"><FiShield size={22}/><strong>No changes found</strong><p>Try adding a product, updating an employee or recording an expense to generate demo audit activity.</p></div>}</div>
+  <div className="mgmt-notice">For production, audit entries must be written server-side with employee identity and before/after values. Browser demo history is not tamper-proof.</div>{demo}
  </>}
- {page==='more'&&<>
+  {page==='more'&&<>
   <Title eyebrow="Owner access" title="All Modules" description="Operational views and business administration."/>
   <div className="mgmt-more">{[[FiPackage,'Products & Services','products'],[FiClipboard,'Orders','orders'],[FiTruck,'Delivery','delivery'],[FiPackage,'Inventory','inventory'],[FiCreditCard,'Payments','payments'],[FiUsers,'Employees','employees'],[FiSettings,'Settings','settings'],[FiShield,'Audit Logs','audit'],[FiAlertTriangle,'Verification','approvals']].map(([Icon,title,target])=><button key={target} onClick={()=>go(target)}><Icon/><strong>{title}</strong><small>Open {title.toLowerCase()}</small></button>)}</div>{demo}
  </>}
