@@ -42,3 +42,15 @@ Open `https://gian007.github.io/aquabest-system/?view=delivery`. This uses the *
 The delivery demo contains Dashboard, My Deliveries, Bottle Handling, Collections, Delivery History, Notifications, and More / Logout. Trips have sample Driver A assignments, progressive stages, recorded bottle load/empty/return counts, manual COD entry, and remittance requests. A trip must be loaded before it can advance to Loaded; COD must be fully recorded before delivery is marked Delivered. Cash received is tracked separately from remittance; a real manager must confirm receipt later. The shared status header derives On Delivery from active trips, with manual Break/Offline. Scheduling remains disabled.
 
 **All records are mock/demo values and isolated in browser component state.** There is no real customer address/contact information, verified payment, inventory write, driver GPS, server login, or synchronization with Manager/Staff sessions yet. The Maps action is intentionally disabled until valid addresses are available. Real backend will require trip-to-order linking, staff handover validation, payment verification, inventory reconciliation, and permission enforcement.
+
+## Owner and revised Delivery demo (November 2026)
+
+The shared ManagementWeb now supports **`?view=owner`** in addition to Manager, Staff, and Delivery. Owner retains the existing AquaBest design tokens, compact status/header, full desktop sidebar, and floating mobile four-tab bar (Home, Reports, Employees, More). Owner-specific pages provide executive KPI reporting, expenses, role/POS permission previews, electronic proof review, remittance oversight, sample pricing/settings and an activity log; operational pages reuse Manager POS, Orders, Refill, Delivery, Inventory and Payments. Owner changes stay in local component state and are **not** secure authentication or actual policy enforcement.
+
+Delivery demo progress is simplified to Assigned → Ready for Pickup → Out for Delivery → Delivered (or Failed). Container loading stays a handover action rather than an extra order stage. While Out for Delivery, the driver confirms the result and handles payment in one dialog:
+- Already verified Paid: confirm delivery without collecting again.
+- Cash: record cash at drop-off; separate cash remittance remains pending.
+- GCash / bank transfer: require transaction reference and flag as **Pending Verification**, not verified Paid.
+- Failed: require a reason without forcing collection.
+
+**Important:** Online order source does not imply paid. All demo receipts and proof references are illustrative; they are not verified. Cross-device sync, back-end inventory release logic, pricing persistence, actual payment verification, separate two-owner identities, role enforcement and delivery/staff handovers still require Supabase/Auth/RLS. All preview URLs are publicly accessible; do not add real personal or financial data.
