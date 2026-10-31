@@ -31,3 +31,9 @@
 .mgmt-notice{padding:11px;border-radius:12px;background:#fff2d9;color:#8a5d00;font-size:12px;margin-bottom:12px}.mgmt-demo{margin-top:14px;color:#71819b;font-size:11px;line-height:1.45}.mgmt-table-scroll{overflow:auto}
 @media(min-width:850px){.mgmt-body{padding-top:28px;padding-bottom:35px}.mgmt-sidebar{display:block}.mgmt-bottom{display:none}.mgmt-formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.mgmt-main{max-width:none}.mgmt-drawer{align-items:center}.mgmt-sheet{border-radius:20px}}
 @media(max-width:370px){.mgmt-body{padding:14px 11px 110px}.mgmt-stat,.mgmt-card{padding:12px}.mgmt-qty{gap:5px}.mgmt-qty button{width:30px}}
+
+/* One-click structural wireframe review, preserves all clickable behavior. */
+.mgmt-mode-switch{border:1px solid #ccd9ea;background:#f3f7fc;color:#244ea3;border-radius:10px;padding:9px 10px;font-size:11px;font-weight:800;min-height:38px}
+.mgmt-wireframe{filter:grayscale(1);--a-primary:#59616b;--a-navy:#24272c;--a-aqua:#858b93;--a-light:#f0f0f0;--a-page:#f4f4f4;--a-line:#a3abb6;--a-muted:#6d7782}
+.mgmt-wireframe .mgmt-stat,.mgmt-wireframe .mgmt-card,.mgmt-wireframe .mgmt-quick,.mgmt-wireframe .mgmt-more button{border-style:dashed}
+.mgmt-wireframe .mgmt-chart b{background:#8a9199}
