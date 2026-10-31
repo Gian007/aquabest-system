@@ -4,9 +4,9 @@ import { formatMoney } from '../data/managerDemo.js';
 
 // Demo trips only. Vehicle/route details and addresses are intentionally not fabricated as live data.
 export const INITIAL_DELIVERY_TRIPS=[
- {id:'TRIP-001',orderId:'AB-1039',customer:'Sarah Lim',contact:'Sample contact not available',address:'Address pending validation',items:'3 × 5 Gallons (Slim)',status:'Out for Delivery',payment:'Paid',amount:105,driver:'Driver A',bottlesLoaded:3,emptiesCollected:0,collected:0,remittance:'Not required',notes:'Demo record'},
- {id:'TRIP-002',orderId:'AB-1047',customer:'Demo Customer A',contact:'Sample contact not available',address:'Address pending validation',items:'2 × 5 Gallons (Round)',status:'Assigned',payment:'Cash on Delivery',amount:70,driver:'Driver A',bottlesLoaded:0,emptiesCollected:0,collected:0,remittance:'Not collected',notes:'Customer-owned container delivery'},
- {id:'TRIP-003',orderId:'AB-1048',customer:'Demo Customer B',contact:'Sample contact not available',address:'Address pending validation',items:'1 × 2.5 Gallons (Slim)',status:'Ready for Dispatch',payment:'Cash on Delivery',amount:20,driver:'Driver A',bottlesLoaded:0,emptiesCollected:0,collected:0,remittance:'Not collected',notes:'Customer-owned container delivery'}
+ {id:'TRIP-001',orderId:'AB-1039',customer:'Sarah Lim',contact:'Sample contact not available',address:'Address pending validation',items:'3 × 5 Gallons (Slim)',status:'Out for Delivery',payment:'Paid',amount:105,driver:'Driver A',expectedBottles:3,bottlesLoaded:3,emptiesCollected:0,collected:0,remittance:'Not required',notes:'Demo record'},
+ {id:'TRIP-002',orderId:'AB-1047',customer:'Demo Customer A',contact:'Sample contact not available',address:'Address pending validation',items:'2 × 5 Gallons (Round)',status:'Assigned',payment:'Cash on Delivery',amount:70,driver:'Driver A',expectedBottles:2,bottlesLoaded:0,emptiesCollected:0,collected:0,remittance:'Not collected',notes:'Customer-owned container delivery'},
+ {id:'TRIP-003',orderId:'AB-1048',customer:'Demo Customer B',contact:'Sample contact not available',address:'Address pending validation',items:'1 × 2.5 Gallons (Slim)',status:'Ready for Dispatch',payment:'Cash on Delivery',amount:20,driver:'Driver A',expectedBottles:1,bottlesLoaded:0,emptiesCollected:0,collected:0,remittance:'Not collected',notes:'Customer-owned container delivery'}
 ];
 const TRIP_STEPS=['Assigned','Ready for Dispatch','Loaded','Out for Delivery','Delivered'];
 const terminal=['Delivered','Failed Delivery','Returned to Station'];
@@ -37,14 +37,14 @@ export default function DeliveryOperations({page,go,trips,setTrips,driver='Drive
  const transition=(trip,next)=>{
   const current=TRIP_STEPS.indexOf(trip.status),index=TRIP_STEPS.indexOf(next);
   if(index!==current+1)return;
-  if(next==='Loaded'&&trip.bottlesLoaded===0){onMessage('Confirm loaded bottles in Bottle Handling before dispatch.');return}
+  if(next==='Loaded'&&trip.bottlesLoaded!==trip.expectedBottles){onMessage('Record all filled containers in Bottle Handling before confirming dispatch.');return}
   if(next==='Delivered'&&trip.payment==='Cash on Delivery'&&trip.collected<trip.amount){onMessage('Record full COD collection before marking delivered, or report an issue.');return}
   update(trip.id,{status:next},trip.orderId+' → '+next);setSelected(null);
  };
  const recordBottles=(trip,type)=>{
   const n=Number(bottleCount);
   if(!Number.isInteger(n)||n<1||n>100){onMessage('Enter a valid bottle count (1–100).');return}
-  if(type==='loaded'&&trip.bottlesLoaded+n>100){onMessage('Check loaded bottle quantity.');return}
+  if(type==='loaded'&&trip.bottlesLoaded+n>trip.expectedBottles){onMessage('You cannot load more bottles than the trip requires. Check the order quantity.');return}
   const desc=type==='loaded'?'Filled bottles loaded':type==='empty'?'Empty bottles collected':'AquaBest-owned bottles returned';
   if(type==='returned'&&!actionReason.trim()){onMessage('Enter a return/handover note.');return}
   const patch=type==='loaded'?{bottlesLoaded:trip.bottlesLoaded+n}:type==='empty'?{emptiesCollected:trip.emptiesCollected+n}:{};
@@ -118,11 +118,11 @@ export default function DeliveryOperations({page,go,trips,setTrips,driver='Drive
    <div className="mgmt-progress">{TRIP_STEPS.map((step,i)=><div key={step} className={TRIP_STEPS.indexOf(chosen.status)>=i?'done':''}>{TRIP_STEPS.indexOf(chosen.status)>=i?<FiCheckCircle/>:<FiClock/>}{step}</div>)}</div>
    {TRIP_STEPS.indexOf(chosen.status)>=0&&TRIP_STEPS.indexOf(chosen.status)<TRIP_STEPS.length-1&&<button className="mgmt-btn full" style={{marginTop:12}} onClick={()=>transition(chosen,TRIP_STEPS[TRIP_STEPS.indexOf(chosen.status)+1])}><FiArrowRight/> Confirm: {TRIP_STEPS[TRIP_STEPS.indexOf(chosen.status)+1]}</button>}
    {chosen.status==='Out for Delivery'&&<div className="mgmt-field" style={{marginTop:12}}><label>Failed delivery reason</label><input value={actionReason} onChange={e=>setActionReason(e.target.value)} placeholder="e.g., Customer unavailable"/><button className="mgmt-btn secondary" disabled={!actionReason.trim()} onClick={()=>{update(chosen.id,{status:'Failed Delivery'},'Delivery failed: '+actionReason.trim());setSelected(null)}}><FiAlertTriangle/> Report Failed Delivery</button></div>}
-   <div className="mgmt-section-title"><h2>Bottle Handover</h2></div>
-   <p className="mgmt-sub">Loaded: {chosen.bottlesLoaded} · Empty bottles collected: {chosen.emptiesCollected}</p>
-   {!terminal.includes(chosen.status)&&<><div className="mgmt-field"><label>Number of containers</label><input type="number" min="1" max="100" value={bottleCount} onChange={e=>setBottleCount(e.target.value)}/></div><div className="mgmt-field"><label>Handover / return note (required for returns)</label><input value={actionReason} onChange={e=>setActionReason(e.target.value)} placeholder="Notes about bottles"/></div>
-   <div className="delivery-actions"><button className="mgmt-btn secondary" onClick={()=>recordBottles(chosen,'loaded')}><FiPackage/> Loaded</button><button className="mgmt-btn secondary" onClick={()=>recordBottles(chosen,'empty')}><FiRefreshCcw/> Empties</button><button className="mgmt-btn secondary" onClick={()=>recordBottles(chosen,'returned')}>Returned</button></div></>}
-   {chosen.payment==='Cash on Delivery'&&chosen.collected<chosen.amount&&<><div className="mgmt-section-title"><h2>COD Collection</h2></div><p className="mgmt-sub">Outstanding: {formatMoney(chosen.amount-chosen.collected)}</p><div className="mgmt-field"><label>Cash collected</label><input type="number" min="0" value={collectionAmount} onChange={e=>setCollectionAmount(e.target.value)}/></div><div className="mgmt-field"><label>Reference / note (optional)</label><input value={collectionRef} onChange={e=>setCollectionRef(e.target.value)}/></div><button className="mgmt-btn full secondary" onClick={()=>collect(chosen)}><FiCreditCard/> Record Collection</button></>}
+   <div className="mgmt-section-title"><h2>Container Handover</h2></div>
+   <p className="mgmt-sub">Filled bottles loaded: {chosen.bottlesLoaded} / {chosen.expectedBottles} · Customer empties collected: {chosen.emptiesCollected}</p>
+   {!terminal.includes(chosen.status)&&<><div className="mgmt-field"><label>Quantity to record</label><input type="number" min="1" max="100" value={bottleCount} onChange={e=>setBottleCount(e.target.value)}/></div><div className="mgmt-field"><label>Notes (required for station returns)</label><input value={actionReason} onChange={e=>setActionReason(e.target.value)} placeholder="Notes about bottles"/></div>
+   <div className="delivery-actions"><button className="mgmt-btn secondary" onClick={()=>recordBottles(chosen,'loaded')}><FiPackage/> Filled Loaded</button><button className="mgmt-btn secondary" onClick={()=>recordBottles(chosen,'empty')}><FiRefreshCcw/> Collect Empties</button><button className="mgmt-btn secondary" onClick={()=>recordBottles(chosen,'returned')}>Return to Station</button></div></>}
+   {chosen.payment==='Cash on Delivery'&&chosen.collected<chosen.amount&&<><div className="mgmt-section-title"><h2>Cash on Delivery (COD)</h2></div><p className="mgmt-sub">Outstanding: {formatMoney(chosen.amount-chosen.collected)}</p><div className="mgmt-field"><label>Cash received (₱)</label><input type="number" min="0" value={collectionAmount} onChange={e=>setCollectionAmount(e.target.value)}/></div><div className="mgmt-field"><label>Reference / note (optional)</label><input value={collectionRef} onChange={e=>setCollectionRef(e.target.value)}/></div><button className="mgmt-btn full secondary" onClick={()=>collect(chosen)}><FiCreditCard/> Save Cash Received</button></>}
    <p className="mgmt-demo">Prototype only · No real delivery, customer contact, stock change or payment processing.</p>
   </div></div>}
  </>;
