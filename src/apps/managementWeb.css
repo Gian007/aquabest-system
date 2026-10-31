@@ -75,3 +75,42 @@
 .availability-history .mgmt-sub{margin-top:5px}
 .availability-hint{display:flex;align-items:start;gap:7px;background:#f1f6ff;color:#365985;font-size:11px;padding:10px;border-radius:10px;margin-top:8px}
 .availability-hint svg{flex-shrink:0;margin-top:2px}
+
+/* Compact and reusable employee header for manager, staff and future delivery. */
+.mgmt-header{background:rgba(255,255,255,.94);backdrop-filter:blur(14px);box-shadow:0 1px 8px rgba(27,47,99,.045)}
+.mgmt-header-actions{display:flex;align-items:center;gap:9px}
+.mgmt-status-holder{position:relative}
+.mgmt-status-trigger{border:1px solid transparent;border-radius:999px;background:#edf4ff;color:#244ea3;display:inline-flex;align-items:center;gap:7px;padding:10px 12px;font-weight:750;font-size:12px;min-height:40px}
+.mgmt-status-trigger:hover,.mgmt-status-trigger[aria-expanded="true"]{border-color:#bad0ed;background:#e6f0ff}
+.mgmt-status-dot{width:8px;height:8px;border-radius:50%;background:#8490a0;flex-shrink:0}
+.mgmt-status-dot.available{background:#148453}
+.mgmt-status-dot.busy{background:#2467c9}
+.mgmt-status-dot.break{background:#8b5bc4}
+.mgmt-status-popover{position:absolute;top:calc(100% + 11px);right:0;z-index:12;width:min(300px,calc(100vw - 26px));padding:14px;background:white;border:1px solid #d9e2ec;border-radius:17px;box-shadow:0 16px 45px rgba(21,47,89,.17)}
+.mgmt-status-popover>strong{font-size:14px;color:#1b2f63}
+.mgmt-status-popover>p{margin:4px 0 12px}
+.mgmt-status-popover button{width:100%;display:flex;align-items:center;gap:10px;border:0;border-radius:10px;background:white;text-align:left;color:#1b2f63;padding:10px;font-size:12px;font-weight:650}
+.mgmt-status-popover button:hover:not(:disabled){background:#eaf1ff}
+.mgmt-status-popover button:disabled{color:#9eabc0;cursor:not-allowed}
+.mgmt-status-popover button svg{color:#244ea3;flex-shrink:0}
+.mgmt-status-current{margin-left:auto;color:#16845d;font-size:10px}
+.mgmt-status-schedule{border-top:1px solid #e7edf5!important;border-radius:0!important;margin-top:6px}
+.mgmt-status-schedule small{margin-left:auto;font-size:10px}
+.mgmt-status-details{display:flex;align-items:start;gap:7px;padding:10px;border-radius:10px;background:#f2f6fc;font-size:10px;line-height:1.45;color:#63758d;margin-top:8px}
+.mgmt-status-details svg{flex-shrink:0;margin-top:1px}
+@media(max-width:849px){
+ .mgmt-header{padding:10px 12px}
+ .mgmt-brand img{width:88px;height:33px}
+ .mgmt-brand{gap:7px}
+ .mgmt-brand small{display:none}
+ .mgmt-brand-label strong{font-size:10px!important;font-weight:700}
+ .mgmt-icobtn{width:37px;height:37px;border-radius:11px}
+ .mgmt-header-actions{gap:6px}
+ .mgmt-status-trigger{padding:9px 10px;font-size:11px;min-height:37px;gap:5px}
+ .mgmt-status-popover{right:-43px}
+}
+@media(max-width:350px){
+ .mgmt-brand img{width:74px}
+ .mgmt-status-trigger{padding:8px}
+ .mgmt-status-label{max-width:55px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
