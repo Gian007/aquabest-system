@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FiBell, FiClipboard, FiDroplet, FiPackage, FiCheck, FiCheckCheck, FiArrowRight, FiInbox } from 'react-icons/fi';
+import { FiBell, FiClipboard, FiDroplet, FiPackage, FiCheck, FiCheckCircle, FiArrowRight, FiInbox } from 'react-icons/fi';
 
 export default function ManagementNotifications({isStaff,orders,stock,onNavigate}){
  const [readIds,setReadIds]=useState([]);
@@ -37,7 +37,7 @@ export default function ManagementNotifications({isStaff,orders,stock,onNavigate
     <button type="button" className={filter==='unread'?'active':''} aria-pressed={filter==='unread'} onClick={()=>setFilter('unread')}>Unread <span>{unread}</span></button>
     <button type="button" className={filter==='all'?'active':''} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All <span>{notices.length}</span></button>
    </div>
-   <button type="button" className="mgmt-notification-markall" disabled={!unread} onClick={()=>setReadIds(old=>[...new Set([...old,...notices.map(n=>n.id)])])}><FiCheckCheck/> Mark all read</button>
+   <button type="button" className="mgmt-notification-markall" disabled={!unread} onClick={()=>setReadIds(old=>[...new Set([...old,...notices.map(n=>n.id)])])}><FiCheckCircle/> Mark all read</button>
   </div>
   {visible.length===0?<div className="mgmt-notification-empty"><FiInbox size={32}/><h2>{filter==='unread'?'All caught up!':'No notifications yet'}</h2><p>{filter==='unread'?'No unread alerts. Switch to All to review previous notifications.':'New alerts will appear here as orders and stock change.'}</p></div>:
    <div className="mgmt-notification-list">{visible.map(n=>{
