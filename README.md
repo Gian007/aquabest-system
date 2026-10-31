@@ -34,3 +34,11 @@ The shared `EmployeeAvailability.jsx` UI supports manual **On Duty / Offline** a
 This is a **local-browser prototype**: status selections are saved in localStorage and may update across tabs in the same browser, but **do not synchronize across phones or accounts**. The seeded order assignments are demo fixtures, not actual employee work. Manual duty changes are not verified attendance or payroll time logs. There is no secure login yet. **My Schedule** is intentionally disabled, and Delivery role status is not implemented yet.
 
 Production requires authenticated employee IDs, database-backed status events, authorization rules, shift scheduling and a real-time subscription for manager monitoring.
+
+## Delivery personnel demo
+
+Open `https://gian007.github.io/aquabest-system/?view=delivery`. This uses the **same ManagementWeb shell, shared header and employee availability UI, desktop sidebar, and mobile floating navigation** as Manager and Staff. Only role-specific views are rendered.
+
+The delivery demo contains Dashboard, My Deliveries, Bottle Handling, Collections, Delivery History, Notifications, and More / Logout. Trips have sample Driver A assignments, progressive stages, recorded bottle load/empty/return counts, manual COD entry, and remittance requests. A trip must be loaded before it can advance to Loaded; COD must be fully recorded before delivery is marked Delivered. Cash received is tracked separately from remittance; a real manager must confirm receipt later. The shared status header derives On Delivery from active trips, with manual Break/Offline. Scheduling remains disabled.
+
+**All records are mock/demo values and isolated in browser component state.** There is no real customer address/contact information, verified payment, inventory write, driver GPS, server login, or synchronization with Manager/Staff sessions yet. The Maps action is intentionally disabled until valid addresses are available. Real backend will require trip-to-order linking, staff handover validation, payment verification, inventory reconciliation, and permission enforcement.
