@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiTruck, FiPackage, FiCreditCard, FiClock, FiCheckCircle, FiArrowRight, FiAlertTriangle, FiMapPin, FiFileText, FiRefreshCcw, FiClock, FiLogOut } from 'react-icons/fi';
+import { FiTruck, FiPackage, FiCreditCard, FiClock, FiCheckCircle, FiArrowRight, FiAlertTriangle, FiMapPin, FiFileText, FiRefreshCcw, FiLogOut } from 'react-icons/fi';
 import { formatMoney } from '../data/managerDemo.js';
 
 // Demo trips only. Vehicle/route details and addresses are intentionally not fabricated as live data.
