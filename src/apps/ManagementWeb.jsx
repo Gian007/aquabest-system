@@ -13,6 +13,7 @@ import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import ManagementNotifications from './ManagementNotifications.jsx';
 import DeliveryOperations, { INITIAL_DELIVERY_TRIPS } from './DeliveryOperations.jsx';
 import OwnerOperations from './OwnerOperations.jsx';
+import ExpenseReport from './ExpenseReport.jsx';
 import './managementWeb.css';
 
 const modules=[
@@ -21,7 +22,7 @@ const modules=[
  ['inventory','Inventory',FiPackage],['payments','Payments',FiCreditCard],
  ['reports','Sales Reports',FiBarChart2],['staff','Staff Tasks',FiUsers]
 ];
-const ownerModules=[['dashboard','Dashboard',FiHome],['reports','Sales Reports',FiBarChart2],['employees','Employees',FiUsers],['approvals','Verification',FiCreditCard],['orders','Orders',FiClipboard],['pos','POS',FiMonitor],['refill','Refill Tasks',FiDroplet],['delivery','Delivery',FiTruck],['inventory','Inventory',FiPackage],['payments','Payments',FiDollarSign],['settings','Business Settings',FiEdit3],['audit','Audit Logs',FiActivity]];
+const ownerModules=[['dashboard','Dashboard',FiHome],['reports','Sales Reports',FiBarChart2],['employees','Employees',FiUsers],['products','Products & Services',FiPackage],['approvals','Verification',FiCreditCard],['orders','Orders',FiClipboard],['pos','POS',FiMonitor],['refill','Refill Tasks',FiDroplet],['delivery','Delivery',FiTruck],['inventory','Inventory',FiPackage],['payments','Payments',FiDollarSign],['settings','Business Settings',FiEdit3],['audit','Audit Logs',FiActivity]];
 const staffModules=[['dashboard','Dashboard',FiHome],['refill','Refill Tasks',FiDroplet],['orders','Assigned Orders',FiClipboard],['inventory','Inventory',FiPackage],['activity','My Activity',FiActivity]];
 const deliveryModules=[['dashboard','Dashboard',FiHome],['deliveries','My Deliveries',FiTruck],['bottles','Bottle Handling',FiPackage],['collections','Collections',FiCreditCard],['history','Delivery History',FiActivity]];
 const stages=['Pending Confirmation','Confirmed','Preparing','Ready','Out for Delivery','Delivered','Completed'];
@@ -47,6 +48,7 @@ export default function ManagementWeb({role='manager'}){
  {id:'AB-1046',customer:'Anna Cruz',source:'Online',items:[{sizeId:'round5',quantity:2}],status:'Ready',paymentStatus:'Unpaid',amount:70,service:'Delivery',assigned:'Staff A',date:'2026-10-31'}]:INITIAL_ORDERS);
  const [staffHistory,setStaffHistory]=useState([]);
  const [stock,setStock]=useState(INITIAL_STOCK);
+ const [expenses,setExpenses]=useState([]);
  const [stockLog,setStockLog]=useState([]);
  const [stockError,setStockError]=useState('');
  const [sale,setSale]=useState(initialSale);
@@ -113,10 +115,10 @@ export default function ManagementWeb({role='manager'}){
     <ManagementHeaderActions name={ownStatusName} entries={availability} orders={isDelivery?deliveryAvailabilityOrders:orders} onUpdate={updateAvailability} onNotifications={()=>go('notifications')}/>
   </div></header>
   <div className="mgmt-body">
-   <aside className="mgmt-sidebar" aria-label="Management sections">{(isOwner?ownerModules:isDelivery?deliveryModules:isStaff?staffModules:modules).map(([id,label,Icon])=><button key={id} className={'mgmt-sidebtn '+(page===id?'active':'')} onClick={()=>go(id)}><Icon/><span className="mgmt-side-text"><strong>{label}</strong><small>{({dashboard:'Daily operations overview',pos:'Walk-in and manual sales',orders:'Review and assign orders',refill:'Preparation work queue',delivery:'Dispatch and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and balances',reports:'Revenue and sales breakdown',staff:'Personnel assignments',activity:'Your task and stock movement history',deliveries:'Your assigned trips and stops',bottles:'Loaded bottles, empties and returns',collections:'COD and remittance records',history:'Completed trips and activity',employees:'Accounts and role permissions',approvals:'Electronic proofs and cash remittances',settings:'Product prices and business rules',audit:'Administrative activity and audit history'})[id]}</small></span></button>)}<button className="mgmt-sidebtn mgmt-logout-link" onClick={logout}><FiLogOut/><span className="mgmt-side-text"><strong>Log Out</strong><small>Exit the demo workspace</small></span></button></aside>
+   <aside className="mgmt-sidebar" aria-label="Management sections">{(isOwner?ownerModules:isDelivery?deliveryModules:isStaff?staffModules:modules).map(([id,label,Icon])=><button key={id} className={'mgmt-sidebtn '+(page===id?'active':'')} onClick={()=>go(id)}><Icon/><span className="mgmt-side-text"><strong>{label}</strong><small>{({dashboard:'Daily operations overview',pos:'Walk-in and manual sales',orders:'Review and assign orders',refill:'Preparation work queue',delivery:'Dispatch and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and balances',reports:'Revenue and sales breakdown',staff:'Personnel assignments',activity:'Your task and stock movement history',deliveries:'Your assigned trips and stops',bottles:'Loaded bottles, empties and returns',collections:'COD and remittance records',history:'Completed trips and activity',employees:'Accounts and role permissions',approvals:'Electronic proofs and cash remittances',settings:'Product prices and business rules',audit:'Administrative activity and audit history',products:'Manage products, images and availability'})[id]}</small></span></button>)}<button className="mgmt-sidebtn mgmt-logout-link" onClick={logout}><FiLogOut/><span className="mgmt-side-text"><strong>Log Out</strong><small>Exit the demo workspace</small></span></button></aside>
    <main className="mgmt-main">
     {notification&&<div className="mgmt-notice" role="status">{notification} <button className="mgmt-link" onClick={()=>setNotification('')}>Dismiss</button></div>}
-    {isOwner&&<OwnerOperations page={page} go={go} orders={orders} stock={stock} trips={trips} availability={availability} onMessage={setNotification}/>}
+    {isOwner&&<OwnerOperations page={page} go={go} orders={orders} stock={stock} trips={trips} availability={availability} onMessage={setNotification} expenses={expenses} setExpenses={setExpenses}/>}
     {isDelivery&&<DeliveryOperations page={page} go={go} trips={trips} setTrips={setTrips} onMessage={setNotification} onLogout={logout}/>}
     {isStaff&&page==='dashboard'&&<>
      <Heading kicker="Staff workspace" title="My Work Today" subtitle="Assigned orders, refill preparation and container tasks."/>
@@ -206,6 +208,7 @@ export default function ManagementWeb({role='manager'}){
      <div className="mgmt-stats"><Stat label="Collected (Sample)" value={formatMoney(revenue)} Icon={FiDollarSign}/><Stat label="Paid Transactions" value={payments.length} Icon={FiCheckCircle}/><Stat label="Unpaid Balance" value={formatMoney(unpaid)} Icon={FiClock}/><Stat label="Total Orders" value={orders.length} Icon={FiClipboard}/></div>
      <Section title="Sample Sales Trend"/><div className="mgmt-card"><div className="mgmt-chart">{[55,74,40,89,62,100,81].map((height,i)=><div key={i}><b style={{height:height+'%'}}/><small>{['M','T','W','T','F','S','S'][i]}</small></div>)}</div></div>
      <Section title="Sales by Source"/><div className="mgmt-card">{['Walk-in','Online','Messenger','Phone'].map(source=><div className="mgmt-row" key={source}><span className="mgmt-sub">{source}</span><strong>{formatMoney(payments.filter(o=>o.source===source).reduce((a,o)=>a+o.amount,0))}</strong></div>)}</div>
+     <ExpenseReport expenses={expenses} setExpenses={setExpenses} onEvent={setNotification}/>
      <div className="mgmt-notice">Date tabs and chart are visual demo controls. Verified sales reports will require real payment dates and database queries.</div>{section}
     </>}
     {!isOwner&&!isStaff&&!isDelivery&&page==='staff'&&<>
