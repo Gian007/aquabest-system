@@ -114,3 +114,30 @@
  .mgmt-status-trigger{padding:8px}
  .mgmt-status-label{max-width:55px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
+
+/* Actionable notifications: mobile-first, compact and accessible. */
+.mgmt-notification-toolbar{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;margin:16px 0}
+.mgmt-notification-tabs{display:flex;padding:3px;border:1px solid #d9e2ec;border-radius:12px;background:white;gap:3px}
+.mgmt-notification-tabs button{border:0;background:transparent;border-radius:9px;color:#64748d;padding:9px 12px;font-size:12px;font-weight:750;display:flex;align-items:center;gap:7px}
+.mgmt-notification-tabs button.active{background:#eaf1ff;color:#244ea3}
+.mgmt-notification-tabs span{background:#f0f5fb;border-radius:999px;font-size:10px;min-width:19px;padding:2px 5px}
+.mgmt-notification-markall{border:0;background:transparent;display:flex;gap:6px;align-items:center;color:#244ea3;font-size:11px;font-weight:750;padding:8px}
+.mgmt-notification-markall:disabled{opacity:.45}
+.mgmt-notification-list{display:grid;gap:10px}
+.mgmt-notification-card{display:flex;align-items:flex-start;gap:12px;background:#fff;border:1px solid #dce6f1;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(27,47,99,.025)}
+.mgmt-notification-card.is-read{background:#f8fafc}
+.mgmt-notification-icon{width:40px;height:40px;display:grid;place-items:center;border-radius:13px;background:#eaf1ff;color:#244ea3;flex-shrink:0;font-size:19px}
+.mgmt-notification-content{flex:1;min-width:0}
+.mgmt-notification-kicker{display:flex;align-items:center;gap:8px;color:#2863ae;font-size:10px;font-weight:800;letter-spacing:.35px;text-transform:uppercase}
+.mgmt-unread-dot{width:7px;height:7px;border-radius:50%;background:#2d7ae3}
+.mgmt-notification-content h2{font-weight:800;font-size:14px;line-height:1.4;color:#1b2f63;margin:5px 0}
+.mgmt-notification-content p{font-size:12px;line-height:1.55;color:#667788;margin:0;overflow-wrap:anywhere}
+.mgmt-notification-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.mgmt-notification-actions button{border:0;background:transparent;font-size:11px;font-weight:750;display:inline-flex;gap:5px;align-items:center;padding:6px 0}
+.mgmt-notification-open{color:#244ea3}
+.mgmt-notification-read{color:#64748d}
+.mgmt-notification-empty{background:#fff;border:1px dashed #d2deed;border-radius:17px;min-height:220px;padding:38px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#9bb1cc}
+.mgmt-notification-empty h2{font-size:16px;color:#1b2f63;margin:12px 0 5px}
+.mgmt-notification-empty p{font-size:12px;color:#718197;max-width:270px;margin:0}
+.mgmt-notification-page>.mgmt-demo{display:flex;align-items:start;gap:6px}
+@media(max-width:400px){.mgmt-notification-card{padding:13px;gap:10px}.mgmt-notification-icon{width:36px;height:36px}.mgmt-notification-markall{font-size:10px}}
