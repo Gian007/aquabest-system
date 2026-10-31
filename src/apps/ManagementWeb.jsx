@@ -28,6 +28,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 
 export default function ManagementWeb(){
  const [page,setPage]=useState('dashboard');
+ const [wireframe,setWireframe]=useState(false);
  const [orders,setOrders]=useState(INITIAL_ORDERS);
  const [stock,setStock]=useState(INITIAL_STOCK);
  const [sale,setSale]=useState(initialSale);
@@ -68,10 +69,10 @@ export default function ManagementWeb(){
  const filtered=orders.filter(o=>filter==='All'||(filter==='Unpaid'?o.paymentStatus!=='Paid':o.status===filter));
  const section=<div className="mgmt-demo">Prototype only • prices, names, sales, assignments and orders are sample values. Nothing is written to a backend.</div>;
 
- return <div className="mgmt">
+ return <div className={"mgmt "+(wireframe?"mgmt-wireframe":"")}>
   <header className="mgmt-header"><div className="mgmt-header-inner">
     <div className="mgmt-brand"><img src={logo} alt="AquaBest"/><div><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>Manager Workspace</strong></div></div>
-    <div className="mgmt-actions"><button className="mgmt-icobtn" aria-label="Notifications" onClick={()=>go('notifications')}><FiBell/></button><button className="mgmt-icobtn" aria-label="More" onClick={()=>go('more')}><FiMenu/></button></div>
+    <div className="mgmt-actions"><button className="mgmt-mode-switch" aria-pressed={wireframe} onClick={()=>setWireframe(v=>!v)}>{wireframe?"UI Design":"Wireframe"}</button><button className="mgmt-icobtn" aria-label="Notifications" onClick={()=>go('notifications')}><FiBell/></button><button className="mgmt-icobtn" aria-label="More" onClick={()=>go('more')}><FiMenu/></button></div>
   </div></header>
   <div className="mgmt-body">
    <aside className="mgmt-sidebar" aria-label="Management sections">{modules.map(([id,label,Icon])=><button key={id} className={'mgmt-sidebtn '+(page===id?'active':'')} onClick={()=>go(id)}><Icon/> {label}</button>)}</aside>
