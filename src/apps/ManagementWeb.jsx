@@ -8,7 +8,8 @@ import {
 import logo from '../assets/AquaBest logo.png';
 import { bottleOptions } from './Component_Customer/orderData.js';
 import { DEMO_PRICES, DEMO_PRODUCTS, INITIAL_ORDERS, INITIAL_STOCK, formatMoney, orderSummary } from '../data/managerDemo.js';
-import { useEmployeeAvailability, availabilityFor, MyWorkStatus, TeamAvailability } from './EmployeeAvailability.jsx';
+import { useEmployeeAvailability, availabilityFor, TeamAvailability } from './EmployeeAvailability.jsx';
+import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import './managementWeb.css';
 
 const modules=[
@@ -100,7 +101,7 @@ export default function ManagementWeb({role='manager'}){
  return <div className="mgmt">
   <header className="mgmt-header"><div className="mgmt-header-inner">
     <button type="button" className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>go('dashboard')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>{isStaff?'Staff Workspace':'Manager Workspace'}</strong></span></button>
-    <div className="mgmt-actions"><button className="mgmt-icobtn" aria-label="Notifications" onClick={()=>go('notifications')}><FiBell/></button><button className="mgmt-icobtn" aria-label="More" onClick={()=>go('more')}><FiMenu/></button></div>
+    <ManagementHeaderActions name={ownStatusName} entries={availability} orders={orders} onUpdate={updateAvailability} onNotifications={()=>go('notifications')}/>
   </div></header>
   <div className="mgmt-body">
    <aside className="mgmt-sidebar" aria-label="Management sections">{(isStaff?staffModules:modules).map(([id,label,Icon])=><button key={id} className={'mgmt-sidebtn '+(page===id?'active':'')} onClick={()=>go(id)}><Icon/><span className="mgmt-side-text"><strong>{label}</strong><small>{({dashboard:'Daily operations overview',pos:'Walk-in and manual sales',orders:'Review and assign orders',refill:'Preparation work queue',delivery:'Dispatch and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and balances',reports:'Revenue and sales breakdown',staff:'Personnel assignments',activity:'Your task and stock movement history'})[id]}</small></span></button>)}<button className="mgmt-sidebtn mgmt-logout-link" onClick={logout}><FiLogOut/><span className="mgmt-side-text"><strong>Log Out</strong><small>Exit the demo workspace</small></span></button></aside>
@@ -108,7 +109,6 @@ export default function ManagementWeb({role='manager'}){
     {notification&&<div className="mgmt-notice" role="status">{notification} <button className="mgmt-link" onClick={()=>setNotification('')}>Dismiss</button></div>}
     {isStaff&&page==='dashboard'&&<>
      <Heading kicker="Staff workspace" title="My Work Today" subtitle="Assigned orders, refill preparation and container tasks."/>
-     <MyWorkStatus name={ownStatusName} entries={availability} orders={orders} onUpdate={updateAvailability}/>
      <div className="mgmt-stats">
       <Stat label="Assigned Orders" value={assignedOrders.length} Icon={FiClipboard}/>
       <Stat label="Pending Refill" value={assignedOrders.filter(o=>['Confirmed','Preparing'].includes(o.status)).length} Icon={FiDroplet}/>
@@ -126,7 +126,6 @@ export default function ManagementWeb({role='manager'}){
     </>}
     {!isStaff&&page==='dashboard'&&<>
       <Heading kicker="Manager workspace" title="Station Overview" subtitle="Quick access to daily orders, refills, payments and deliveries."/>
-      <MyWorkStatus name={ownStatusName} entries={availability} orders={orders} onUpdate={updateAvailability}/>
       <TeamAvailability entries={availability} orders={orders}/>
       <div className="mgmt-stats"><Stat label="Collected (Demo)" value={formatMoney(revenue)} Icon={FiDollarSign}/><Stat label="Orders" value={orders.length} Icon={FiClipboard}/><Stat label="Pending Refill" value={orders.filter(o=>['Confirmed','Preparing'].includes(o.status)).length} Icon={FiDroplet}/><Stat label="For Delivery" value={orders.filter(o=>o.service!=='Walk-in'&&!['Delivered','Completed','Cancelled'].includes(o.status)).length} Icon={FiTruck}/></div>
       <Section title="Quick Actions"/><div className="mgmt-grid">{[['New POS Sale',FiPlus,'pos'],['Manage Orders',FiClipboard,'orders'],['Refill Queue',FiDroplet,'refill'],['Dispatch',FiTruck,'delivery']].map(([label,Icon,id])=><button key={id} className="mgmt-quick" onClick={()=>id==='pos'?startSale():go(id)}><Icon/>{label}</button>)}</div>
