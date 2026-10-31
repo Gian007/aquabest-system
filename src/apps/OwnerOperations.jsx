@@ -23,7 +23,6 @@ export default function OwnerOperations({page,go,orders,stock,trips,availability
  const outstanding=orders.filter(o=>o.paymentStatus!=='Paid').reduce((n,o)=>n+o.amount,0);
  const remittance=trips.reduce((n,t)=>n+(t.remittance==='Awaiting Remittance'?t.collectedCash||0:0),0);
  const pendingElectronic=trips.filter(t=>t.paymentStatus==='Pending Verification'&&!verification.includes(t.id));
- const expenseTotal=expenses.reduce((n,e)=>n+e.amount,0);
  const activity=orders.length+trips.length;
  const expenseTotal=expenses.filter(e=>e.active).reduce((n,e)=>n+e.amount,0);
  const action=(title,target)=><button className="mgmt-quick" onClick={()=>go(target)}>{title}</button>;
