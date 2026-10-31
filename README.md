@@ -54,3 +54,9 @@ Delivery demo progress is simplified to Assigned → Ready for Pickup → Out fo
 - Failed: require a reason without forcing collection.
 
 **Important:** Online order source does not imply paid. All demo receipts and proof references are illustrative; they are not verified. Cross-device sync, back-end inventory release logic, pricing persistence, actual payment verification, separate two-owner identities, role enforcement and delivery/staff handovers still require Supabase/Auth/RLS. All preview URLs are publicly accessible; do not add real personal or financial data.
+
+## November 2026 Owner/Manager usability improvements
+
+Owner Employees now has a directory with profile detail, demo Add Employee, account activation/deactivation, role/POS permissions under Advanced, sample assigned-task counts, and honest attendance placeholders (days/hours require verified time-in/out). Owner Products & Services has a demo add/edit form, JPG/PNG/WebP image uploads (up to 2 MB), price, description, channel availability, and Active/Inactive toggles. These changes remain browser-only and do not modify the public customer products or Manager POS catalog yet.
+
+Expense recording is in **Sales Reports** for both Manager and Owner, using the shared `ExpenseReport` component. Demo expenses can be added, edited and voided with a reason/description; recorded expenses are not revenue. Owner reports show active expense totals. Financial date filters remain visual-only until records have database timestamps. Audit and payment verification screens are prototypes—not authoritative financial records or server audit logs.
