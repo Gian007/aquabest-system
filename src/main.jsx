@@ -4,11 +4,11 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import CustomerWeb from './apps/CustomerWeb.jsx';
 import ManagementWeb from './apps/ManagementWeb.jsx';
 
-// Separate views for the customer site and the future manager APK.
-// GitHub Pages: /aquabest-system/?view=manager or /?view=manager
+// Customer remains the default. Management previews share the same app shell.
+// ?view=manager | staff | delivery (all public demo routes; not authenticated).
 const params = new URLSearchParams(window.location.search);
 const view = params.get('view');
-const isManagement = view === 'manager' || view === 'staff';
+const isManagement = view === 'manager' || view === 'staff' || view === 'delivery';
 createRoot(document.getElementById('root')).render(
   <StrictMode>{isManagement ? <ManagementWeb role={view} /> : <CustomerWeb />}</StrictMode>
 );
