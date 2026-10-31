@@ -141,3 +141,11 @@
 .mgmt-notification-empty p{font-size:12px;color:#718197;max-width:270px;margin:0}
 .mgmt-notification-page>.mgmt-demo{display:flex;align-items:start;gap:6px}
 @media(max-width:400px){.mgmt-notification-card{padding:13px;gap:10px}.mgmt-notification-icon{width:36px;height:36px}.mgmt-notification-markall{font-size:10px}}
+
+/* Delivery role uses the existing AquaBest cards, desktop sidebar and iPhone dock. */
+.delivery-actions{display:flex;gap:8px;flex-wrap:wrap;margin:11px 0}
+.delivery-actions .mgmt-btn{flex:1;min-width:90px}
+.mgmt-order p svg{vertical-align:-2px;margin-right:4px}
+.mgmt-sheet .mgmt-field{margin:12px 0}
+.mgmt-sheet .mgmt-section-title h2{display:flex;align-items:center;gap:7px}
+@media(max-width:410px){.delivery-actions .mgmt-btn{font-size:11px;padding:9px}}
