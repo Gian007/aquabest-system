@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
 import { FiBell, FiClipboard, FiDroplet, FiPackage, FiCheck, FiCheckCircle, FiArrowRight, FiInbox } from 'react-icons/fi';
 
-export default function ManagementNotifications({isStaff,orders,stock,onNavigate}){
+export default function ManagementNotifications({isStaff,isDelivery=false,trips=[],orders,stock,onNavigate}){
  const [readIds,setReadIds]=useState([]);
  const [filter,setFilter]=useState('unread');
  const notices=useMemo(()=>{
   const list=[];
-  if(isStaff){
+  if(isDelivery){
+   trips.filter(t=>t.driver==='Driver A'&&['Assigned','Ready for Dispatch','Loaded','Out for Delivery'].includes(t.status)).forEach(t=>list.push({id:'delivery-'+t.id,category:'Delivery',title:t.status==='Out for Delivery'?'Delivery in progress':'Assigned delivery trip',description:t.orderId+' · '+t.customer+' · '+t.status,target:'deliveries',icon:FiDroplet}));
+   trips.filter(t=>t.driver==='Driver A'&&t.remittance==='Awaiting Remittance').forEach(t=>list.push({id:'remit-'+t.id,category:'Collections',title:'Cash awaiting remittance',description:t.orderId+' · cash collection requires manager acknowledgment',target:'collections',icon:FiClipboard}));
+  }else if(isStaff){
    orders.filter(o=>o.assigned==='Staff A'&&['Confirmed','Preparing'].includes(o.status)).forEach(o=>{
     list.push({id:'refill-'+o.id,category:'Refill',title:o.status==='Preparing'?'Refill in progress':'Refill task assigned',description:o.id+' · '+o.customer+' · '+o.items.reduce((n,i)=>n+i.quantity,0)+' container(s)',target:'refill',icon:FiDroplet});
    });
@@ -21,17 +24,17 @@ export default function ManagementNotifications({isStaff,orders,stock,onNavigate
     list.push({id:'dispatch-'+o.id,category:'Delivery',title:'Order ready for dispatch',description:o.id+' · '+o.customer+' · Assign or review delivery',target:'delivery',icon:FiDroplet});
    });
   }
-  stock.filter(s=>s.quantity<s.minimum).forEach(s=>{
+  if(!isDelivery)stock.filter(s=>s.quantity<s.minimum).forEach(s=>{
    const names={round5:'5-gallon round containers',slim25:'2.5-gallon slim containers',slim5:'5-gallon slim containers'};
    list.push({id:'stock-'+s.id,category:'Inventory',title:'Low bottle stock',description:(names[s.id]||s.id)+' · '+s.quantity+' remaining (minimum '+s.minimum+')',target:'inventory',icon:FiPackage});
   });
   return list;
- },[isStaff,orders,stock]);
+ },[isStaff,isDelivery,trips,orders,stock]);
  const unread=notices.filter(n=>!readIds.includes(n.id)).length;
  const visible=filter==='unread'?notices.filter(n=>!readIds.includes(n.id)):notices;
  const read=(id)=>setReadIds(prev=>prev.includes(id)?prev:[...prev,id]);
  return <section className="mgmt-notification-page">
-  <div className="mgmt-heading"><div className="overline">Activity Center</div><h1>Notifications</h1><p>{isStaff?'Your refill tasks and stock alerts.':'Order requests, dispatch reminders and inventory alerts.'}</p></div>
+  <div className="mgmt-heading"><div className="overline">Activity Center</div><h1>Notifications</h1><p>{isDelivery?'Assigned trips and cash collection reminders.':isStaff?'Your refill tasks and stock alerts.':'Order requests, dispatch reminders and inventory alerts.'}</p></div>
   <div className="mgmt-notification-toolbar">
    <div className="mgmt-notification-tabs" role="group" aria-label="Notification filter">
     <button type="button" className={filter==='unread'?'active':''} aria-pressed={filter==='unread'} onClick={()=>setFilter('unread')}>Unread <span>{unread}</span></button>
