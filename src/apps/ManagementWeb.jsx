@@ -213,8 +213,7 @@ export default function ManagementWeb({role='manager'}){
      <Heading kicker="My work history" title="My Activity" subtitle="Your refill status and inventory changes for this demo session."/>
      <div className="mgmt-card">{staffHistory.length?staffHistory.map(a=><div className="mgmt-row" key={a.id}><div><strong className="mgmt-row-title">{a.label}</strong><div className="mgmt-sub">{a.time}</div></div><FiCheckCircle color="#244ea3"/></div>):<p className="mgmt-sub">No activity yet. Start a refill task or record an inventory movement.</p>}</div>{section}
     </>}
-    {!isDelivery&&page==='notifications'&&<ManagementNotifications isStaff={isStaff} orders={orders} stock={stock} onNavigate={go}/>}
-    {isDelivery&&page==='notifications'&&<div className="mgmt-notification-page"><Heading kicker="Delivery alerts" title="Notifications" subtitle="Your trip updates and collections."/><div className="mgmt-card"><p className="mgmt-sub">Delivery alerts will synchronize when the backend is connected. Check My Deliveries for current demo trips.</p><button className="mgmt-btn secondary" onClick={()=>go('deliveries')}>View My Deliveries</button></div></div>}
+    {page==='notifications'&&<ManagementNotifications isStaff={isStaff} isDelivery={isDelivery} trips={trips} orders={orders} stock={stock} onNavigate={go}/>}
     {isStaff&&page==='more'&&<>
      <Heading kicker="Staff access" title="More Modules" subtitle="Your additional work tools and account."/>
      <div className="mgmt-more">
