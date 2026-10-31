@@ -3,7 +3,7 @@ import { FiCheckCircle, FiClock, FiCoffee, FiBriefcase, FiCalendar, FiUsers, FiA
 
 // Local demo state only. Real availability must come from authenticated staff records.
 const KEY='aquabest-demo-employee-availability-v1';
-const PEOPLE=['Manager','Staff A','Staff B'];
+const PEOPLE=['Manager','Staff A','Staff B','Driver A'];
 const defaults=()=>Object.fromEntries(PEOPLE.map(name=>[name,{onDuty:true,onBreak:false,updatedAt:null,history:[]}]));
 function read(){
  try {
@@ -37,11 +37,11 @@ export function availabilityFor(name,entries,orders){
  if(!PEOPLE.includes(name))return {label:'Not tracked yet',kind:'neutral',assignable:true,active:0,queued:0};
  const entry=entries[name]||{onDuty:true,onBreak:false};
  const assigned=orders.filter(o=>o.assigned===name&&!['Completed','Cancelled'].includes(o.status));
- const active=assigned.filter(o=>o.status==='Preparing').length;
- const queued=assigned.filter(o=>['Pending Confirmation','Confirmed','Ready'].includes(o.status)).length;
+ const active=assigned.filter(o=>name.startsWith('Driver')?['Loaded','Out for Delivery'].includes(o.status):o.status==='Preparing').length;
+ const queued=assigned.filter(o=>name.startsWith('Driver')?['Assigned','Ready for Dispatch'].includes(o.status):['Pending Confirmation','Confirmed','Ready'].includes(o.status)).length;
  if(!entry.onDuty)return {label:'Offline',kind:'neutral',assignable:false,active,queued};
  if(entry.onBreak)return {label:'On Break',kind:'break',assignable:false,active,queued};
- if(active>0)return {label:'Busy',kind:'busy',assignable:true,active,queued};
+ if(active>0)return {label:name.startsWith('Driver')?'On Delivery':'Busy',kind:'busy',assignable:!name.startsWith('Driver'),active,queued};
  return {label:'Available',kind:'available',assignable:true,active,queued};
 }
 export function AvailabilityPill({status}){
@@ -78,6 +78,6 @@ export function TeamAvailability({entries,orders}){
    </div>;
   })}
   <div className="availability-hint"><FiAlertCircle/> On Break / Offline staff cannot receive new assignments. Busy staff can be queued (soft limit: 3 waiting).</div>
-  <p className="mgmt-sub" style={{margin:'8px 0 0'}}>Delivery availability and real shift scheduling will be added later.</p>
+  <p className="mgmt-sub" style={{margin:'8px 0 0'}}>Driver status is derived from demo trips; real shift scheduling and cross-device updates are coming later.</p>
  </section>;
 }
