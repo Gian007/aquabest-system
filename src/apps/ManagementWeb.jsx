@@ -26,10 +26,12 @@ const Section=({title,action,onClick})=><div className="mgmt-section-title"><h2>
 const Field=({label,children})=><div className="mgmt-field"><label>{label}</label>{children}</div>;
 const today=()=>new Date().toISOString().slice(0,10);
 
-export default function ManagementWeb(){
+export default function ManagementWeb({role='manager'}){
+ const isStaff=role==='staff';
  const [page,setPage]=useState('dashboard');
  const [loggedIn,setLoggedIn]=useState(true);
  const [orders,setOrders]=useState(INITIAL_ORDERS);
+ const [staffHistory,setStaffHistory]=useState([]);
  const [stock,setStock]=useState(INITIAL_STOCK);
  const [stockLog,setStockLog]=useState([]);
  const [stockError,setStockError]=useState('');
@@ -42,7 +44,8 @@ export default function ManagementWeb(){
  const [reportPeriod,setReportPeriod]=useState('Today');
  const [newStock,setNewStock]=useState({id:'round5',type:'IN',quantity:1,reason:''});
  const [stockOpen,setStockOpen]=useState(false);
- const go=(p)=>{setPage(p);setSelected(null);window.scrollTo(0,0)};
+ const go=(p)=>{if(isStaff&&!['dashboard','refill','orders','inventory','activity','more','notifications'].includes(p))return;setPage(p);setSelected(null);window.scrollTo(0,0)};
+ const assignedOrders=orders.filter(o=>o.assigned==='Staff A');
  const logout=()=>{setSelected(null);setStockOpen(false);setLoggedIn(false);setPage('dashboard')};
  const active=orders.filter(o=>!['Completed','Cancelled'].includes(o.status));
  const payments=orders.filter(o=>o.paymentStatus==='Paid');
@@ -52,7 +55,7 @@ export default function ManagementWeb(){
  const selectedQty=Object.values(sale.quantities).reduce((a,b)=>a+b,0);
  const setSaleProp=(key,val)=>setSale(p=>({...p,[key]:val}));
  const updateQty=(id,change)=>setSale(p=>({...p,quantities:{...p.quantities,[id]:Math.max(0,Math.min(99,(p.quantities[id]||0)+change))}}));
- const startSale=()=>{setSale(initialSale());go('pos')};
+ const startSale=()=>{if(isStaff)return;setSale(initialSale());go('pos')};
  const saveSale=()=>{
   if(!selectedQty)return;
   if(sale.ownership==='store' && Object.entries(sale.quantities).some(([id,q])=>q>(stock.find(x=>x.id===id)?.quantity||0))){setNotification('Insufficient AquaBest bottle stock.');return;}
@@ -70,10 +73,10 @@ export default function ManagementWeb(){
   setSale(initialSale());go('orders');
  };
  const changeOrder=(id,patch)=>setOrders(old=>old.map(o=>o.id===id?{...o,...patch}:o));
- const openOrder=(order)=>{setSelected(order.id);setAssigned(order.assigned||'Unassigned');setNextStatus(order.status)};
+ const openOrder=(order)=>{if(isStaff&&order.assigned!=='Staff A')return;setSelected(order.id);setAssigned(order.assigned||'Unassigned');setNextStatus(order.status)};
  const current=orders.find(o=>o.id===selected);
- const applyOrder=()=>{if(!current)return;changeOrder(current.id,{status:nextStatus,assigned});setSelected(null);setNotification('Sample order updated locally.')};
- const applyPayment=()=>{if(!current)return;changeOrder(current.id,{paymentStatus:'Paid'});setSelected(null);setNotification('Demo payment recorded. Production requires actual payment verification.')};
+ const applyOrder=()=>{if(!current)return;if(isStaff){const next=current.status==='Confirmed'?'Preparing':current.status==='Preparing'?'Ready':null;if(current.assigned!=='Staff A'||!next||nextStatus!==next)return;changeOrder(current.id,{status:next});setStaffHistory(h=>[{id:Date.now(),label:current.id+' moved to '+next,time:new Date().toLocaleString('en-PH')},...h]);}else changeOrder(current.id,{status:nextStatus,assigned});setSelected(null);setNotification('Sample task updated locally.')};
+ const applyPayment=()=>{if(isStaff||!current)return;changeOrder(current.id,{paymentStatus:'Paid'});setSelected(null);setNotification('Demo payment recorded. Production requires actual payment verification.')};
  const adjustStock=()=>{
  const n=Number(newStock.quantity),item=stock.find(s=>s.id===newStock.id),reason=newStock.reason.trim();
  if(!Number.isInteger(n)||n<1){setStockError('Enter a valid positive whole number.');return}
@@ -83,13 +86,13 @@ export default function ManagementWeb(){
  setStockLog(old=>[{id:'MAN-'+Date.now(),productId:newStock.id,type:newStock.type,quantity:n,reason,automatic:false,time:new Date().toLocaleString('en-PH')},...old]);
  setStockOpen(false);setStockError('');setNewStock({id:'round5',type:'IN',quantity:1,reason:''});setNotification('Demo stock movement saved with reason.');
  };
- const filtered=orders.filter(o=>filter==='All'||(filter==='Unpaid'?o.paymentStatus!=='Paid':o.status===filter));
+ const filtered=(isStaff?assignedOrders:orders).filter(o=>filter==='All'||(filter==='Unpaid'?o.paymentStatus!=='Paid':o.status===filter));
  const section=<div className="mgmt-demo">Prototype only • prices, names, sales, assignments and orders are sample values. Nothing is written to a backend.</div>;
 
- if(!loggedIn)return <div className="mgmt mgmt-signout"><div className="mgmt-logout-card"><img src={logo} alt="AquaBest"/><FiLogOut size={32}/><h1>Manager preview closed</h1><p>Demo logout only. Real authentication is not connected yet.</p><button className="mgmt-btn full" onClick={()=>setLoggedIn(true)}><FiLogIn/> Re-enter Demo</button><a href={import.meta.env.BASE_URL}>Customer Website</a></div></div>;
+ if(!loggedIn)return <div className="mgmt mgmt-signout"><div className="mgmt-logout-card"><img src={logo} alt="AquaBest"/><FiLogOut size={32}/><h1>{isStaff?'Staff':'Manager'} preview closed</h1><p>Demo logout only. Real authentication is not connected yet.</p><button className="mgmt-btn full" onClick={()=>setLoggedIn(true)}><FiLogIn/> Re-enter Demo</button><a href={import.meta.env.BASE_URL}>Customer Website</a></div></div>;
  return <div className="mgmt">
   <header className="mgmt-header"><div className="mgmt-header-inner">
-    <button type="button" className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>go('dashboard')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>Manager Workspace</strong></span></button>
+    <button type="button" className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>go('dashboard')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>{isStaff?'Staff Workspace':'Manager Workspace'}</strong></span></button>
     <div className="mgmt-actions"><button className="mgmt-icobtn" aria-label="Notifications" onClick={()=>go('notifications')}><FiBell/></button><button className="mgmt-icobtn" aria-label="More" onClick={()=>go('more')}><FiMenu/></button></div>
   </div></header>
   <div className="mgmt-body">
@@ -103,7 +106,7 @@ export default function ManagementWeb(){
       <Section title="Recent Orders" action="View All" onClick={()=>go('orders')}/><div className="mgmt-card">{orders.slice(0,4).map(o=><div key={o.id} className="mgmt-row"><div><div className="mgmt-row-title">{o.customer} · {o.id}</div><div className="mgmt-sub">{orderSummary(o.items)}</div></div><Pill>{o.status}</Pill></div>)}</div>
       <Section title="Sales Summary" action="View Reports" onClick={()=>go('reports')}/><div className="mgmt-card"><div className="mgmt-row"><span className="mgmt-sub">Collected payments</span><strong>{formatMoney(revenue)}</strong></div><div className="mgmt-row"><span className="mgmt-sub">Outstanding</span><strong>{formatMoney(unpaid)}</strong></div></div>{section}
     </>}
-    {page==='pos'&&<>
+    {!isStaff&&page==='pos'&&<>
       <Heading kicker="Counter / manual encoding" title="New POS Sale" subtitle="For walk-ins, customers calling the station, and Messenger orders."/>
       <div className="mgmt-card"><Section title="1. Transaction & Customer"/>
        <div className="mgmt-formgrid">
@@ -142,7 +145,7 @@ export default function ManagementWeb(){
      {orders.filter(o=>['Confirmed','Preparing','Ready'].includes(o.status)).map(o=><article className="mgmt-card mgmt-order" key={o.id}><div className="mgmt-order-head"><strong>{o.id} · {o.customer}</strong><Pill>{o.status}</Pill></div><p>{orderSummary(o.items)}</p><p>Assigned: {o.assigned}</p><button className="mgmt-btn secondary" onClick={()=>openOrder(o)}>Assign / Update <FiEdit3/></button></article>)}
      <div className="mgmt-notice">Staff will reuse this queue with permissions limited to assigned tasks.</div>{section}
     </>}
-    {page==='delivery'&&<>
+    {!isStaff&&page==='delivery'&&<>
      <Heading kicker="Dispatch" title="Delivery Management" subtitle="Assign drivers, monitor drop-offs, and track collections."/>
      {orders.filter(o=>o.service!=='Walk-in'&&!['Completed','Cancelled'].includes(o.status)).map(o=><article className="mgmt-card mgmt-order" key={o.id}><div className="mgmt-order-head"><strong>{o.id} · {o.customer}</strong><Pill>{o.status}</Pill></div><p>{o.service} • {orderSummary(o.items)}</p><p>Assigned: {o.assigned}</p><button className="mgmt-btn secondary" onClick={()=>openOrder(o)}>Manage Delivery <FiTruck/></button></article>)}
      <div className="mgmt-notice">Delivery routes, coordinates, vehicle assignment and cash remittance are future integrations.</div>{section}
@@ -155,12 +158,12 @@ export default function ManagementWeb(){
      <Section title="Movement History"/>
      <div className="mgmt-card">{stockLog.length?stockLog.map(m=><div className="mgmt-row" key={m.id}><div><div className="mgmt-row-title">{m.automatic?'Automatic':'Manual'} {m.type} · {DEMO_PRODUCTS.find(p=>p.id===m.productId)?.label} {DEMO_PRODUCTS.find(p=>p.id===m.productId)?.shape}</div><div className="mgmt-sub">{m.reason}{m.orderId?' · '+m.orderId:''}</div><div className="mgmt-sub">{m.time}</div></div><Pill>{(m.type==='IN'?'+':'−')+m.quantity}</Pill></div>):<p className="mgmt-sub">No stock movements recorded during this session. Save a store-owned POS order or record manual IN/OUT.</p>}</div>{section}
     </>}
-    {page==='payments'&&<>
+    {!isStaff&&page==='payments'&&<>
      <Heading kicker="Collections" title="Payments" subtitle="Keep payment status separate from order preparation."/>
      <div className="mgmt-stats"><Stat label="Paid Total" value={formatMoney(revenue)} Icon={FiDollarSign}/><Stat label="Outstanding" value={formatMoney(unpaid)} Icon={FiClock}/></div>
      {orders.map(o=><div className="mgmt-card mgmt-order" key={o.id}><div className="mgmt-order-head"><strong>{o.id} · {o.customer}</strong><Pill>{o.paymentStatus}</Pill></div><p>{o.source} • {formatMoney(o.amount)}</p>{o.paymentStatus!=='Paid'&&<button className="mgmt-btn secondary" onClick={()=>openOrder(o)}>Review Payment <FiCreditCard/></button>}</div>)}{section}
     </>}
-    {page==='reports'&&<>
+    {!isStaff&&page==='reports'&&<>
      <Heading kicker="Business insights" title="Sales Reports" subtitle="Demo summaries calculated from current sample transactions."/>
      <div className="mgmt-controls">{['Today','This Week','This Month'].map(x=><button key={x} className={reportPeriod===x?'active':''} onClick={()=>setReportPeriod(x)}>{x}</button>)}</div>
      <div className="mgmt-stats"><Stat label="Collected (Sample)" value={formatMoney(revenue)} Icon={FiDollarSign}/><Stat label="Paid Transactions" value={payments.length} Icon={FiCheckCircle}/><Stat label="Unpaid Balance" value={formatMoney(unpaid)} Icon={FiClock}/><Stat label="Total Orders" value={orders.length} Icon={FiClipboard}/></div>
@@ -168,7 +171,7 @@ export default function ManagementWeb(){
      <Section title="Sales by Source"/><div className="mgmt-card">{['Walk-in','Online','Messenger','Phone'].map(source=><div className="mgmt-row" key={source}><span className="mgmt-sub">{source}</span><strong>{formatMoney(payments.filter(o=>o.source===source).reduce((a,o)=>a+o.amount,0))}</strong></div>)}</div>
      <div className="mgmt-notice">Date tabs and chart are visual demo controls. Verified sales reports will require real payment dates and database queries.</div>{section}
     </>}
-    {page==='staff'&&<>
+    {!isStaff&&page==='staff'&&<>
      <Heading kicker="Operations team" title="Staff Assignments" subtitle="Shared work queue, not a separate system for each role."/>
      {['Manager','Staff A · Refiller','Staff B · POS / Refill','Driver A · Delivery','Driver B · Delivery'].map(s=><div className="mgmt-card mgmt-order" key={s}><div className="mgmt-order-head"><strong>{s}</strong><FiUsers color="#244ea3"/></div><p>Role and task assignments are sample data, pending client confirmation.</p></div>)}{section}
     </>}
