@@ -8,6 +8,7 @@ import {
 import logo from '../assets/AquaBest logo.png';
 import { bottleOptions } from './Component_Customer/orderData.js';
 import { DEMO_PRICES, DEMO_PRODUCTS, INITIAL_ORDERS, INITIAL_STOCK, formatMoney, orderSummary } from '../data/managerDemo.js';
+import { useEmployeeAvailability, availabilityFor, MyWorkStatus, TeamAvailability } from './EmployeeAvailability.jsx';
 import './managementWeb.css';
 
 const modules=[
@@ -30,6 +31,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 export default function ManagementWeb({role='manager'}){
  const isStaff=role==='staff';
  const [page,setPage]=useState('dashboard');
+ const {entries:availability,update:updateAvailability}=useEmployeeAvailability();
  const [loggedIn,setLoggedIn]=useState(true);
  const [orders,setOrders]=useState(()=>isStaff?[...INITIAL_ORDERS,
  {id:'AB-1045',customer:'Office Refill',source:'Phone',items:[{sizeId:'slim5',quantity:3}],status:'Confirmed',paymentStatus:'Unpaid',amount:105,service:'Walk-in',assigned:'Staff A',date:'2026-10-31'},
@@ -49,6 +51,7 @@ export default function ManagementWeb({role='manager'}){
  const [stockOpen,setStockOpen]=useState(false);
  const go=(p)=>{if(isStaff&&!['dashboard','refill','orders','inventory','activity','more','notifications'].includes(p))return;setPage(p);setSelected(null);window.scrollTo(0,0)};
  const assignedOrders=orders.filter(o=>o.assigned==='Staff A');
+ const ownStatusName=isStaff?'Staff A':'Manager';
  const logout=()=>{setSelected(null);setStockOpen(false);setLoggedIn(false);setPage('dashboard')};
  const active=orders.filter(o=>!['Completed','Cancelled'].includes(o.status));
  const payments=orders.filter(o=>o.paymentStatus==='Paid');
@@ -78,7 +81,7 @@ export default function ManagementWeb({role='manager'}){
  const changeOrder=(id,patch)=>setOrders(old=>old.map(o=>o.id===id?{...o,...patch}:o));
  const openOrder=(order)=>{if(isStaff&&order.assigned!=='Staff A')return;setSelected(order.id);setAssigned(order.assigned||'Unassigned');setNextStatus(order.status)};
  const current=orders.find(o=>o.id===selected);
- const applyOrder=()=>{if(!current)return;if(isStaff){const next=current.status==='Confirmed'?'Preparing':current.status==='Preparing'?'Ready':null;if(current.assigned!=='Staff A'||!next||nextStatus!==next)return;changeOrder(current.id,{status:next});setStaffHistory(h=>[{id:Date.now(),label:current.id+' moved to '+next,time:new Date().toLocaleString('en-PH')},...h]);}else changeOrder(current.id,{status:nextStatus,assigned});setSelected(null);setNotification('Sample task updated locally.')};
+ const applyOrder=()=>{if(!current)return;if(!isStaff&&assigned!==current.assigned){const x=availabilityFor(assigned,availability,orders);if(!x.assignable){setNotification(assigned+' is '+x.label+'. Cannot assign a new task.');return}if(x.queued>=3){setNotification(assigned+' already has 3 queued tasks. Soft limit exceeded; review workload.')}}if(isStaff){const next=current.status==='Confirmed'?'Preparing':current.status==='Preparing'?'Ready':null;if(current.assigned!=='Staff A'||!next||nextStatus!==next)return;changeOrder(current.id,{status:next});setStaffHistory(h=>[{id:Date.now(),label:current.id+' moved to '+next,time:new Date().toLocaleString('en-PH')},...h]);}else changeOrder(current.id,{status:nextStatus,assigned});setSelected(null);setNotification('Sample task updated locally.')};
  const applyPayment=()=>{if(isStaff||!current)return;changeOrder(current.id,{paymentStatus:'Paid'});setSelected(null);setNotification('Demo payment recorded. Production requires actual payment verification.')};
  const adjustStock=()=>{
  const n=Number(newStock.quantity),item=stock.find(s=>s.id===newStock.id),reason=newStock.reason.trim();
@@ -105,6 +108,7 @@ export default function ManagementWeb({role='manager'}){
     {notification&&<div className="mgmt-notice" role="status">{notification} <button className="mgmt-link" onClick={()=>setNotification('')}>Dismiss</button></div>}
     {isStaff&&page==='dashboard'&&<>
      <Heading kicker="Staff workspace" title="My Work Today" subtitle="Assigned orders, refill preparation and container tasks."/>
+     <MyWorkStatus name={ownStatusName} entries={availability} orders={orders} onUpdate={updateAvailability}/>
      <div className="mgmt-stats">
       <Stat label="Assigned Orders" value={assignedOrders.length} Icon={FiClipboard}/>
       <Stat label="Pending Refill" value={assignedOrders.filter(o=>['Confirmed','Preparing'].includes(o.status)).length} Icon={FiDroplet}/>
@@ -122,6 +126,8 @@ export default function ManagementWeb({role='manager'}){
     </>}
     {!isStaff&&page==='dashboard'&&<>
       <Heading kicker="Manager workspace" title="Station Overview" subtitle="Quick access to daily orders, refills, payments and deliveries."/>
+      <MyWorkStatus name={ownStatusName} entries={availability} orders={orders} onUpdate={updateAvailability}/>
+      <TeamAvailability entries={availability} orders={orders}/>
       <div className="mgmt-stats"><Stat label="Collected (Demo)" value={formatMoney(revenue)} Icon={FiDollarSign}/><Stat label="Orders" value={orders.length} Icon={FiClipboard}/><Stat label="Pending Refill" value={orders.filter(o=>['Confirmed','Preparing'].includes(o.status)).length} Icon={FiDroplet}/><Stat label="For Delivery" value={orders.filter(o=>o.service!=='Walk-in'&&!['Delivered','Completed','Cancelled'].includes(o.status)).length} Icon={FiTruck}/></div>
       <Section title="Quick Actions"/><div className="mgmt-grid">{[['New POS Sale',FiPlus,'pos'],['Manage Orders',FiClipboard,'orders'],['Refill Queue',FiDroplet,'refill'],['Dispatch',FiTruck,'delivery']].map(([label,Icon,id])=><button key={id} className="mgmt-quick" onClick={()=>id==='pos'?startSale():go(id)}><Icon/>{label}</button>)}</div>
       <Section title="Recent Orders" action="View All" onClick={()=>go('orders')}/><div className="mgmt-card">{orders.slice(0,4).map(o=><div key={o.id} className="mgmt-row"><div><div className="mgmt-row-title">{o.customer} · {o.id}</div><div className="mgmt-sub">{orderSummary(o.items)}</div></div><Pill>{o.status}</Pill></div>)}</div>
@@ -194,6 +200,7 @@ export default function ManagementWeb({role='manager'}){
     </>}
     {!isStaff&&page==='staff'&&<>
      <Heading kicker="Operations team" title="Staff Assignments" subtitle="Shared work queue, not a separate system for each role."/>
+     <TeamAvailability entries={availability} orders={orders}/>
      {['Manager','Staff A · Refiller','Staff B · POS / Refill','Driver A · Delivery','Driver B · Delivery'].map(s=><div className="mgmt-card mgmt-order" key={s}><div className="mgmt-order-head"><strong>{s}</strong><FiUsers color="#244ea3"/></div><p>Role and task assignments are sample data, pending client confirmation.</p></div>)}{section}
     </>}
     {isStaff&&page==='activity'&&<>
