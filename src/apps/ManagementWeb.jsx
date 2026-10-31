@@ -3,7 +3,7 @@ import {
  FiHome,FiMonitor,FiClipboard,FiMenu,FiBell,FiDroplet,FiTruck,
  FiPackage,FiCreditCard,FiBarChart2,FiUsers,FiPlus,FiMinus,FiArrowRight,
  FiCheckCircle,FiClock,FiX,FiAlertTriangle,FiActivity,FiDollarSign,
- FiEdit3,FiRefreshCw,FiSave
+ FiEdit3,FiRefreshCw,FiSave,FiLogOut,FiLogIn
 } from 'react-icons/fi';
 import logo from '../assets/AquaBest logo.png';
 import { bottleOptions } from './Component_Customer/orderData.js';
@@ -28,9 +28,12 @@ const today=()=>new Date().toISOString().slice(0,10);
 
 export default function ManagementWeb(){
  const [page,setPage]=useState('dashboard');
+ const [loggedIn,setLoggedIn]=useState(true);
  const [wireframe,setWireframe]=useState(false);
  const [orders,setOrders]=useState(INITIAL_ORDERS);
  const [stock,setStock]=useState(INITIAL_STOCK);
+ const [stockLog,setStockLog]=useState([]);
+ const [stockError,setStockError]=useState('');
  const [sale,setSale]=useState(initialSale);
  const [filter,setFilter]=useState('All');
  const [selected,setSelected]=useState(null);
@@ -38,9 +41,10 @@ export default function ManagementWeb(){
  const [nextStatus,setNextStatus]=useState('');
  const [notification,setNotification]=useState('');
  const [reportPeriod,setReportPeriod]=useState('Today');
- const [newStock,setNewStock]=useState({id:'round5',type:'IN',quantity:1});
+ const [newStock,setNewStock]=useState({id:'round5',type:'IN',quantity:1,reason:''});
  const [stockOpen,setStockOpen]=useState(false);
  const go=(p)=>{setPage(p);setSelected(null);window.scrollTo(0,0)};
+ const logout=()=>{setSelected(null);setStockOpen(false);setLoggedIn(false);setPage('dashboard')};
  const active=orders.filter(o=>!['Completed','Cancelled'].includes(o.status));
  const payments=orders.filter(o=>o.paymentStatus==='Paid');
  const revenue=payments.reduce((sum,o)=>sum+o.amount,0);
@@ -52,12 +56,18 @@ export default function ManagementWeb(){
  const startSale=()=>{setSale(initialSale());go('pos')};
  const saveSale=()=>{
   if(!selectedQty)return;
+  if(sale.ownership==='store' && Object.entries(sale.quantities).some(([id,q])=>q>(stock.find(x=>x.id===id)?.quantity||0))){setNotification('Insufficient AquaBest bottle stock.');return;}
   const id='DEMO-'+String(Date.now()).slice(-6);
   const isPaid=sale.paymentStatus==='Paid';
   const record={id,customer:sale.customer.trim()||'Walk-in Customer',source:sale.source,items:Object.entries(sale.quantities).filter(([,q])=>q>0).map(([sizeId,quantity])=>({sizeId,quantity})),
    status:sale.service==='Walk-in'?(isPaid?'Completed':'Confirmed'):'Pending Confirmation',paymentStatus:sale.paymentStatus,method:sale.paymentMethod,
    reference:sale.reference,amount:selectedTotal,service:sale.service,ownership:sale.ownership,assigned:'Unassigned',date:today(),notes:sale.notes};
-  setOrders(old=>[record,...old]);setNotification('Sample transaction '+id+' created locally. No real customer charged.');
+  if(sale.ownership==='store'){
+   const events=record.items.map(item=>({id:id+'-'+item.sizeId,productId:item.sizeId,type:'OUT',quantity:item.quantity,reason:sale.arrangement==='returnable'?'Returnable bottle issued':'Container sold',orderId:id,automatic:true,time:new Date().toLocaleString('en-PH')}));
+   setStock(old=>old.map(x=>({...x,quantity:x.quantity-(record.items.find(i=>i.sizeId===x.id)?.quantity||0)})));
+   setStockLog(old=>[...events,...old]);
+  }
+  setOrders(old=>[record,...old]);setNotification('Demo order saved. '+(sale.ownership==='store'?'AquaBest bottle stock automatically deducted.':'Customer-owned container: no bottle stock deduction.'));
   setSale(initialSale());go('orders');
  };
  const changeOrder=(id,patch)=>setOrders(old=>old.map(o=>o.id===id?{...o,...patch}:o));
@@ -65,17 +75,26 @@ export default function ManagementWeb(){
  const current=orders.find(o=>o.id===selected);
  const applyOrder=()=>{if(!current)return;changeOrder(current.id,{status:nextStatus,assigned});setSelected(null);setNotification('Sample order updated locally.')};
  const applyPayment=()=>{if(!current)return;changeOrder(current.id,{paymentStatus:'Paid'});setSelected(null);setNotification('Demo payment recorded. Production requires actual payment verification.')};
- const adjustStock=()=>{let n=Number(newStock.quantity);if(!Number.isInteger(n)||n<1)return;setStock(old=>old.map(s=>s.id!==newStock.id?s:{...s,quantity:Math.max(0,s.quantity+(newStock.type==='IN'?n:-n))}));setStockOpen(false);setNotification('Demo inventory movement recorded locally.')};
+ const adjustStock=()=>{
+ const n=Number(newStock.quantity),item=stock.find(s=>s.id===newStock.id),reason=newStock.reason.trim();
+ if(!Number.isInteger(n)||n<1){setStockError('Enter a valid positive whole number.');return}
+ if(!reason){setStockError('Reason is required.');return}
+ if(newStock.type==='OUT'&&n>item.quantity){setStockError('Insufficient bottle stock.');return}
+ setStock(old=>old.map(s=>s.id===newStock.id?{...s,quantity:s.quantity+(newStock.type==='IN'?n:-n)}:s));
+ setStockLog(old=>[{id:'MAN-'+Date.now(),productId:newStock.id,type:newStock.type,quantity:n,reason,automatic:false,time:new Date().toLocaleString('en-PH')},...old]);
+ setStockOpen(false);setStockError('');setNewStock({id:'round5',type:'IN',quantity:1,reason:''});setNotification('Demo stock movement saved with reason.');
+ };
  const filtered=orders.filter(o=>filter==='All'||(filter==='Unpaid'?o.paymentStatus!=='Paid':o.status===filter));
  const section=<div className="mgmt-demo">Prototype only • prices, names, sales, assignments and orders are sample values. Nothing is written to a backend.</div>;
 
+ if(!loggedIn)return <div className="mgmt mgmt-signout"><div className="mgmt-logout-card"><img src={logo} alt="AquaBest"/><FiLogOut size={32}/><h1>Manager preview closed</h1><p>Demo logout only. Real authentication is not connected yet.</p><button className="mgmt-btn full" onClick={()=>setLoggedIn(true)}><FiLogIn/> Re-enter Demo</button><a href={import.meta.env.BASE_URL}>Customer Website</a></div></div>;
  return <div className={"mgmt "+(wireframe?"mgmt-wireframe":"")}>
   <header className="mgmt-header"><div className="mgmt-header-inner">
     <div className="mgmt-brand"><img src={logo} alt="AquaBest"/><div><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>Manager Workspace</strong></div></div>
     <div className="mgmt-actions"><button className="mgmt-mode-switch" aria-pressed={wireframe} onClick={()=>setWireframe(v=>!v)}>{wireframe?"UI Design":"Wireframe"}</button><button className="mgmt-icobtn" aria-label="Notifications" onClick={()=>go('notifications')}><FiBell/></button><button className="mgmt-icobtn" aria-label="More" onClick={()=>go('more')}><FiMenu/></button></div>
   </div></header>
   <div className="mgmt-body">
-   <aside className="mgmt-sidebar" aria-label="Management sections">{modules.map(([id,label,Icon])=><button key={id} className={'mgmt-sidebtn '+(page===id?'active':'')} onClick={()=>go(id)}><Icon/> {label}</button>)}</aside>
+   <aside className="mgmt-sidebar" aria-label="Management sections">{modules.map(([id,label,Icon])=><button key={id} className={'mgmt-sidebtn '+(page===id?'active':'')} onClick={()=>go(id)}><Icon/><span className="mgmt-side-text"><strong>{label}</strong><small>{({dashboard:'Daily operations overview',pos:'Walk-in and manual sales',orders:'Review and assign orders',refill:'Preparation work queue',delivery:'Dispatch and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and balances',reports:'Revenue and sales breakdown',staff:'Personnel assignments'})[id]}</small></span></button>)}<button className="mgmt-sidebtn mgmt-logout-link" onClick={logout}><FiLogOut/><span className="mgmt-side-text"><strong>Log Out</strong><small>Exit the demo workspace</small></span></button></aside>
    <main className="mgmt-main">
     {notification&&<div className="mgmt-notice" role="status">{notification} <button className="mgmt-link" onClick={()=>setNotification('')}>Dismiss</button></div>}
     {page==='dashboard'&&<>
@@ -99,6 +118,7 @@ export default function ManagementWeb(){
       <div className="mgmt-card" style={{marginTop:12}}><Section title="2. Select Sizes & Quantities"/><p className="mgmt-sub">Same multi-size ordering as the customer site. Prices below are demo values.</p>
         {bottleOptions.map(p=><div className="mgmt-product" key={p.id}><img src={p.image} alt={p.name+' '+p.shape}/><div className="mgmt-product-info"><strong>{p.name}</strong><small>{p.shape} • {formatMoney(DEMO_PRICES[p.id])} demo</small></div><div className="mgmt-qty"><button onClick={()=>updateQty(p.id,-1)} disabled={!sale.quantities[p.id]} aria-label={'Remove '+p.name}><FiMinus/></button><span>{sale.quantities[p.id]}</span><button onClick={()=>updateQty(p.id,1)} aria-label={'Add '+p.name}><FiPlus/></button></div></div>)}
       </div>
+      {sale.ownership==='store'&&<div className="mgmt-notice" style={{marginTop:12}}>AquaBest-provided bottles automatically deduct bottle inventory when saved. Customer-owned containers do not.</div>}
       <div className="mgmt-card" style={{marginTop:12}}><Section title="3. Payment"/>
         <div className="mgmt-formgrid">
           <Field label="Payment Method"><select value={sale.paymentMethod} onChange={e=>setSaleProp('paymentMethod',e.target.value)}>{['Cash','GCash','Bank Transfer'].map(x=><option key={x}>{x}</option>)}</select></Field>
@@ -132,7 +152,9 @@ export default function ManagementWeb(){
      <Heading kicker="Stock control" title="Inventory & Bottles" subtitle="Available containers, minimum stock and movement recording."/>
      <div className="mgmt-stats"><Stat label="Total Bottles (Demo)" value={stock.reduce((a,s)=>a+s.quantity,0)} Icon={FiPackage}/><Stat label="Low Stock" value={stock.filter(s=>s.quantity<s.minimum).length} Icon={FiAlertTriangle}/></div>
      {stock.map(s=><div className="mgmt-card mgmt-order" key={s.id}><div className="mgmt-order-head"><strong>{DEMO_PRODUCTS.find(p=>p.id===s.id)?.label} · {DEMO_PRODUCTS.find(p=>p.id===s.id)?.shape}</strong><Pill>{s.quantity<s.minimum?'Low Stock':'Available'}</Pill></div><p>Quantity: {s.quantity} • Minimum: {s.minimum}</p></div>)}
-     <button className="mgmt-btn full" onClick={()=>setStockOpen(true)}><FiPlus/> Record Stock IN / OUT</button>{section}
+     <button className="mgmt-btn full" onClick={()=>{setStockError('');setStockOpen(true)}}><FiPlus/> Record Stock IN / OUT</button>
+     <Section title="Movement History"/>
+     <div className="mgmt-card">{stockLog.length?stockLog.map(m=><div className="mgmt-row" key={m.id}><div><div className="mgmt-row-title">{m.automatic?'Automatic':'Manual'} {m.type} · {DEMO_PRODUCTS.find(p=>p.id===m.productId)?.label} {DEMO_PRODUCTS.find(p=>p.id===m.productId)?.shape}</div><div className="mgmt-sub">{m.reason}{m.orderId?' · '+m.orderId:''}</div><div className="mgmt-sub">{m.time}</div></div><Pill>{(m.type==='IN'?'+':'−')+m.quantity}</Pill></div>):<p className="mgmt-sub">No stock movements recorded during this session. Save a store-owned POS order or record manual IN/OUT.</p>}</div>{section}
     </>}
     {page==='payments'&&<>
      <Heading kicker="Collections" title="Payments" subtitle="Keep payment status separate from order preparation."/>
@@ -152,14 +174,14 @@ export default function ManagementWeb(){
      {['Manager','Staff A · Refiller','Staff B · POS / Refill','Driver A · Delivery','Driver B · Delivery'].map(s=><div className="mgmt-card mgmt-order" key={s}><div className="mgmt-order-head"><strong>{s}</strong><FiUsers color="#244ea3"/></div><p>Role and task assignments are sample data, pending client confirmation.</p></div>)}{section}
     </>}
     {page==='notifications'&&<><Heading kicker="Alerts" title="Notifications" subtitle="Incoming order requests and stock warnings."/><div className="mgmt-card mgmt-row"><FiClipboard/><div><strong>Pending Online Order</strong><p className="mgmt-sub">New online order awaiting confirmation.</p></div><button className="mgmt-btn secondary" onClick={()=>go('orders')}>View</button></div><div className="mgmt-card mgmt-row" style={{marginTop:9}}><FiAlertTriangle/><div><strong>Low Stock Warning</strong><p className="mgmt-sub">Review inventory minimum quantities.</p></div><button className="mgmt-btn secondary" onClick={()=>go('inventory')}>View</button></div></>}
-    {page==='more'&&<><Heading kicker="Manager access" title="More Modules" subtitle="Open another operational workspace."/><div className="mgmt-more">{modules.slice(3).map(([id,label,Icon])=><button key={id} onClick={()=>go(id)}><Icon/><strong>{label}</strong><small>Open {label.toLowerCase()}</small></button>)}</div>{section}</>}
+    {page==='more'&&<><Heading kicker="Manager access" title="More Modules" subtitle="Open another operational workspace."/><div className="mgmt-more">{modules.slice(3).map(([id,label,Icon])=><button key={id} onClick={()=>go(id)}><Icon/><strong>{label}</strong><small>{({refill:'Preparation and refill queue',delivery:'Assignments and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and unpaid orders',reports:'Sales trends and breakdown',staff:'Personnel tasks'})[id]}</small></button>)}<button onClick={logout}><FiLogOut/><strong>Log Out</strong><small>Exit the demo workspace</small></button></div>{section}</>}
    </main>
   </div>
   <nav className="mgmt-bottom" aria-label="Primary management navigation">{[['dashboard','Home',FiHome],['pos','POS',FiMonitor],['orders','Orders',FiClipboard],['more','More',FiMenu]].map(([id,label,Icon])=><button key={id} className={page===id||(id==='more'&&!['dashboard','pos','orders'].includes(page))?'active':''} onClick={()=>go(id)}><Icon/>{label}</button>)}</nav>
   {(current||stockOpen)&&<div className="mgmt-drawer" role="presentation" onClick={()=>{setSelected(null);setStockOpen(false)}}>
     <div className="mgmt-sheet" role="dialog" aria-modal="true" aria-label={stockOpen?'Stock movement':'Order details'} onClick={e=>e.stopPropagation()}>
       <div className="mgmt-sheet-head"><h2>{stockOpen?'Record Stock Movement':current?.id+' · '+current?.customer}</h2><button className="mgmt-icobtn" aria-label="Close" onClick={()=>{setSelected(null);setStockOpen(false)}}><FiX/></button></div>
-      {stockOpen?<><Field label="Item"><select value={newStock.id} onChange={e=>setNewStock(p=>({...p,id:e.target.value}))}>{DEMO_PRODUCTS.map(p=><option value={p.id} key={p.id}>{p.label} · {p.shape}</option>)}</select></Field><Field label="Type"><select value={newStock.type} onChange={e=>setNewStock(p=>({...p,type:e.target.value}))}><option>IN</option><option>OUT</option></select></Field><Field label="Quantity"><input type="number" min="1" step="1" value={newStock.quantity} onChange={e=>setNewStock(p=>({...p,quantity:e.target.value}))}/></Field><button className="mgmt-btn full" style={{marginTop:12}} onClick={adjustStock}>Save Demo Movement</button></>:
+      {stockOpen?<><Field label="Item"><select value={newStock.id} onChange={e=>setNewStock(p=>({...p,id:e.target.value}))}>{DEMO_PRODUCTS.map(p=><option value={p.id} key={p.id}>{p.label} · {p.shape}</option>)}</select></Field><Field label="Type"><select value={newStock.type} onChange={e=>setNewStock(p=>({...p,type:e.target.value}))}><option>IN</option><option>OUT</option></select></Field><Field label="Quantity"><input type="number" min="1" step="1" value={newStock.quantity} onChange={e=>setNewStock(p=>({...p,quantity:e.target.value}))}/></Field><Field label="Reason (required)"><input value={newStock.reason} placeholder="New stock, damaged bottle, bottle return..." onChange={e=>{setNewStock(p=>({...p,reason:e.target.value}));setStockError('')}}/></Field>{stockError&&<div className="mgmt-notice" role="alert">{stockError}</div>}<button className="mgmt-btn full" style={{marginTop:12}} onClick={adjustStock}>Save Demo Movement</button></>:
        current&&<><p className="mgmt-sub">{current.source} • {current.service} • {current.date}</p>
         <div className="mgmt-card" style={{margin:'12px 0'}}><strong>Items</strong><p className="mgmt-sub">{orderSummary(current.items)}</p><div className="mgmt-row"><span>Total (demo)</span><strong>{formatMoney(current.amount)}</strong></div><div className="mgmt-row"><span>Payment</span><Pill>{current.paymentStatus}</Pill></div></div>
         <Field label="Order / Task Status"><select value={nextStatus} onChange={e=>setNextStatus(e.target.value)}>{stages.map(s=><option key={s}>{s}</option>)}</select></Field>
