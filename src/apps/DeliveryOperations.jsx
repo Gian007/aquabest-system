@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiTruck, FiPackage, FiCreditCard, FiClock, FiCheckCircle, FiArrowRight, FiAlertTriangle, FiMapPin, FiFileText, FiRefreshCcw, FiHistory, FiLogOut } from 'react-icons/fi';
+import { FiTruck, FiPackage, FiCreditCard, FiClock, FiCheckCircle, FiArrowRight, FiAlertTriangle, FiMapPin, FiFileText, FiRefreshCcw, FiClock, FiLogOut } from 'react-icons/fi';
 import { formatMoney } from '../data/managerDemo.js';
 
 // Demo trips only. Vehicle/route details and addresses are intentionally not fabricated as live data.
@@ -73,7 +73,7 @@ export default function DeliveryOperations({page,go,trips,setTrips,driver='Drive
     <button className="mgmt-quick" onClick={()=>go('deliveries')}><FiTruck/> My Deliveries</button>
     <button className="mgmt-quick" onClick={()=>go('bottles')}><FiPackage/> Bottle Handling</button>
     <button className="mgmt-quick" onClick={()=>go('collections')}><FiCreditCard/> Collections</button>
-    <button className="mgmt-quick" onClick={()=>go('history')}><FiHistory/> Trip History</button>
+    <button className="mgmt-quick" onClick={()=>go('history')}><FiClock/> Trip History</button>
    </div>
    <div className="mgmt-section-title"><h2>Current Trips</h2><button className="mgmt-link" onClick={()=>go('deliveries')}>View All <FiArrowRight/></button></div>
    {active.map(card)}
@@ -106,7 +106,7 @@ export default function DeliveryOperations({page,go,trips,setTrips,driver='Drive
   {page==='more'&&<>
    <Title tag="Delivery access" title="More Modules" description="Your trip support, payment and account tools."/>
    <div className="mgmt-more">
-    {[[FiPackage,'Bottle Handling','bottles'],[FiCreditCard,'Collections','collections'],[FiHistory,'Delivery History','history'],[FiTruck,'My Deliveries','deliveries']].map(([Icon,label,target])=><button key={target} onClick={()=>go(target)}><Icon/><strong>{label}</strong><small>Open {label.toLowerCase()}</small></button>)}
+    {[[FiPackage,'Bottle Handling','bottles'],[FiCreditCard,'Collections','collections'],[FiClock,'Delivery History','history'],[FiTruck,'My Deliveries','deliveries']].map(([Icon,label,target])=><button key={target} onClick={()=>go(target)}><Icon/><strong>{label}</strong><small>Open {label.toLowerCase()}</small></button>)}
     <button onClick={onLogout}><FiLogOut/><strong>Log Out</strong><small>Exit delivery demo</small></button>
    </div>
   </>}
