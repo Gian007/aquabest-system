@@ -3,25 +3,23 @@
 .business-auth *{box-sizing:border-box}
 .business-auth button{cursor:pointer}
 .business-auth-layout{min-height:100dvh;display:grid;grid-template-columns:minmax(0,61fr) minmax(410px,39fr)}
-.business-auth-intro{position:relative;isolation:isolate;overflow:hidden;min-height:100dvh;padding:clamp(26px,3vw,48px) clamp(32px,5vw,80px) 70px;background:radial-gradient(ellipse at 82% 35%,#bceaff 0%,transparent 53%),linear-gradient(135deg,#e7f8ff,#f9fcff 55%,#d8f4ff);display:flex;flex-direction:column;justify-content:space-between}
+.business-auth-intro{position:relative;isolation:isolate;overflow:hidden;min-width:0;min-height:100dvh;padding:clamp(26px,3vw,48px) clamp(32px,5vw,80px) 70px;background:radial-gradient(ellipse 42% 46% at 77% 52%,#bdeaff88 0%,transparent 100%),linear-gradient(135deg,#e7f8ff,#f9fcff 55%,#d8f4ff);display:flex;flex-direction:column;justify-content:space-between}
 .business-auth-mark{position:relative;z-index:5;display:flex;align-items:center;gap:24px;color:#13265a}
 .business-auth-mark:after{content:'';order:1;width:1px;height:31px;background:#466b9f}
 .business-auth-mark img{width:clamp(126px,12.5vw,188px);height:60px;object-fit:contain;mix-blend-mode:multiply}
 .business-auth-mark span{order:2;font-weight:800;font-size:clamp(10px,1vw,14px);letter-spacing:2px;white-space:nowrap}
-.business-auth-intro-copy{position:relative;z-index:3;padding:clamp(45px,8vh,105px) 0 clamp(80px,11vh,140px);max-width:min(100%,840px)}
+.business-auth-intro-copy{position:relative;z-index:4;padding:clamp(45px,8vh,105px) 0 clamp(80px,11vh,140px);width:100%;max-width:100%}
 .business-auth-kicker{position:relative;z-index:4;display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:2.2px;font-weight:800;color:#17356d}
 .business-auth-pulse{width:10px;height:10px;border-radius:50%;background:#1bc2d7;box-shadow:0 0 0 4px #0aa8c31a}
-.business-auth-intro h1{position:relative;z-index:3;font-size:clamp(38px,3.6vw,64px);line-height:1.11;font-weight:850;letter-spacing:-2px;max-width:490px;margin:27px 0 20px;color:#152c68;text-wrap:balance}
+.business-auth-intro h1{position:relative;z-index:4;font-size:clamp(38px,3.6vw,64px);line-height:1.11;font-weight:850;letter-spacing:-2px;max-width:min(49%,490px);margin:27px 0 20px;color:#152c68;text-wrap:balance}
 .business-auth-intro h1 em{font-style:normal;color:#08b6d0}
-.business-auth-intro-copy>p{position:relative;z-index:3;font-size:clamp(13px,1.13vw,16px);line-height:1.7;color:#445d80;max-width:390px;margin:0}
-.business-auth-benefits{position:relative;z-index:3;display:grid;gap:14px;margin-top:30px;max-width:380px}
+.business-auth-intro-copy>p{position:relative;z-index:4;font-size:clamp(13px,1.13vw,16px);line-height:1.7;color:#445d80;max-width:min(43%,390px);margin:0}
+.business-auth-benefits{position:relative;z-index:4;display:grid;gap:14px;margin-top:30px;max-width:min(43%,380px)}
 .business-auth-benefits span{display:flex;align-items:center;gap:13px;font-size:13px;font-weight:750;color:#152e68}
 .business-auth-benefits svg{width:40px;height:40px;flex-shrink:0;padding:10px;background:#c7f3fa;color:#114d96;border-radius:12px}
-.business-auth-visual{position:absolute;inset:0;pointer-events:none;z-index:2}
-.business-auth-water-ring{position:absolute;width:min(53vw,680px);aspect-ratio:1;left:36%;top:13%;border-radius:50%;opacity:.62;transform:rotate(-14deg);background:radial-gradient(circle at center,transparent 52%,#a0e9fa61 55%,#58bbed46 59%,transparent 64%),conic-gradient(from 70deg,transparent 0 22%,#64d7f755 25%,transparent 29% 53%,#40adf444 58%,transparent 64% 100%);filter:blur(1px)}
-.business-auth-model{position:absolute;right:-9%;bottom:-16%;width:min(65%,660px);max-height:94%;object-fit:contain;object-position:bottom center;mask-image:linear-gradient(to bottom,#000 0%,#000 69%,transparent 98%);filter:drop-shadow(0 18px 19px #2766a325)}
-.business-auth-wave{position:absolute;z-index:3;inset:auto 0 0;width:100%;height:clamp(150px,25vh,280px);object-fit:fill;pointer-events:none}
-.business-auth-intro-footer{position:relative;z-index:4;color:#e6f8ff;font-size:11px}
+.business-auth-visual{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+.business-auth-model{position:absolute;right:5%;bottom:7%;width:46%;height:68%;max-height:none;object-fit:contain;object-position:center bottom;-webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 78%,transparent 99%);mask-image:linear-gradient(to bottom,#000 0%,#000 78%,transparent 99%);filter:drop-shadow(0 12px 20px #2766a325)}
+.business-auth-intro-footer{position:relative;z-index:6;color:#f5fbff;font-size:11px;text-shadow:0 1px 3px #064877bb}
 .business-auth-intro-footer span{padding:0 8px}
 .business-auth-right{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;min-width:0;padding:50px clamp(25px,5vw,90px);border-left:1px solid #cfdfed;background:radial-gradient(circle at 90% 100%,#deeeff 0%,transparent 50%),linear-gradient(145deg,#f7fbff,#edf6ff)}
 .business-auth-card{width:100%;max-width:480px;padding:0;border:0;background:transparent;box-shadow:none}
@@ -63,7 +61,9 @@
  .business-auth-intro{padding-left:40px;padding-right:28px}
  .business-auth-intro h1{max-width:420px;font-size:clamp(36px,3.6vw,51px)}
  .business-auth-intro-copy>p{max-width:300px}
- .business-auth-model{right:-15%;width:67%}
+ .business-auth-model{right:2%;width:45%;height:65%;bottom:8%}
+ .business-auth-intro h1{max-width:53%}
+ .business-auth-intro-copy>p,.business-auth-benefits{max-width:47%}
  .business-auth-right{padding-left:38px;padding-right:38px}
 }
 @media(max-width:900px){
@@ -82,43 +82,30 @@
 }
 @media(prefers-reduced-motion:reduce){.business-auth *{transition:none!important}}
 
-/* Hero layout repair: layers must be relative to the WHOLE left panel, never
-   to the headline container. Keep decorations edge-to-edge at all widths. */
-.business-auth-intro{contain:paint;min-width:0}
-.business-auth-visual{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
-.business-auth-intro-copy{z-index:3;max-width:100%;width:100%;padding-right:0}
-.business-auth-intro h1{max-width:min(49%,490px)}
-.business-auth-intro-copy>p{max-width:min(43%,390px)}
-.business-auth-benefits{max-width:min(43%,380px)}
-.business-auth-water-ring{left:auto;right:1%;top:20%;width:min(52%,520px);height:auto;aspect-ratio:1}
-.business-auth-model{
-  right:1%;bottom:11%;width:49%;height:74%;max-height:none;
-  display:block;object-fit:contain;object-position:center bottom;
-  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 80%,transparent 100%);
-  mask-image:linear-gradient(to bottom,#000 0%,#000 80%,transparent 100%);
+/* Full-bleed water shapes are panel backgrounds, never sized inline artwork.
+   Both layers intentionally extend past the panel horizontally, with clipping
+   done only by the outer hero. This avoids any boxed or cropped-image edges. */
+.business-auth-intro::after,
+.business-auth-intro::before{content:"";position:absolute;pointer-events:none;left:-15%;width:130%;bottom:-1px}
+.business-auth-intro::before{
+  z-index:3;height:clamp(100px,17vh,178px);
+  background:linear-gradient(105deg,#2bbfe4 0%,#138fca 35%,#0863b3 68%,#194492 100%);
+  border-radius:52% 48% 0 0 / 31% 38% 0 0;
 }
-.business-auth-wave{
-  position:absolute;left:0;right:0;bottom:0;top:auto;z-index:3;
-  display:block;width:100%;height:clamp(145px,22vh,240px);
-  margin:0;padding:0;background-repeat:no-repeat;
-  background-position:center bottom;background-size:100% 100%;
-  pointer-events:none;
+.business-auth-intro::after{
+  z-index:2;bottom:clamp(50px,7.5vh,80px);height:clamp(55px,12vh,110px);
+  background:linear-gradient(98deg,#b7f5ffb8 0%,#7bddf0b3 48%,#48c8ec93 100%);
+  border-radius:44% 56% 0 0 / 52% 68% 0 0;
 }
-.business-auth-intro-footer{z-index:4;margin-top:20px;color:#f0faff;text-shadow:0 1px 3px #073c72b3}
-@media(max-width:1280px) and (min-width:901px){
-  .business-auth-model{right:0;bottom:11%;width:46%;height:69%}
-  .business-auth-water-ring{right:-2%;width:55%}
-  .business-auth-intro h1{max-width:54%}
-  .business-auth-intro-copy>p,.business-auth-benefits{max-width:47%}
-}
-@media(max-width:1100px) and (min-width:901px){
+@media(min-width:901px) and (max-width:1100px){
   .business-auth-intro h1{font-size:clamp(33px,3.5vw,44px)}
-  .business-auth-model{right:-1%;width:45%;height:64%}
+  .business-auth-model{right:1%;width:44%;height:62%;bottom:8%}
   .business-auth-benefits span{font-size:11px}
 }
-@media(max-height:760px) and (min-width:901px){
+@media(min-width:901px) and (max-height:760px){
   .business-auth-intro-copy{padding-top:30px;padding-bottom:65px}
   .business-auth-intro h1{font-size:clamp(32px,3.4vw,51px)}
-  .business-auth-wave{height:145px}
-  .business-auth-model{bottom:9%;height:70%}
+  .business-auth-model{height:65%;bottom:9%}
+  .business-auth-intro::before{height:120px}
+  .business-auth-intro::after{height:75px;bottom:55px}
 }
