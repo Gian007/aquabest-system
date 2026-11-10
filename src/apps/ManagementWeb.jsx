@@ -35,14 +35,13 @@ const Section=({title,action,onClick})=><div className="mgmt-section-title"><h2>
 const Field=({label,children})=><div className="mgmt-field"><label>{label}</label>{children}</div>;
 const today=()=>new Date().toISOString().slice(0,10);
 
-export default function ManagementWeb({role='manager'}){
+export default function ManagementWeb({role='manager',onLogout}){
  const isStaff=role==='staff';
  const isDelivery=role==='delivery';
  const isOwner=role==='owner';
  const [trips,setTrips]=useState(INITIAL_DELIVERY_TRIPS);
  const [page,setPage]=useState('dashboard');
  const {entries:availability,update:updateAvailability}=useEmployeeAvailability();
- const [loggedIn,setLoggedIn]=useState(true);
  const [orders,setOrders]=useState(()=>isStaff?[...INITIAL_ORDERS,
  {id:'AB-1045',customer:'Office Refill',source:'Phone',items:[{sizeId:'slim5',quantity:3}],status:'Confirmed',paymentStatus:'Unpaid',amount:105,service:'Walk-in',assigned:'Staff A',date:'2026-10-31'},
  {id:'AB-1046',customer:'Anna Cruz',source:'Online',items:[{sizeId:'round5',quantity:2}],status:'Ready',paymentStatus:'Unpaid',amount:70,service:'Delivery',assigned:'Staff A',date:'2026-10-31'}]:INITIAL_ORDERS);
@@ -64,7 +63,7 @@ export default function ManagementWeb({role='manager'}){
  const assignedOrders=orders.filter(o=>o.assigned==='Staff A');
  const ownStatusName=isOwner?'Owner':isDelivery?'Driver A':isStaff?'Staff A':'Manager';
  const deliveryAvailabilityOrders=trips.map(t=>({id:t.id,assigned:t.driver,status:t.status}));
- const logout=()=>{setSelected(null);setStockOpen(false);setLoggedIn(false);setPage('dashboard')};
+ const logout=()=>{setSelected(null);setStockOpen(false);setPage('dashboard');onLogout?.()};
  const active=orders.filter(o=>!['Completed','Cancelled'].includes(o.status));
  const payments=orders.filter(o=>o.paymentStatus==='Paid');
  const revenue=payments.reduce((sum,o)=>sum+o.amount,0);
@@ -108,7 +107,6 @@ export default function ManagementWeb({role='manager'}){
  const filtered=(isStaff?assignedOrders:orders).filter(o=>filter==='All'||(filter==='Unpaid'?o.paymentStatus!=='Paid':o.status===filter));
  const section=<div className="mgmt-demo">Prototype only • prices, names, sales, assignments and orders are sample values. Nothing is written to a backend.</div>;
 
- if(!loggedIn)return <div className="mgmt mgmt-signout"><div className="mgmt-logout-card"><img src={logo} alt="AquaBest"/><FiLogOut size={32}/><h1>{isOwner?'Owner':isDelivery?'Delivery':isStaff?'Staff':'Manager'} preview closed</h1><p>Demo logout only. Real authentication is not connected yet.</p><button className="mgmt-btn full" onClick={()=>setLoggedIn(true)}><FiLogIn/> Re-enter Demo</button><a href={import.meta.env.BASE_URL}>Customer Website</a></div></div>;
  return <div className="mgmt">
   <header className="mgmt-header"><div className="mgmt-header-inner">
     <button type="button" className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>go('dashboard')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>{isOwner?'Owner Workspace':isDelivery?'Delivery Workspace':isStaff?'Staff Workspace':'Manager Workspace'}</strong></span></button>
