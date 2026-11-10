@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { FiArrowRight, FiArrowLeft, FiEye, FiEyeOff, FiLock, FiUser, FiHelpCircle, FiClipboard, FiZap, FiMonitor } from 'react-icons/fi';
 import logo from '../assets/AquaBest logo.png';
 import model from '../assets/Model_Imgs/model.png';
-import waveArt from '../assets/business-login-waves.svg';
 import { DEMO_BUSINESS_ACCOUNTS } from '../services/demoBusinessAuth.js';
 import './businessLogin.css';
 
@@ -30,14 +29,13 @@ export default function BusinessLogin({ onLogin }) {
     <div className="business-auth-layout">
       <section className="business-auth-intro" aria-label="AquaBest business portal">
         <div className="business-auth-mark"><img src={logo} alt="AquaBest" /><span>BUSINESS OPERATIONS</span></div>
-        <div className="business-auth-visual" aria-hidden="true"><div className="business-auth-water-ring"/><img className="business-auth-model" src={model} alt="" /></div>
+        <div className="business-auth-visual" aria-hidden="true"><img className="business-auth-model" src={model} alt="" /></div>
         <div className="business-auth-intro-copy">
           <div className="business-auth-kicker"><span className="business-auth-pulse"/> ONE CONNECTED WORKSPACE</div>
           <h1>Everything your station needs, <em>in one place.</em></h1>
           <p>Stay on top of orders, refills, deliveries, and daily operations from your dedicated AquaBest workspace.</p>
           <div className="business-auth-benefits"><span><FiClipboard/> Role-specific dashboards</span><span><FiZap/> Easy daily task management</span><span><FiMonitor/> Works on mobile and desktop</span></div>
         </div>
-        <div className="business-auth-wave" style={{ backgroundImage: `url("${waveArt}")` }} aria-hidden="true" />
         <div className="business-auth-intro-footer">AquaBest Management System <span>•</span> Internal workspace</div>
       </section>
       <main className="business-auth-right">
