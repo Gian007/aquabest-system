@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiArrowRight, FiArrowLeft, FiEye, FiEyeOff, FiLock, FiUser, FiShield, FiHelpCircle, FiClipboard, FiZap, FiMonitor } from 'react-icons/fi';
+import { FiArrowRight, FiArrowLeft, FiEye, FiEyeOff, FiLock, FiUser, FiHelpCircle, FiClipboard, FiZap, FiMonitor } from 'react-icons/fi';
 import logo from '../assets/AquaBest logo.png';
 import model from '../assets/Model_Imgs/model.png';
 import waveArt from '../assets/business-login-waves.svg';
