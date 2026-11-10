@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="510" viewBox="0 0 1400 510" fill="none" aria-hidden="true">
+<defs><linearGradient id="w" x1="0" y1="80" x2="1300" y2="450" gradientUnits="userSpaceOnUse"><stop stop-color="#C9F5FF"/><stop offset=".35" stop-color="#57D7F3"/><stop offset=".75" stop-color="#158CCB"/><stop offset="1" stop-color="#0753A0"/></linearGradient><linearGradient id="b" x1="200" y1="280" x2="1060" y2="510" gradientUnits="userSpaceOnUse"><stop stop-color="#139AD2"/><stop offset=".55" stop-color="#065EBD"/><stop offset="1" stop-color="#133F91"/></linearGradient></defs>
+<path d="M0 231C183 210 254 310 408 328S708 234 873 270 1157 366 1400 195V510H0V231Z" fill="#B4EDFC" opacity=".58"/>
+<path d="M0 286C215 238 296 392 510 344 733 293 834 311 1005 352 1158 385 1247 290 1400 258V510H0V286Z" fill="url(#w)" opacity=".88"/>
+<path d="M0 332C220 386 392 312 566 369 760 432 886 348 1025 389 1187 438 1279 345 1400 346V510H0V332Z" fill="url(#b)"/>
+<path d="M0 285C240 247 369 370 552 345 777 314 803 299 987 349 1171 395 1287 280 1400 258" stroke="#F0FDFF" stroke-width="6" opacity=".8"/>
+</svg>
