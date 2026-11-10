@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { FiArrowRight, FiDroplet, FiPackage, FiShield, FiTruck, FiActivity, FiMapPin } from 'react-icons/fi';
 import NavBarCustomer from './Component_Customer/navBarCustomer.jsx';
 import CustomerOnboarding from './Component_Customer/CustomerOnboarding.jsx';
@@ -6,8 +6,6 @@ import OrderWaterStep1 from './Component_Customer/OrderWaterStep1.jsx';
 import OrderDetailsStep2 from './Component_Customer/OrderDetailsStep2.jsx';
 import ReviewOrderStep3 from './Component_Customer/ReviewOrderStep3.jsx';
 import MyOrders from './Component_Customer/MyOrders.jsx';
-import { getSessionUser, signOutCustomer } from '../services/customerAuth.js';
-import { loadMyCustomer } from '../services/customerProfile.js';
 import sampleData from '../data/sampleData.json';
 import model from '../assets/Model_Imgs/model.png';
 import explainingModel from '../assets/Model_Imgs/ExplainingModel.png';
@@ -30,22 +28,6 @@ export default function CustomerWeb(){
   const [draft,setDraft]=useState(()=>makeDraft(null));
   const [orders,setOrders]=useState(sampleData.orders);
   const [notice,setNotice]=useState('');
-  const [checking,setChecking]=useState(true);
-  // Restore a previous login (Supabase keeps the session in the browser).
-  useEffect(()=>{
-    let cancelled=false;
-    (async()=>{
-      try{
-        if(await getSessionUser()){
-          const existing=await loadMyCustomer();
-          if(existing&&!cancelled){setCustomer(existing);setDraft(makeDraft(existing));}
-        }
-      }catch{/* show the login screen if anything fails */}
-      if(!cancelled)setChecking(false);
-    })();
-    return()=>{cancelled=true};
-  },[]);
-  const onLogout=async()=>{await signOutCustomer();setCustomer(null);setDraft(makeDraft(null));setOrders(sampleData.orders);setPage('home');setNotice('');scrollTop();};
   const scrollTop=()=>window.scrollTo(0,0);
   const onOnboard=(next)=>{setCustomer(next);setDraft(makeDraft(next));setPage('home');scrollTop();};
   const goHome=()=>{setPage('home');setNotice('');scrollTop();};
@@ -72,10 +54,9 @@ export default function CustomerWeb(){
     };
     setOrders(current=>[order,...current]);goOrders();
   };
-  if(checking) return <main className="onboarding-shell"><p style={{textAlign:'center',padding:'48px 16px'}}>Loading…</p></main>;
-  if(!customer) return <CustomerOnboarding onComplete={onOnboard}/>;
+  if(!customer) return <CustomerOnboarding sampleCustomer={sampleData.customers[0]} onComplete={onOnboard}/>;
   return <div id="home" className="customer-site">
-    <NavBarCustomer page={page} onHome={goHome} onOrder={()=>startOrder()} onOrders={goOrders} onLogout={onLogout}/>
+    <NavBarCustomer page={page} onHome={goHome} onOrder={()=>startOrder()} onOrders={goOrders}/>
     <main className="customer-main container-fluid px-3 px-md-4">
       {page==='home' && <>
         <section className="hero-banner" aria-labelledby="hero-title">
@@ -122,6 +103,6 @@ export default function CustomerWeb(){
       </>}
       {page==='orders' && <MyOrders orders={orders} onBack={goHome} onNewOrder={()=>startOrder()} onReorder={onReorder}/>}
     </main>
-    <div className="sample-disclosure" style={{padding:'12px',textAlign:'center'}}>Customer login and profile are live (Supabase). Orders are still sample data for now.</div>
+    <div className="sample-disclosure" style={{padding:'12px',textAlign:'center'}}>UI preview: customer profile, OTP and orders are local sample data; no live backend is connected.</div>
   </div>;
 }
