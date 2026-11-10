@@ -1,0 +1,190 @@
+/* AquaBest design system: Inter, navy #1b2f63, primary #244ea3,
+   aqua #2aa9c5, page #f8fbff, 8px spacing, 12px inputs, 16px cards. */
+.mgmt{--a-primary:#244ea3;--a-navy:#1b2f63;--a-aqua:#2aa9c5;--a-light:#eaf7fb;--a-page:#f8fbff;--a-line:#d9e2ec;--a-muted:#667788;background:var(--a-page);min-height:100dvh;color:#16243a;font-family:Inter,system-ui,sans-serif}
+.mgmt *{box-sizing:border-box}.mgmt button{cursor:pointer}.mgmt button:disabled{cursor:not-allowed;opacity:.5}
+.mgmt-header{background:white;border-bottom:1px solid var(--a-line);padding:11px 16px;position:sticky;top:0;z-index:3}
+.mgmt-header-inner{max-width:1180px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mgmt-brand{display:flex;align-items:center;gap:10px}.mgmt-brand img{width:108px;height:36px;object-fit:contain}.mgmt-brand small{display:block;font-size:10px;color:var(--a-muted);font-weight:650}
+.mgmt-actions{display:flex;align-items:center;gap:8px}.mgmt-icobtn{width:42px;height:42px;border:0;background:#edf4ff;color:var(--a-navy);border-radius:12px;display:grid;place-items:center}
+.mgmt-body{max-width:1180px;margin:auto;display:flex;gap:20px;padding:19px 16px 110px}.mgmt-main{flex:1;min-width:0;max-width:900px;margin:auto}.mgmt-sidebar{display:none;width:220px;flex-shrink:0;align-self:flex-start;position:sticky;top:88px;background:white;border:1px solid var(--a-line);border-radius:16px;padding:12px}
+.mgmt-sidebtn{width:100%;border:0;background:white;text-align:left;display:flex;align-items:center;gap:10px;border-radius:11px;padding:12px;color:#566780;font-size:13px;font-weight:650}.mgmt-sidebtn.active,.mgmt-sidebtn:hover{background:#eaf1ff;color:var(--a-primary)}
+.mgmt-heading{margin-bottom:17px}.mgmt-heading .overline{font-size:11px;letter-spacing:.7px;font-weight:800;color:var(--a-primary);text-transform:uppercase}.mgmt-heading h1{font-weight:800;color:var(--a-navy);font-size:clamp(25px,4vw,34px);margin:5px 0 3px}.mgmt-heading p{color:var(--a-muted);font-size:13px;line-height:1.5;margin:0}
+.mgmt-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 22px}
+.mgmt-stat,.mgmt-card{border:1px solid var(--a-line);background:white;border-radius:16px;padding:16px;min-width:0}
+.mgmt-stat{min-height:104px}.mgmt-stat-top{display:flex;align-items:center;justify-content:space-between;gap:4px;color:var(--a-muted);font-size:11px}.mgmt-stat-top svg{color:var(--a-primary)}.mgmt-stat strong{font-size:clamp(18px,4vw,26px);color:var(--a-navy);display:block;margin-top:12px}
+.mgmt-section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:22px 0 10px}.mgmt-section-title h2{font-size:16px;margin:0;font-weight:750}.mgmt-link{border:0;background:transparent;color:var(--a-primary);font-weight:700;font-size:12px}
+.mgmt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mgmt-quick{border:1px solid var(--a-line);border-radius:14px;padding:16px;text-align:left;background:white;color:var(--a-navy);font-weight:700;display:flex;align-items:center;gap:10px;font-size:13px}.mgmt-quick svg{font-size:21px;color:var(--a-primary);flex-shrink:0}
+.mgmt-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid #ecf0f6}.mgmt-row:first-child{border-top:0;padding-top:0}.mgmt-row:last-child{padding-bottom:0}.mgmt-row-title{font-size:13px;font-weight:750}.mgmt-sub{color:var(--a-muted);font-size:11px;line-height:1.45}
+.mgmt-pill{padding:5px 9px;border-radius:999px;background:#eaf1ff;color:#2057a5;font-size:10px;font-weight:750;white-space:nowrap}.mgmt-pill.ok{background:#e7f7ee;color:#0f8a5b}.mgmt-pill.warn{background:#fff2d9;color:#946100}
+.mgmt-bottom{position:fixed;bottom:0;left:0;width:100%;display:grid;grid-template-columns:repeat(4,1fr);height:70px;padding-bottom:env(safe-area-inset-bottom,0px);border-top:1px solid var(--a-line);background:#fff;z-index:3}
+.mgmt-bottom button{border:0;background:transparent;color:#8090a6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px}.mgmt-bottom button svg{font-size:22px}.mgmt-bottom button.active{color:var(--a-primary);font-weight:800}
+.mgmt-more{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.mgmt-more button{border:1px solid var(--a-line);border-radius:15px;background:white;padding:17px;text-align:left;display:flex;flex-direction:column;gap:8px;min-height:114px;color:var(--a-navy)}.mgmt-more button svg{font-size:23px;color:var(--a-primary)}.mgmt-more button strong{font-size:13px}.mgmt-more button small{font-size:11px;color:var(--a-muted)}
+.mgmt-formgrid{display:grid;grid-template-columns:1fr;gap:10px}.mgmt-field{display:flex;flex-direction:column;gap:6px}.mgmt-field label{font-size:12px;font-weight:700;color:var(--a-navy)}.mgmt-field input,.mgmt-field select,.mgmt-field textarea{width:100%;min-height:45px;padding:11px;border:1px solid var(--a-line);border-radius:12px;background:#fbfdff;color:#182c49;font-size:13px}.mgmt-field input:read-only{background:#eef4fa}.mgmt-btn{border:0;background:var(--a-primary);color:white;padding:12px 14px;min-height:45px;border-radius:12px;font-weight:750;font-size:13px;display:inline-flex;align-items:center;justify-content:center;gap:7px}.mgmt-btn.secondary{border:1px solid #cbdaf0;background:white;color:var(--a-primary)}.mgmt-btn.full{width:100%}
+.mgmt-qty{display:flex;align-items:center;gap:9px}.mgmt-qty button{width:35px;height:35px;border:1px solid #cfdbeb;background:#eff5ff;color:var(--a-primary);border-radius:10px;display:grid;place-items:center}.mgmt-qty span{min-width:18px;text-align:center;font-weight:750}
+.mgmt-product{display:flex;align-items:center;gap:9px;border:1px solid var(--a-line);border-radius:13px;padding:10px;margin:8px 0}.mgmt-product img{width:52px;height:62px;object-fit:contain}.mgmt-product-info{flex:1;min-width:0;font-size:12px}.mgmt-product-info strong{display:block}.mgmt-product-info small{color:var(--a-muted)}
+.mgmt-summary{background:#eaf1ff;border-radius:14px;padding:15px}.mgmt-summary>div{display:flex;justify-content:space-between;gap:12px;margin:8px 0;font-size:12px}.mgmt-summary strong{color:var(--a-navy)}.mgmt-summary .total{border-top:1px solid #d2dff1;padding-top:12px;font-size:17px;font-weight:800}
+.mgmt-controls{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}.mgmt-controls button{border:1px solid var(--a-line);background:white;border-radius:20px;padding:8px 12px;font-size:11px;color:var(--a-muted)}.mgmt-controls button.active{background:var(--a-primary);border-color:var(--a-primary);color:white}
+.mgmt-order{margin:10px 0}.mgmt-order-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px}.mgmt-order-head strong{font-size:13px}.mgmt-order>p{font-size:12px;color:var(--a-muted);margin:5px 0}.mgmt-order-actions{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:12px}
+.mgmt-drawer{position:fixed;inset:0;background:#132a4d80;z-index:5;display:flex;justify-content:center;align-items:flex-end}.mgmt-sheet{background:#fff;border-radius:22px 22px 0 0;padding:21px 17px 28px;width:min(100%,520px);max-height:85dvh;overflow-y:auto}.mgmt-sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.mgmt-sheet-head h2{font-size:18px;margin:0}
+.mgmt-progress{display:grid;gap:8px}.mgmt-progress>div{display:flex;gap:9px;align-items:center;font-size:12px;color:#8b99ac}.mgmt-progress .done{color:var(--a-primary);font-weight:700}
+.mgmt-chart{display:flex;gap:12px;align-items:end;height:165px;padding:15px 10px 0}.mgmt-chart div{flex:1;display:flex;align-items:center;flex-direction:column;gap:6px;justify-content:flex-end;height:100%}.mgmt-chart b{display:block;background:linear-gradient(#2aa9c5,#244ea3);border-radius:7px 7px 2px 2px;width:100%}.mgmt-chart small{font-size:10px;color:var(--a-muted)}
+.mgmt-notice{padding:11px;border-radius:12px;background:#fff2d9;color:#8a5d00;font-size:12px;margin-bottom:12px}.mgmt-demo{margin-top:14px;color:#71819b;font-size:11px;line-height:1.45}.mgmt-table-scroll{overflow:auto}
+@media(min-width:850px){.mgmt-body{padding-top:28px;padding-bottom:35px}.mgmt-sidebar{display:block}.mgmt-bottom{display:none}.mgmt-formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.mgmt-main{max-width:none}.mgmt-drawer{align-items:center}.mgmt-sheet{border-radius:20px}}
+@media(max-width:370px){.mgmt-body{padding:14px 11px 110px}.mgmt-stat,.mgmt-card{padding:12px}.mgmt-qty{gap:5px}.mgmt-qty button{width:30px}}
+
+/* Floating iPhone-style navigation; retains AquaBest navy/blue and four destinations. */
+@media(max-width:849px){
+ .mgmt-bottom{left:12px;right:12px;width:auto;bottom:max(12px,env(safe-area-inset-bottom));height:66px;padding:4px 6px;border:1px solid #d9e2ec;border-radius:23px;overflow:hidden;box-shadow:0 8px 28px rgba(27,47,99,.15);background:rgba(255,255,255,.97);backdrop-filter:blur(14px)}
+ .mgmt-bottom button{border-radius:16px}.mgmt-bottom button.active{background:#eaf1ff}
+ .mgmt-body{padding-bottom:118px}
+}
+.mgmt-side-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mgmt-side-text strong{font-size:13px}
+.mgmt-side-text small{font-size:10px;font-weight:400;line-height:1.3;color:#74839a}
+.mgmt-sidebtn{align-items:flex-start}
+.mgmt-sidebtn svg{flex-shrink:0;margin-top:3px}
+.mgmt-sidebtn.active .mgmt-side-text small{color:#506d9c}
+.mgmt-logout-link{border-top:1px solid #e6ecf3;border-radius:0;margin-top:9px;padding-top:15px}
+.mgmt-signout{display:flex;align-items:center;justify-content:center;min-height:100dvh}
+.mgmt-logout-card{background:#fff;border:1px solid #d9e2ec;border-radius:22px;padding:28px;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:400px;width:calc(100% - 32px);box-shadow:0 12px 35px #173a661a;text-align:center}
+.mgmt-logout-card img{max-width:190px;max-height:68px;object-fit:contain}
+.mgmt-logout-card h1{font-size:23px;color:#1b2f63;font-weight:800;margin:0}
+.mgmt-logout-card p{color:#667788;font-size:13px}
+.mgmt-logout-card a{font-size:13px;color:#244ea3;text-decoration:none;font-weight:700}
+
+/* Header brand is navigation, matching the existing visual design. */
+.mgmt-brand-button{border:0;background:transparent;padding:0;text-align:left;cursor:pointer;border-radius:10px}
+.mgmt-brand-button:hover{opacity:.88}
+.mgmt-brand-button:focus-visible{outline:2px solid #244ea3;outline-offset:4px}
+.mgmt-brand-label{display:block}
+
+/* Shared employee availability component: same palette on Manager and Staff. */
+.availability-card{margin-bottom:14px}
+.availability-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-weight:750;font-size:11px;white-space:nowrap;background:#eff3f8;color:#586577}
+.availability-dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.availability-pill.available{background:#e5f6ed;color:#138358}
+.availability-pill.busy{background:#e7f0ff;color:#215bb7}
+.availability-pill.break{background:#f1eafe;color:#7c48ae}
+.availability-pill.neutral{background:#eef0f3;color:#6b7480}
+.availability-actions{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}
+.availability-actions .mgmt-btn{font-size:11px;min-height:40px;padding:9px 12px}
+.availability-meta{display:flex;flex-wrap:wrap;gap:8px 15px;font-size:11px;color:#65788e;margin-top:12px}
+.availability-meta span{display:flex;align-items:center;gap:5px}
+.availability-history{margin-top:12px;border-top:1px solid #e6ecf4;padding-top:10px;font-size:12px}
+.availability-history summary{font-weight:700;color:#244ea3;cursor:pointer;margin-bottom:8px}
+.availability-history .mgmt-sub{margin-top:5px}
+.availability-hint{display:flex;align-items:start;gap:7px;background:#f1f6ff;color:#365985;font-size:11px;padding:10px;border-radius:10px;margin-top:8px}
+.availability-hint svg{flex-shrink:0;margin-top:2px}
+
+/* Compact and reusable employee header for manager, staff and future delivery. */
+.mgmt-header{background:rgba(255,255,255,.94);backdrop-filter:blur(14px);box-shadow:0 1px 8px rgba(27,47,99,.045)}
+.mgmt-header-actions{display:flex;align-items:center;gap:9px}
+.mgmt-status-holder{position:relative}
+.mgmt-status-trigger{border:1px solid transparent;border-radius:999px;background:#edf4ff;color:#244ea3;display:inline-flex;align-items:center;gap:7px;padding:10px 12px;font-weight:750;font-size:12px;min-height:40px}
+.mgmt-status-trigger:hover,.mgmt-status-trigger[aria-expanded="true"]{border-color:#bad0ed;background:#e6f0ff}
+.mgmt-status-dot{width:8px;height:8px;border-radius:50%;background:#8490a0;flex-shrink:0}
+.mgmt-status-dot.available{background:#148453}
+.mgmt-status-dot.busy{background:#2467c9}
+.mgmt-status-dot.break{background:#8b5bc4}
+.mgmt-status-popover{position:absolute;top:calc(100% + 11px);right:0;z-index:12;width:min(300px,calc(100vw - 26px));padding:14px;background:white;border:1px solid #d9e2ec;border-radius:17px;box-shadow:0 16px 45px rgba(21,47,89,.17)}
+.mgmt-status-popover>strong{font-size:14px;color:#1b2f63}
+.mgmt-status-popover>p{margin:4px 0 12px}
+.mgmt-status-popover button{width:100%;display:flex;align-items:center;gap:10px;border:0;border-radius:10px;background:white;text-align:left;color:#1b2f63;padding:10px;font-size:12px;font-weight:650}
+.mgmt-status-popover button:hover:not(:disabled){background:#eaf1ff}
+.mgmt-status-popover button:disabled{color:#9eabc0;cursor:not-allowed}
+.mgmt-status-popover button svg{color:#244ea3;flex-shrink:0}
+.mgmt-status-current{margin-left:auto;color:#16845d;font-size:10px}
+.mgmt-status-schedule{border-top:1px solid #e7edf5!important;border-radius:0!important;margin-top:6px}
+.mgmt-status-schedule small{margin-left:auto;font-size:10px}
+.mgmt-status-details{display:flex;align-items:start;gap:7px;padding:10px;border-radius:10px;background:#f2f6fc;font-size:10px;line-height:1.45;color:#63758d;margin-top:8px}
+.mgmt-status-details svg{flex-shrink:0;margin-top:1px}
+@media(max-width:849px){
+ .mgmt-header{padding:10px 12px}
+ .mgmt-brand img{width:88px;height:33px}
+ .mgmt-brand{gap:7px}
+ .mgmt-brand small{display:none}
+ .mgmt-brand-label strong{font-size:10px!important;font-weight:700}
+ .mgmt-icobtn{width:37px;height:37px;border-radius:11px}
+ .mgmt-header-actions{gap:6px}
+ .mgmt-status-trigger{padding:9px 10px;font-size:11px;min-height:37px;gap:5px}
+ .mgmt-status-popover{right:-43px}
+}
+@media(max-width:350px){
+ .mgmt-brand img{width:74px}
+ .mgmt-status-trigger{padding:8px}
+ .mgmt-status-label{max-width:55px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+
+/* Actionable notifications: mobile-first, compact and accessible. */
+.mgmt-notification-toolbar{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;margin:16px 0}
+.mgmt-notification-tabs{display:flex;padding:3px;border:1px solid #d9e2ec;border-radius:12px;background:white;gap:3px}
+.mgmt-notification-tabs button{border:0;background:transparent;border-radius:9px;color:#64748d;padding:9px 12px;font-size:12px;font-weight:750;display:flex;align-items:center;gap:7px}
+.mgmt-notification-tabs button.active{background:#eaf1ff;color:#244ea3}
+.mgmt-notification-tabs span{background:#f0f5fb;border-radius:999px;font-size:10px;min-width:19px;padding:2px 5px}
+.mgmt-notification-markall{border:0;background:transparent;display:flex;gap:6px;align-items:center;color:#244ea3;font-size:11px;font-weight:750;padding:8px}
+.mgmt-notification-markall:disabled{opacity:.45}
+.mgmt-notification-list{display:grid;gap:10px}
+.mgmt-notification-card{display:flex;align-items:flex-start;gap:12px;background:#fff;border:1px solid #dce6f1;border-radius:16px;padding:16px;box-shadow:0 2px 8px rgba(27,47,99,.025)}
+.mgmt-notification-card.is-read{background:#f8fafc}
+.mgmt-notification-icon{width:40px;height:40px;display:grid;place-items:center;border-radius:13px;background:#eaf1ff;color:#244ea3;flex-shrink:0;font-size:19px}
+.mgmt-notification-content{flex:1;min-width:0}
+.mgmt-notification-kicker{display:flex;align-items:center;gap:8px;color:#2863ae;font-size:10px;font-weight:800;letter-spacing:.35px;text-transform:uppercase}
+.mgmt-unread-dot{width:7px;height:7px;border-radius:50%;background:#2d7ae3}
+.mgmt-notification-content h2{font-weight:800;font-size:14px;line-height:1.4;color:#1b2f63;margin:5px 0}
+.mgmt-notification-content p{font-size:12px;line-height:1.55;color:#667788;margin:0;overflow-wrap:anywhere}
+.mgmt-notification-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.mgmt-notification-actions button{border:0;background:transparent;font-size:11px;font-weight:750;display:inline-flex;gap:5px;align-items:center;padding:6px 0}
+.mgmt-notification-open{color:#244ea3}
+.mgmt-notification-read{color:#64748d}
+.mgmt-notification-empty{background:#fff;border:1px dashed #d2deed;border-radius:17px;min-height:220px;padding:38px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#9bb1cc}
+.mgmt-notification-empty h2{font-size:16px;color:#1b2f63;margin:12px 0 5px}
+.mgmt-notification-empty p{font-size:12px;color:#718197;max-width:270px;margin:0}
+.mgmt-notification-page>.mgmt-demo{display:flex;align-items:start;gap:6px}
+@media(max-width:400px){.mgmt-notification-card{padding:13px;gap:10px}.mgmt-notification-icon{width:36px;height:36px}.mgmt-notification-markall{font-size:10px}}
+
+/* Delivery role uses the existing AquaBest cards, desktop sidebar and iPhone dock. */
+.delivery-actions{display:flex;gap:8px;flex-wrap:wrap;margin:11px 0}
+.delivery-actions .mgmt-btn{flex:1;min-width:90px}
+.mgmt-order p svg{vertical-align:-2px;margin-right:4px}
+.mgmt-sheet .mgmt-field{margin:12px 0}
+.mgmt-sheet .mgmt-section-title h2{display:flex;align-items:center;gap:7px}
+@media(max-width:410px){.delivery-actions .mgmt-btn{font-size:11px;padding:9px}}
+
+/* Owner-specific content shares AquaBest management typography, cards and spacing. */
+.owner-employee{padding:15px 0;border-top:1px solid #e6edf5;display:grid;gap:9px}
+.owner-employee:first-of-type{border-top:0}
+.owner-employee>.mgmt-formgrid{align-items:end}
+.owner-employee .mgmt-btn{align-self:end}
+.delivery-confirm{margin-top:16px;background:#f6faff;border:1px solid #dce7f7;border-radius:16px;padding:14px;display:grid;gap:12px}
+.delivery-confirm .mgmt-field{margin:0}
+.delivery-confirm textarea{width:100%;border:1px solid #d9e2ec;border-radius:12px;padding:11px;min-height:85px}
+.delivery-paid{background:#eaf7ef;color:#14754b;display:flex;align-items:center;gap:8px}
+
+/* Owner business tools, styled with the existing AquaBest management palette. */
+.owner-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:12px 0}
+.owner-actions .mgmt-btn{display:inline-flex;align-items:center;gap:7px}
+.owner-form{margin:12px 0}.owner-form .mgmt-formgrid{gap:12px}
+.owner-subtitle{font-size:15px;font-weight:800;color:#1b2f63}
+.owner-directory{padding:6px 12px}
+.owner-person{display:flex;gap:12px;align-items:center;width:100%;background:transparent;border:0;border-bottom:1px solid #e5ecf5;text-align:left;padding:15px 5px;color:#1b2f63}
+.owner-person:last-child{border:0}.owner-person.selected{background:#edf4ff;border-radius:10px}
+.owner-person-name{display:flex;flex-direction:column;flex:1;min-width:0;gap:3px}.owner-person-name small{color:#78869b}
+.owner-avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#e9f2ff;color:#2453a3;flex-shrink:0}
+.owner-state{font-size:10px;display:inline-flex;width:fit-content;border-radius:99px;padding:5px 9px;background:#eef0f3;color:#748092;font-weight:800}
+.owner-state.active{background:#e4f6ef;color:#117d52}
+.owner-profile{margin-top:14px}.owner-profile .mgmt-stats{margin:12px 0}
+.owner-product-list{display:grid;gap:12px}
+.owner-product{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.owner-product-image{width:67px;height:67px;border-radius:12px;background:#eef4fd;color:#2d66ad;display:grid;place-items:center;overflow:hidden;flex-shrink:0}
+.owner-product-image img{width:100%;height:100%;object-fit:cover}
+.owner-product-info{display:flex;flex-direction:column;flex:1;min-width:145px;gap:5px;color:#1b2f63}
+.owner-product-info .mgmt-sub{margin:0}
+.owner-product-actions{display:flex;gap:7px;flex-wrap:wrap}
+.owner-product-actions .mgmt-btn{font-size:11px}
+.owner-product-upload{display:flex;gap:12px;align-items:center;margin:12px 0 18px}
+.owner-product-upload .owner-product-image{width:96px;height:96px}
+.owner-row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:end}
+.owner-empty{display:flex;align-items:center;flex-direction:column;gap:9px;padding:20px;color:#8c9db6;text-align:center}
+.owner-empty p{margin:0;font-size:12px}
+.owner-span{grid-column:1/-1}.owner-form textarea{width:100%;border:1px solid #d9e2ec;border-radius:12px;padding:11px;color:#1b2f63}
+@media(max-width:500px){.owner-product-actions{width:100%}.owner-product-actions .mgmt-btn{flex:1}.owner-person{gap:9px}.owner-profile .mgmt-stat{min-width:0}}

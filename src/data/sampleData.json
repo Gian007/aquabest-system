@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "type": "sample_data",
+    "note": "UI fixture only; replace with authenticated Supabase data before production. Never treat a client-side OTP as verification."
+  },
+  "customers": [
+    {
+      "id": "cust-001",
+      "phone": "09171234567",
+      "fullName": "Juan Dela Cruz",
+      "address": {
+        "street": "Blk 12 Lot 5, Sampaguita Street",
+        "barangay": "Fairview",
+        "city": "Quezon City",
+        "landmark": "Near the basketball court"
+      }
+    }
+  ],
+  "orders": [
+    {
+      "id": "AB-1028",
+      "customerId": "cust-001",
+      "createdAt": "2026-10-13",
+      "status": "Preparing",
+      "paymentStatus": "Unpaid",
+      "service": "pickup-return",
+      "items": [
+        {
+          "sizeId": "round5",
+          "quantity": 2
+        },
+        {
+          "sizeId": "slim25",
+          "quantity": 1
+        }
+      ],
+      "currentStep": 2
+    },
+    {
+      "id": "AB-1031",
+      "customerId": "cust-001",
+      "createdAt": "2026-10-14",
+      "status": "Pending Confirmation",
+      "paymentStatus": "Unpaid",
+      "service": "delivery",
+      "items": [
+        {
+          "sizeId": "slim5",
+          "quantity": 2
+        }
+      ],
+      "currentStep": 0
+    },
+    {
+      "id": "AB-0987",
+      "customerId": "cust-001",
+      "createdAt": "2026-10-06",
+      "status": "Completed",
+      "paymentStatus": "Paid",
+      "service": "walkin",
+      "items": [
+        {
+          "sizeId": "round5",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "AB-0962",
+      "customerId": "cust-001",
+      "createdAt": "2026-09-29",
+      "status": "Completed",
+      "paymentStatus": "Paid",
+      "service": "pickup-return",
+      "items": [
+        {
+          "sizeId": "slim25",
+          "quantity": 3
+        }
+      ]
+    }
+  ],
+  "statusStages": [
+    "Pending Confirmation",
+    "Confirmed",
+    "Preparing",
+    "Out for Delivery",
+    "Delivered"
+  ]
+}
