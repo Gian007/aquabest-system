@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { FiArrowRight, FiArrowLeft, FiEye, FiEyeOff, FiLock, FiUser, FiHelpCircle, FiClipboard, FiZap, FiMonitor } from 'react-icons/fi';
 import logo from '../assets/AquaBest logo.png';
 import model from '../assets/Model_Imgs/model.png';
+import splashArt from '../assets/business-login-splash.svg';
+import waveArt from '../assets/business-login-bottom-wave.svg';
 import { DEMO_BUSINESS_ACCOUNTS } from '../services/demoBusinessAuth.js';
 import './businessLogin.css';
 
@@ -29,7 +31,8 @@ export default function BusinessLogin({ onLogin }) {
     <div className="business-auth-layout">
       <section className="business-auth-intro" aria-label="AquaBest business portal">
         <div className="business-auth-mark"><img src={logo} alt="AquaBest" /><span>BUSINESS OPERATIONS</span></div>
-        <div className="business-auth-visual" aria-hidden="true"><img className="business-auth-model" src={model} alt="" /></div>
+        <div className="business-auth-visual" aria-hidden="true"><img className="business-auth-splash" src={splashArt} alt="" /><img className="business-auth-model" src={model} alt="" /></div>
+        <img className="business-auth-wave-art" src={waveArt} alt="" aria-hidden="true"/>
         <div className="business-auth-intro-copy">
           <div className="business-auth-kicker"><span className="business-auth-pulse"/> ONE CONNECTED WORKSPACE</div>
           <h1>Everything your station needs, <em>in one place.</em></h1>
