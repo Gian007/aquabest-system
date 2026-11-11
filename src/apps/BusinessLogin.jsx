@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import logo from '../assets/AquaBest logo.png';
 import { DEMO_BUSINESS_ACCOUNTS } from '../services/demoBusinessAuth.js';
 import './businessLogin.css';
 
@@ -28,7 +29,7 @@ export default function BusinessLogin({ onLogin }) {
       <div className="business-auth-layout">
         <section className="business-auth-intro" aria-label="AquaBest business portal">
           <div className="business-auth-brand">
-            <strong>AQUABEST</strong>
+            <img src={logo} alt="AquaBest" />
             <span>BUSINESS OPERATIONS</span>
           </div>
           <div className="business-auth-intro-copy">
@@ -44,7 +45,7 @@ export default function BusinessLogin({ onLogin }) {
           <p className="business-auth-intro-footer">AquaBest Management System <span aria-hidden="true">·</span> Internal workspace</p>
         </section>
         <main className="business-auth-right">
-          <div className="business-auth-mobile-brand"><strong>AQUABEST</strong><span>BUSINESS OPERATIONS</span></div>
+          <div className="business-auth-mobile-brand"><img src={logo} alt="AquaBest" /><span>BUSINESS OPERATIONS</span></div>
           <div className="business-auth-card">
             {recovering ? (
               <>
