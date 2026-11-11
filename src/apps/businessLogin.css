@@ -1,4 +1,4 @@
-/* Text-only AquaBest business login. Intentionally contains no image assets. */
+/* AquaBest business login: minimal typography with official logo asset only. */
 .business-auth{
   --a-primary:#244ea3;--a-navy:#1b2f63;--a-aqua:#2aa9c5;
   --a-border:#d9e2ec;--a-muted:#64748b;
@@ -77,3 +77,8 @@
   .business-auth-demo-accounts button{flex-direction:column;align-items:flex-start}
 }
 @media(prefers-reduced-motion:reduce){.business-auth *{transition:none!important}}
+
+/* Keep official transparent AquaBest logo unboxed, legible on both surfaces. */
+.business-auth-brand img{width:clamp(132px,12vw,183px);height:auto;max-height:68px;object-fit:contain;filter:brightness(0) invert(1)}
+.business-auth-mobile-brand img{width:138px;max-height:56px;height:auto;object-fit:contain}
+@media(max-width:480px){.business-auth-mobile-brand img{width:125px}}
