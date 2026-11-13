@@ -18,8 +18,9 @@ export default function StaffPOS({sale,onChange,onSave,onClear}){
     <Field label="Order Source"><select value={sale.source} onChange={e=>change('source',e.target.value)}>{['Walk-in','Messenger','Phone'].map(x=><option key={x}>{x}</option>)}</select></Field>
     <Field label="Customer Name"><input value={sale.customer} onChange={e=>change('customer',e.target.value)} placeholder={sale.source==='Walk-in'?'Optional for walk-in':'Customer / contact name'}/></Field>
     <Field label="Containers"><select value={sale.ownership} onChange={e=>change('ownership',e.target.value)}><option value="own">Customer-owned (Refill)</option><option value="store">AquaBest-provided</option></select></Field>
-    <Field label="Service / Fulfillment"><select value={sale.service} onChange={e=>change('service',e.target.value)}><option>Walk-in</option><option>Pickup & Delivery</option><option>Drop-off & Delivery</option><option>Delivery</option></select></Field>
+    <Field label="Service / Fulfillment"><select value={sale.service} onChange={e=>change('service',e.target.value)}><option>Walk-in</option><option>Pickup & Delivery</option><option>Drop-off & Delivery</option><option>Delivery</option><option>Collect & Return (Same Bottles)</option></select></Field>
    </div>
+   {sale.service==='Collect & Return (Same Bottles)'&&<p className="mgmt-sub">Customer's own empty containers are collected first, returned to the station, refilled, then delivered back. Collection and delivery are claimed separately.</p>}
    {sale.ownership==='store'&&<Field label="Container Arrangement"><select value={sale.arrangement} onChange={e=>change('arrangement',e.target.value)}><option value="purchase">Purchase container</option><option value="returnable">Returnable / borrowed (policy pending)</option></select></Field>}
   </div>
   <div className="mgmt-card" style={{marginTop:12}}><Section title="2. Select Sizes & Quantities"/><p className="mgmt-sub">Same available products and demo prices as AquaBest Manager POS.</p>
