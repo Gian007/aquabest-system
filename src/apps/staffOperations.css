@@ -566,3 +566,36 @@
  .staffapp .staffapp-tabs.staffapp-main-segments>button .staffapp-tab-label{font-size:11px;}
  .staffapp .staffapp-tabs.staffapp-main-segments>button .staffapp-tab-count{font-size:10px;}
 }
+
+
+/* Option C layout with Option A category dropdown. Compact, no horizontal filters. */
+.staffapp .staffapp-filter-controls{display:flex;align-items:stretch;gap:10px;margin-bottom:12px;width:100%;min-width:0}
+.staffapp .staffapp-category-wrap{position:relative;flex:1;min-width:0}
+.staffapp .staffapp-category-trigger{display:flex;align-items:center;gap:8px;min-height:45px;width:100%;max-width:100%;padding:9px 12px;border:1px solid #b9d0ed;border-radius:12px;background:#e9f2ff;color:#244ea3;text-align:left;font-size:13px;font-weight:800}
+.staffapp .staffapp-category-trigger>svg{flex-shrink:0;width:16px;height:16px}
+.staffapp .staffapp-category-name{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.staffapp .staffapp-category-chevron{margin-left:auto}
+.staffapp .staffapp-category-alert{display:inline-flex;flex-shrink:0;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:20px;color:#fff;background:#d44945;font-size:10px;line-height:1;font-weight:850;font-variant-numeric:tabular-nums}
+.staffapp .staffapp-filter-trigger{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0;min-width:90px;min-height:45px;padding:9px 12px;border-radius:12px;border:1px solid #c7d9f2;background:#e9f2ff;color:#244ea3;font-weight:800;font-size:13px}
+.staffapp .staffapp-filter-trigger>svg{width:16px;height:16px}
+.staffapp .staffapp-filter-active-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#d44945}
+.staffapp .staffapp-category-menu{position:absolute;z-index:15;top:calc(100% + 6px);left:0;width:min(310px,calc(100vw - 48px));max-height:65dvh;overflow:auto;padding:6px;background:white;border:1px solid #d1e0f2;border-radius:13px;box-shadow:0 12px 34px #163c6c28}
+.staffapp .staffapp-menu-hint{margin:5px 7px 9px;color:#677a95;font-size:11px;line-height:1.4}
+.staffapp .staffapp-category-menu>button{width:100%;min-height:44px;display:flex;align-items:center;gap:10px;border:0;border-radius:9px;padding:10px 9px;text-align:left;background:transparent;color:#214475;font-size:13px;font-weight:750}
+.staffapp .staffapp-category-menu>button[aria-selected=true]{background:#e8f2ff;color:#244ea3}
+.staffapp .staffapp-category-menu>button svg{flex-shrink:0;width:16px;height:16px}
+.staffapp .staffapp-category-menu>button>span:nth-child(2){flex:1;min-width:0}
+.staffapp .staffapp-category-option-count{font-size:11px;font-weight:850;background:#e9f1fc;color:#244ea3;border-radius:20px;padding:3px 7px;font-variant-numeric:tabular-nums}
+.staffapp .staffapp-category-pending-dot{height:9px;width:9px;border-radius:50%;background:#d44945;flex-shrink:0}
+.staffapp .staffapp-filter-backdrop{position:fixed;inset:0;z-index:25;background:#1029478c;display:flex;align-items:flex-end;justify-content:center}
+.staffapp .staffapp-filter-sheet{width:min(100%,600px);max-height:85dvh;overflow:auto;border-radius:23px 23px 0 0;background:#fff;padding:20px 18px calc(26px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 30px #163c6c20;color:#1b2f63}
+.staffapp .staffapp-filter-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.staffapp .staffapp-filter-sheet-head h2{font-size:19px;font-weight:850;margin:0}
+.staffapp .staffapp-filter-sheet-head>button{border:0;background:#eaf2ff;border-radius:50%;width:37px;height:37px;color:#244ea3}
+.staffapp .staffapp-filter-sheet fieldset{border:0;padding:0;margin:0 0 18px;display:grid;gap:8px;min-width:0}
+.staffapp .staffapp-filter-sheet legend{font-size:13px;font-weight:850;padding:0 0 9px}
+.staffapp .staffapp-filter-sheet label{min-height:44px;display:flex;align-items:center;gap:11px;border:1px solid #e0e9f5;padding:10px 12px;border-radius:11px;font-size:13px;font-weight:650}
+.staffapp .staffapp-filter-sheet input[type=radio]{width:18px;height:18px;accent-color:#244ea3}
+.staffapp .staffapp-filter-sheet-actions{display:flex;gap:10px;margin-top:10px}
+.staffapp .staffapp-filter-sheet-actions button{flex:1;min-height:46px}
+@media(max-width:370px){.staffapp .staffapp-filter-controls{gap:7px}.staffapp .staffapp-filter-trigger{min-width:80px;padding:8px}.staffapp .staffapp-category-trigger{gap:5px;padding:8px}.staffapp .staffapp-filter-trigger,.staffapp .staffapp-category-trigger{font-size:12px}}
