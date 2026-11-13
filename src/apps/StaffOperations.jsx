@@ -191,14 +191,15 @@ export default function StaffOperations({onLogout}){
    </div>}
    {page==='notifications'&&<section className="staffapp-panel"><h2>Notifications</h2><p>Shared live notifications aren't connected yet. My Tasks badge counts locally claimed active tasks.</p></section>}
    {page==='settings'&&<div className="staffapp-customize">
-     <section className="staffapp-panel"><h2>Home Screen Widgets</h2><p>Turn widgets on or off. Drag on desktop, or use arrows to reorder on mobile. Active tasks stay above other widgets when enabled.</p>
+     <section className="staffapp-panel"><h2>Dashboard & Quick POS Customization</h2><h3 className="staffapp-settings-subhead">Home Screen Widgets</h3><p>Turn widgets on or off. Drag on desktop, or use arrows to reorder on mobile. Active tasks stay above other widgets when enabled.</p>
       {settings.widgets.map((w,i)=><div key={w.id} className="staffapp-setting-row" draggable onDragStart={()=>setDragging(w.id)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(dragging)reorderWidget(dragging,w.id);setDragging(null);}} onDragEnd={()=>setDragging(null)}>
-       <label><input type="checkbox" checked={w.enabled} onChange={e=>setWidget(w.id,e.target.checked)}/><span>{widgetCatalog.find(v=>v.id===w.id).label}</span></label>
+       <label className="staffapp-switch-label"><input type="checkbox" role="switch" checked={w.enabled} onChange={e=>setWidget(w.id,e.target.checked)}/><span>{widgetCatalog.find(v=>v.id===w.id).label}</span></label>
        <div><button aria-label={'Move '+w.id+' up'} disabled={i===0} onClick={()=>moveWidget(w.id,-1)}><FiArrowUp/></button><button aria-label={'Move '+w.id+' down'} disabled={i===settings.widgets.length-1} onClick={()=>moveWidget(w.id,1)}><FiArrowDown/></button></div>
       </div>)}
       <label className="staffapp-setting-select">Queue preview count <select value={settings.previewCount} onChange={e=>setSettings(prev=>({...prev,previewCount:Number(e.target.value)}))}><option value={2}>Top 2</option><option value={3}>Top 3</option></select></label>
+      <label className="staffapp-setting-select">Daily refill target (gallons) <input aria-label="Daily refill target" type="number" min="1" max="9999" value={settings.dailyTarget??40} onChange={e=>setSettings(prev=>({...prev,dailyTarget:Math.max(1,Math.min(9999,Number(e.target.value)||1))}))}/></label>
      </section>
-     <section className="staffapp-panel"><h2>Manage Quick-Tap Items</h2><p>Choose from the original POS catalog. Prices follow the existing demo catalog and cannot be edited independently here.</p>
+     <section className="staffapp-panel"><h2>Manage Quick-Tap Items</h2><p>Up to four slots. Choose from the original POS catalog. Prices follow the existing demo catalog and cannot be edited independently here.</p>
       {settings.shortcuts.map((item,i)=><div className="staffapp-shortcut-row" key={i}>
        <strong>Slot {i+1}</strong><select aria-label={'Product for slot '+(i+1)} value={item.id} onChange={e=>setShortcut(i,'id',e.target.value)}>{DEMO_PRODUCTS.map(p=><option key={p.id} value={p.id}>{p.label} — {p.shape} ({formatMoney(DEMO_PRICES[p.id])})</option>)}</select>
        <input aria-label={'Short label '+(i+1)} maxLength={20} value={item.label} onChange={e=>setShortcut(i,'label',e.target.value)} placeholder="Short button label"/>
@@ -215,7 +216,7 @@ export default function StaffOperations({onLogout}){
    <div className="staffapp-sheet-head"><h2>{cameraOrder?'Confirm Delivery':detailOrder.id}</h2><button aria-label="Close" onClick={()=>{setDetail(null);setCameraOrder(null);setPhoto(null)}}><FiX/></button></div>
    <div className="staffapp-sheet-row"><b>Customer</b><span>{detailOrder.customer}</span></div>
    <div className="staffapp-sheet-row"><b>Contact</b><span>{detailOrder.phone||'Not provided'}</span></div>
-   <div className="staffapp-sheet-row"><b>Quantity</b><span>{detailOrder.quantity} × 5 Gallon</span></div>
+   <div className="staffapp-sheet-row"><b>Items</b><span>{orderItems(detailOrder)}</span></div>
    <div className="staffapp-sheet-row"><b>Type</b><span>{detailOrder.service}</span></div>
    <div className="staffapp-sheet-row"><b>Source</b><span>{detailOrder.source}</span></div>
    <div className="staffapp-sheet-row"><b>Status</b><span>{labels[detailOrder.stage]}</span></div>
