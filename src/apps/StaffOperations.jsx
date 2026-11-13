@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FiActivity, FiArrowLeft, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiClipboard, FiDroplet, FiHome, FiLogOut, FiMapPin, FiPhone, FiSearch, FiShoppingCart, FiTruck, FiX, FiSettings, FiMenu, FiArrowUp, FiArrowDown, FiPlus, FiPackage, FiArrowRight, FiTarget } from 'react-icons/fi';
+import { FiActivity, FiArrowLeft, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiClipboard, FiDroplet, FiHome, FiLogOut, FiMapPin, FiPhone, FiSearch, FiShoppingCart, FiTruck, FiX, FiSettings, FiMenu, FiArrowUp, FiArrowDown, FiPlus, FiPackage, FiArrowRight, FiTarget, FiFilter } from 'react-icons/fi';
 import logo from '../assets/AquaBest logo.png';
 import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import { useEmployeeAvailability } from './EmployeeAvailability.jsx';
@@ -67,6 +67,12 @@ export default function StaffOperations({onLogout}){
  const [tab,setTab]=useState('all');
  const [taskFilter,setTaskFilter]=useState('all');
  const [search,setSearch]=useState('');
+ const [categoryOpen,setCategoryOpen]=useState(false);
+ const [advancedOpen,setAdvancedOpen]=useState(false);
+ const [sortOrder,setSortOrder]=useState('oldest');
+ const [stageFilter,setStageFilter]=useState('all');
+ const [draftSort,setDraftSort]=useState('oldest');
+ const [draftStage,setDraftStage]=useState('all');
  const [selected,setSelected]=useState([]);
  const [selectedCollection,setSelectedCollection]=useState([]);
  const [detail,setDetail]=useState(null);
@@ -109,7 +115,7 @@ export default function StaffOperations({onLogout}){
  const pickup=orders.filter(o=>o.stage==='pickup');
  const count={all:collection.length+pending.length+ready.length+pickup.length,collection:collection.length,refill:pending.length,delivery:ready.length,pickup:pickup.length};
  const categoryOf=o=>['collection','collectionClaimed','collectionTransit'].includes(o.stage)?'collection':o.stage==='pending'||o.stage==='refilling'?'refill':o.stage==='pickup'||o.stage==='picked'?'pickup':'delivery';
- const show=(p)=>{if(p==='queue'&&page!=='queue')setTab('all');if(p==='tasks'&&page!=='tasks')setTaskFilter('all');setSearch('');setPage(p);setDetail(null);setNotice('');setSelected([]);setSelectedCollection([]);window.scrollTo({top:0,behavior:'smooth'});};
+ const show=(p)=>{setCategoryOpen(false);setAdvancedOpen(false);setStageFilter('all');if(p==='queue'&&page!=='queue')setTab('all');if(p==='tasks'&&page!=='tasks')setTaskFilter('all');setSearch('');setPage(p);setDetail(null);setNotice('');setSelected([]);setSelectedCollection([]);window.scrollTo({top:0,behavior:'smooth'});};
  const update=(ids,change,message)=>{setOrders(prev=>prev.map(o=>ids.includes(o.id)?{...o,...change,updatedAt:now()}:o));setSelected([]);setDetail(null);if(message){setNotice(message);notify(message);}};
  const claimCollections=()=>{const valid=collection.filter(o=>selectedCollection.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'collectionClaimed',claimedBy:'staff',collectedBy:'staff',collectionClaimedAt:now()},valid.length+' collection task(s) added to My Tasks.');setSelectedCollection([]);};
  const openCollection=(o,mode)=>{setCollectionError('');setCollectionForm({id:o.id,mode});setCollectionQty(String(mode==='site'?o.quantity:o.collectedQty??o.quantity));setCollectionCondition(o.containerCondition||'Good');};
@@ -123,7 +129,8 @@ export default function StaffOperations({onLogout}){
  const saveDelivery=()=>{if(!cameraOrder||!photo){setNotice('A delivery photo is required before completion.');return;}const parsed=Number(cash);if(!cash.trim()||!Number.isFinite(parsed)||parsed<0){setNotice('Enter the actual COD cash collected (0 if none).');return;}update([cameraOrder],{stage:'delivered',deliveredBy:'staff',deliveredAt:now(),cashCollected:parsed,podRecorded:true,remittance:'Pending manager verification'},'Delivery recorded. Cash remittance still requires manager verification.');setCameraOrder(null);setPhoto(null);};
  const detailOrder=orders.find(o=>o.id===detail);
  const list=page==='tasks'?mine.filter(o=>taskFilter==='all'||(taskFilter==='collection'?['collectionClaimed','collectionTransit'].includes(o.stage):taskFilter==='refill'?o.stage==='refilling':['delivery','out'].includes(o.stage))):page==='history'?orders.filter(o=>['delivered','picked','failed'].includes(o.stage)):page==='queue'?(tab==='all'?[...collection,...pending,...ready,...pickup]:tab==='collection'?collection:tab==='refill'?pending:tab==='delivery'?ready:pickup):[];
- const filtered=useMemo(()=>list.filter(o=>(o.id+' '+o.customer+' '+o.address+' '+o.source).toLowerCase().includes(search.toLowerCase())).slice().sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins),[list,search,clock]);
+ const stageGroup=o=>['collectionClaimed','refilling','delivery'].includes(o.stage)?'claimed':['collectionTransit','out'].includes(o.stage)?'progress':'waiting';
+ const filtered=useMemo(()=>list.filter(o=>(o.id+' '+o.customer+' '+o.address+' '+o.source).toLowerCase().includes(search.toLowerCase())&&(stageFilter==='all'||stageGroup(o)===stageFilter)).slice().sort((a,b)=>sortOrder==='oldest'?elapsed(b,clock).mins-elapsed(a,clock).mins:elapsed(a,clock).mins-elapsed(b,clock).mins),[list,search,clock,sortOrder,stageFilter]);
  const title=({home:'Operations Dashboard',queue:'Operations Queue',tasks:'My Tasks',history:'Completed History',pos:'POS',more:'More',settings:'Customize Dashboard',notifications:'Notifications'})[page]||'Operations';
  const myCollection=mine.filter(o=>['collectionClaimed','collectionTransit'].includes(o.stage)).length;
  const myRefill=mine.filter(o=>o.stage==='refilling').length,myDelivery=mine.filter(o=>o.stage==='delivery'||o.stage==='out').length;
@@ -131,6 +138,26 @@ export default function StaffOperations({onLogout}){
  const todayKey=new Date(clock).toLocaleDateString('en-CA');
  const gallonsToday=orders.filter(o=>o.refillCompletedAtISO&&new Date(o.refillCompletedAtISO).toLocaleDateString('en-CA')===todayKey).reduce((sum,o)=>sum+getOrderQuantity(o),0);
  const dailyTarget=Math.max(1,Number(settings.dailyTarget)||40);
+ const isTasks=page==='tasks';
+ const currentCategory=isTasks?taskFilter:tab;
+ const categories=isTasks?[
+  {id:'all',label:'All Active',count:mine.length,icon:FiClipboard},
+  {id:'collection',label:'Collect',count:myCollection,icon:FiPackage},
+  {id:'refill',label:'Refill',count:myRefill,icon:FiDroplet},
+  {id:'delivery',label:'Delivery',count:myDelivery,icon:FiTruck}
+ ]:[
+  {id:'all',label:'All',count:count.all,icon:FiClipboard},
+  {id:'collection',label:'Collect',count:count.collection,icon:FiPackage},
+  {id:'refill',label:'Refill',count:count.refill,icon:FiDroplet},
+  {id:'delivery',label:'Delivery',count:count.delivery,icon:FiTruck},
+  {id:'pickup',label:'Pickup',count:count.pickup,icon:FiCheckCircle}
+ ];
+ const chosenCategory=categories.find(c=>c.id===currentCategory)||categories[0];
+ const otherPending=categories.filter(c=>c.id!=='all'&&c.id!==currentCategory&&c.count>0).length;
+ const chooseCategory=id=>{if(isTasks)setTaskFilter(id);else {setTab(id);setSelected([]);setSelectedCollection([]);}setSearch('');setCategoryOpen(false);setStageFilter('all');};
+ const openAdvanced=()=>{setDraftSort(sortOrder);setDraftStage(stageFilter);setCategoryOpen(false);setAdvancedOpen(true);};
+ const applyAdvanced=()=>{setSortOrder(draftSort);setStageFilter(draftStage);setAdvancedOpen(false);};
+
  return <div className="staffapp">
   <header className="mgmt-header staffapp-shared-header"><div className="mgmt-header-inner">
     <button className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>show('home')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong>Staff Operations</strong></span></button>
@@ -174,17 +201,24 @@ export default function StaffOperations({onLogout}){
     )}</div>
    </>}
    {(page==='queue'||page==='tasks'||page==='history')&&<>
-    {page==='queue'&&<>
-      <div className="staffapp-tabs staffapp-main-segments" role="group" aria-label="Filter available operations">{[['all','All',FiClipboard],['collection','Collect',FiPackage],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck]].map(([id,label,Icon])=><button type="button" key={id} aria-pressed={tab===id} className={tab===id?'active':''} onClick={()=>{setTab(id);setSelected([]);setSelectedCollection([]);setSearch('')}}><Icon aria-hidden="true"/><span className="staffapp-tab-label">{label}</span><span className="staffapp-tab-count" aria-label={count[id]+' orders'}>{compactCount(count[id])}</span></button>)}</div>
-      <div className="staffapp-pickup-link-row"><button type="button" className={tab==='pickup'?'active':''} aria-pressed={tab==='pickup'} onClick={()=>{setTab(tab==='pickup'?'all':'pickup');setSelected([]);setSelectedCollection([]);setSearch('')}}><FiCheckCircle aria-hidden="true"/> {tab==='pickup'?'Viewing Pickup · Show All':'Ready for Pickup'} <span>{compactCount(count.pickup)}</span></button></div>
-     </>}
-    {page==='tasks'&&<div className="staffapp-tabs staffapp-task-tabs staffapp-scroll-tabs" role="group" aria-label="Filter my active tasks">
-      {[
-       ['all','All Active',mine.length,FiClipboard],
-        ['collection','Collect',myCollection,FiPackage],
-       ['refill','Refill',myRefill,FiDroplet],
-       ['delivery','Delivery',myDelivery,FiTruck]
-      ].map(([id,label,n,Icon])=><button key={id} type="button" aria-pressed={taskFilter===id} className={taskFilter===id?'active':''} onClick={e=>{setTaskFilter(id);setSearch('');e.currentTarget.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}}><Icon aria-hidden="true"/><span className="staffapp-tab-label">{label}</span><span className="staffapp-tab-count" aria-label={n+' tasks'}>{compactCount(n)}</span></button>)}
+    {(page==='queue'||page==='tasks')&&<div className="staffapp-filter-controls">
+      <div className="staffapp-category-wrap">
+       <button type="button" className="staffapp-category-trigger" aria-expanded={categoryOpen} aria-haspopup="listbox" onClick={()=>{setCategoryOpen(v=>!v);setAdvancedOpen(false);}}>
+        {chosenCategory&&<chosenCategory.icon aria-hidden="true"/>}
+        <span className="staffapp-category-name">{chosenCategory.label} ({chosenCategory.count})</span>
+        <FiChevronDown className="staffapp-category-chevron" aria-hidden="true"/>
+        {otherPending>0&&<span className="staffapp-category-alert" aria-label={otherPending+' other categories with pending work'}>{otherPending}</span>}
+       </button>
+       {categoryOpen&&<div className="staffapp-category-menu" role="listbox" aria-label="Select work category">
+         <p className="staffapp-menu-hint">{otherPending>0?'You have unfinished work in other categories.':'Choose a category to view tasks.'}</p>
+         {categories.map(c=><button type="button" role="option" aria-selected={currentCategory===c.id} key={c.id} onClick={()=>chooseCategory(c.id)}>
+           <c.icon aria-hidden="true"/><span>{c.label}</span>
+           <span className="staffapp-category-option-count">{c.count}</span>
+           {currentCategory===c.id?<FiCheck aria-label="Selected"/>:c.count>0?<span className="staffapp-category-pending-dot" aria-label="Pending work"/>:null}
+          </button>)}
+        </div>}
+      </div>
+      <button type="button" className="staffapp-filter-trigger" aria-expanded={advancedOpen} onClick={openAdvanced}><FiFilter aria-hidden="true"/> Filter{(stageFilter!=='all'||sortOrder!=='oldest')&&<span className="staffapp-filter-active-dot" aria-label="Filters active"/>}</button>
      </div>}
     <label className="staffapp-search"><FiSearch/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search order, customer or address" aria-label="Search orders"/></label>
     <div className="staffapp-list">{filtered.length===0&&<div className="staffapp-empty"><FiCheckCircle/><strong>No matching orders</strong><p>Try another queue or search.</p></div>}
@@ -249,6 +283,19 @@ export default function StaffOperations({onLogout}){
    <p className="staffapp-disclaimer">Frontend prototype only. Saved changes stay in this browser; they do not update GitHub, Supabase or other employees' phones. Demo account is not secure production authentication.</p>
   </main>
   <nav className="staffapp-bottom" aria-label="Staff navigation">{[['home','Home',FiHome],['queue','Queues',FiDroplet],['tasks','My Tasks',FiClipboard],['pos','POS',FiShoppingCart],['more','More',FiMenu]].map(([id,label,Icon])=><button key={id} className={page===id||(id==='more'&&['settings','history','notifications'].includes(page))?'active':''} onClick={()=>show(id)}><span className="staffapp-nav-icon"><Icon/>{id==='tasks'&&mine.length>0&&<em>{compactCount(mine.length)}</em>}</span><small>{label}</small></button>)}</nav>
+  {advancedOpen&&<div className="staffapp-filter-backdrop" onClick={()=>setAdvancedOpen(false)}>
+   <section className="staffapp-filter-sheet" role="dialog" aria-modal="true" aria-label="Advanced task filters" onClick={e=>e.stopPropagation()}>
+    <div className="staffapp-filter-sheet-head"><h2>Filter {isTasks?'Tasks':'Queue'}</h2><button aria-label="Close filters" onClick={()=>setAdvancedOpen(false)}><FiX/></button></div>
+    <fieldset><legend>Sort by</legend>
+      <label><input type="radio" name="staff-sort" checked={draftSort==='oldest'} onChange={()=>setDraftSort('oldest')}/> Oldest first</label>
+      <label><input type="radio" name="staff-sort" checked={draftSort==='newest'} onChange={()=>setDraftSort('newest')}/> Newest first</label>
+    </fieldset>
+    <fieldset><legend>Work stage</legend>
+      {[['all','All stages'],['claimed','Claimed / Not started'],['progress','In progress'],['waiting','Waiting / Available']].filter(([id])=>!isTasks||id!=='waiting').map(([id,label])=><label key={id}><input type="radio" name="staff-stage" checked={draftStage===id} onChange={()=>setDraftStage(id)}/> {label}</label>)}
+    </fieldset>
+    <div className="staffapp-filter-sheet-actions"><button className="staffapp-secondary" onClick={()=>{setDraftSort('oldest');setDraftStage('all');}}>Reset</button><button className="staffapp-primary" onClick={applyAdvanced}>Apply Filters</button></div>
+   </section>
+  </div>}
   {collectionForm&&<div className="staffapp-overlay" onClick={()=>setCollectionForm(null)}><section className="staffapp-sheet" role="dialog" aria-modal="true" aria-label="Confirm customer empty containers" onClick={e=>e.stopPropagation()}>
     <div className="staffapp-sheet-head"><h2>{collectionForm.mode==='site'?'Confirm Collection':'Confirm Station Receipt'}</h2><button aria-label="Close" onClick={()=>setCollectionForm(null)}><FiX/></button></div>
     <p className="staffapp-muted">Order {collectionForm.id} · Keep the customer's exact containers linked to this order. No bottle exchange.</p>
