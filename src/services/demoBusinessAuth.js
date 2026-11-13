@@ -3,8 +3,7 @@
 export const DEMO_BUSINESS_ACCOUNTS = Object.freeze([
   { username: 'admin', password: 'admin', role: 'owner', label: 'Owner / Admin' },
   { username: 'manager', password: 'manager', role: 'manager', label: 'Manager' },
-  { username: 'staff', password: 'staff', role: 'staff', label: 'Staff / Refiller' },
-  { username: 'delivery', password: 'delivery', role: 'delivery', label: 'Delivery Rider' },
+  { username: 'staff', password: 'staff', role: 'staff', label: 'Operations Staff (Refill + Delivery)' },
 ]);
 
 const SESSION_KEY = 'aquabest-business-demo-session-v1';
