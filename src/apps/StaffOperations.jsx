@@ -92,11 +92,12 @@ export default function StaffOperations({onLogout}){
  const id='DEMO-'+String(Date.now());
  const collectionRequired=sale.service==='Collect & Return (Same Bottles)';
  if(collectionRequired&&sale.ownership!=='own'){setNotice('Collection & Return requires customer-owned bottles.');return;}
+ if(collectionRequired&&(!sale.customer.trim()||!sale.phone?.trim()||!sale.address?.trim())){setNotice('Customer name, phone and collection address are required for Collection & Return.');notify('Collection order needs customer name, phone and address before saving.');return;}
  const service=sale.service==='Walk-in'?'Pickup':'Delivery';
  const createdAtISO=new Date().toISOString();
  const itemList=entries.map(([sizeId,quantity])=>({sizeId,quantity}));
  const amount=entries.reduce((sum,[id,q])=>sum+q*(DEMO_PRICES[id]||0),0);
- setOrders(prev=>[{id,customer:sale.customer.trim()||'Walk-in Customer',phone:'',source:sale.source,items:itemList,quantity:entries.reduce((sum,[,q])=>sum+q,0),service,address:'',notes:sale.notes,amount,stage:collectionRequired?'collection':'pending',collectionRequired,claimedBy:null,createdAtISO,createdAt:new Date().toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}),paymentMethod:sale.paymentMethod,paymentStatus:sale.paymentStatus,ownership:sale.ownership,reference:sale.reference},...prev]);
+ setOrders(prev=>[{id,customer:sale.customer.trim()||'Walk-in Customer',phone:collectionRequired?sale.phone.trim():'',source:sale.source,items:itemList,quantity:entries.reduce((sum,[,q])=>sum+q,0),service,address:collectionRequired?sale.address.trim():'',notes:sale.notes,amount,stage:collectionRequired?'collection':'pending',collectionRequired,claimedBy:null,createdAtISO,createdAt:new Date().toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}),paymentMethod:sale.paymentMethod,paymentStatus:sale.paymentStatus,ownership:sale.ownership,reference:sale.reference},...prev]);
  setSale(initialStaffSale());show('queue');setTab(collectionRequired?'collection':'refill');setNotice(id+' saved to '+(collectionRequired?'Collection':'Refill')+' Queue (this browser only).');notify(id+' is ready for '+(collectionRequired?'collection':'refill')+'.');
  };
 
