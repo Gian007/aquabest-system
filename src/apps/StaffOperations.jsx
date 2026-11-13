@@ -152,7 +152,7 @@ export default function StaffOperations({onLogout}){
    </>}
    {(page==='queue'||page==='tasks'||page==='history')&&<>
     {page==='queue'&&<div className="staffapp-tabs">{[['all','All',FiClipboard],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setSelected([]);setSearch('')}}><Icon/>{label}<span>{count[id]}</span></button>)}</div>}
-    {page==='tasks'&&<div className="staffapp-tasks-summary" role="group" aria-label="Filter my active tasks">
+    {page==='tasks'&&<div className="staffapp-tabs staffapp-task-tabs" role="group" aria-label="Filter my active tasks">
       {[
        ['all','All Active',mine.length,FiClipboard],
        ['refill','Refill',myRefill,FiDroplet],
@@ -161,17 +161,23 @@ export default function StaffOperations({onLogout}){
      </div>}
     <label className="staffapp-search"><FiSearch/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search order, customer or address" aria-label="Search orders"/></label>
     <div className="staffapp-list">{filtered.length===0&&<div className="staffapp-empty"><FiCheckCircle/><strong>No matching orders</strong><p>Try another queue or search.</p></div>}
-    {filtered.map(o=><article className={"staffapp-order staffapp-type-"+categoryOf(o)} key={o.id} onTouchStart={page==='queue'&&(tab==='delivery'||tab==='all')&&o.stage==='ready'?e=>{touchStart.current={x:e.touches[0].clientX,y:e.touches[0].clientY,id:o.id};}:undefined} onTouchEnd={page==='queue'&&(tab==='delivery'||tab==='all')&&o.stage==='ready'?e=>{const start=touchStart.current;if(!start||start.id!==o.id)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;touchStart.current=null;if(dx>90&&Math.abs(dx)>Math.abs(dy)*1.5)setSelected(prev=>prev.includes(o.id)?prev:[...prev,o.id]);}:undefined}>
-      <div className="staffapp-order-top"><div className="staffapp-order-id">{page==='queue'&&o.stage==='ready'&&<input type="checkbox" aria-label={'Select '+o.id} checked={selected.includes(o.id)} onChange={e=>setSelected(prev=>e.target.checked?[...prev,o.id]:prev.filter(id=>id!==o.id))}/>}<strong>{o.id}</strong></div><span className="staffapp-payment-badge">{badgeText(o)}</span></div>
-      <div className="staffapp-order-person">{o.customer}</div><div className="staffapp-order-meta"><span><FiDroplet/> {orderItems(o)}</span><span>{o.service}</span><span className={elapsed(o,clock).mins>15?'staffapp-overdue':''}>{o.createdAt} • {elapsed(o,clock).label}</span></div>
-      {page==='tasks'&&<div className="staffapp-ownership">Claimed by you • {o.stage==='refilling'?'Refill':'Delivery'}</div>}
-      <div className="staffapp-order-actions"><button className="staffapp-secondary" onClick={()=>setDetail(o.id)}>Details <FiChevronDown/></button>
-      {page==='queue'&&o.stage==='pending'&&<button className="staffapp-primary" onClick={()=>claimRefill(o.id)}>Claim Refill</button>}
-      {page==='queue'&&o.stage==='pickup'&&<button className="staffapp-primary" onClick={()=>completePickup(o.id)}>Confirm Pickup</button>}
-      {page==='queue'&&o.stage==='ready'&&<button className="staffapp-primary" onClick={()=>setSelected(p=>p.includes(o.id)?p.filter(id=>id!==o.id):[...p,o.id])}>{selected.includes(o.id)?'Unselect':'Select'}</button>}
-      {page==='tasks'&&o.stage==='refilling'&&<button className="staffapp-primary" onClick={()=>completeRefill(o.id)}>Complete Refill</button>}
-      {page==='tasks'&&o.stage==='delivery'&&<button className="staffapp-primary" onClick={()=>startDelivery(o.id)}>Out for Delivery</button>}
-      {page==='tasks'&&o.stage==='out'&&<button className="staffapp-primary" onClick={()=>startProof(o.id)}><FiCamera/> Confirm Delivery</button>}
+    {filtered.map(o=><article className={"staffapp-order staffapp-type-"+categoryOf(o)} key={o.id}
+      onTouchStart={page==='queue'&&(tab==='delivery'||tab==='all')&&o.stage==='ready'?e=>{touchStart.current={x:e.touches[0].clientX,y:e.touches[0].clientY,id:o.id};}:undefined}
+      onTouchEnd={page==='queue'&&(tab==='delivery'||tab==='all')&&o.stage==='ready'?e=>{const start=touchStart.current;if(!start||start.id!==o.id)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;touchStart.current=null;if(dx>90&&Math.abs(dx)>Math.abs(dy)*1.5)setSelected(prev=>prev.includes(o.id)?prev:[...prev,o.id]);}:undefined}>
+      <div className="staffapp-compact-row staffapp-compact-head">
+       <div className="staffapp-compact-identity">{page==='queue'&&o.stage==='ready'&&<input type="checkbox" aria-label={'Select '+o.id} checked={selected.includes(o.id)} onChange={e=>setSelected(prev=>e.target.checked?[...prev,o.id]:prev.filter(id=>id!==o.id))}/>}
+        <strong>{o.id} <span className="staffapp-id-divider">·</span> {o.customer}</strong></div>
+       <span className="staffapp-payment-badge" title={badgeText(o)}>{badgeText(o)}</span>
+      </div>
+      <div className="staffapp-compact-row staffapp-compact-meta"><span>{orderItems(o)}</span><span className={elapsed(o,clock).mins>15&&!['delivered','picked'].includes(o.stage)?'staffapp-overdue':''}>{o.createdAt||'—'} · {elapsed(o,clock).label}</span></div>
+      <div className="staffapp-compact-row staffapp-compact-actions">
+       <button className="staffapp-secondary" onClick={()=>setDetail(o.id)}>Details <FiChevronDown/></button>
+       {page==='queue'&&o.stage==='pending'&&<button className="staffapp-primary" onClick={()=>claimRefill(o.id)}>Claim Refill</button>}
+       {page==='queue'&&o.stage==='pickup'&&<button className="staffapp-primary" onClick={()=>completePickup(o.id)}>Confirm Pickup</button>}
+       {page==='queue'&&o.stage==='ready'&&<button className="staffapp-primary" onClick={()=>setSelected(p=>p.includes(o.id)?p.filter(id=>id!==o.id):[...p,o.id])}>{selected.includes(o.id)?'Unselect':'Select Delivery'}</button>}
+       {page==='tasks'&&o.stage==='refilling'&&<button className="staffapp-primary" onClick={()=>completeRefill(o.id)}>Complete Refill</button>}
+       {page==='tasks'&&o.stage==='delivery'&&<button className="staffapp-primary" onClick={()=>startDelivery(o.id)}>Out for Delivery</button>}
+       {page==='tasks'&&o.stage==='out'&&<button className="staffapp-primary" onClick={()=>startProof(o.id)}><FiCamera/> Confirm Delivery</button>}
       </div>
      </article>)}</div>
     {page==='queue'&&(tab==='delivery'||tab==='all')&&selected.length>0&&<div className="staffapp-selection"><span><b>{selected.length}</b> selected <button onClick={()=>setSelected([])}>Clear</button></span><button onClick={claimDelivery}>Claim Selected ({selected.length})</button></div>}
