@@ -124,7 +124,7 @@ export default function StaffOperations({onLogout}){
      :w.id==='urgent'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiBell/> Next Up · Oldest Orders</h2><p>Oldest unclaimed refill or delivery orders. Not automatically marked urgent.</p>{[...pending,...ready].sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins).slice(0,settings.previewCount).map(o=><div className="staffapp-next-row" key={o.id}><div><strong>{o.id} · {o.customer}</strong><small>{orderItems(o)} • {elapsed(o,clock).label}</small></div><button onClick={()=>o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>{o.stage==='pending'?'Claim Refill':'Claim Delivery'}</button></div>)}</section>
      :<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiPackage/> Shift & Stock Snapshot</h2><p>On-duty status: {availability['Staff A']?.onDuty===false?'Offline':'Online'} • Claimed tasks: {mine.length}</p><p>Stock quantities are not connected to staff demo data. View inventory through a future authorized integration.</p></section>
     )}</div>
-   </>
+   </>}
    {(page==='queue'||page==='tasks'||page==='history')&&<>
     {page==='queue'&&<div className="staffapp-tabs">{[['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setSelected([]);setSearch('')}}><Icon/>{label}<span>{count[id]}</span></button>)}</div>}
     {page==='tasks'&&<div className="staffapp-tasks-summary"><span><FiDroplet/> {myRefill} Refill</span><span><FiTruck/> {myDelivery} Delivery</span><span>{mine.length} Active</span></div>}
