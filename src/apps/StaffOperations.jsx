@@ -127,10 +127,27 @@ export default function StaffOperations({onLogout}){
     </div>
     <div className="staffapp-widget-heading"><h2>My Dashboard</h2><button onClick={()=>show('settings')} aria-label="Customize Dashboard"><FiSettings/> Customize</button></div>
     <div className="staffapp-widgets">{settings.widgets.filter(w=>w.enabled&&(w.id!=='active'||mine.length>0)).sort((a,b)=>a.id==='active'?-1:b.id==='active'?1:0).map(w=>
-     w.id==='active'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiClipboard/> Continue My Tasks <span className="staffapp-widget-count">{mine.length}</span></h2><p>{myRefill} refill • {myDelivery} delivery tasks waiting for you</p><button className="staffapp-primary" onClick={()=>show('tasks')}>Open My Tasks</button></section>
-     :w.id==='quick'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiShoppingCart/> Quick Walk-in POS</h2><p>Tap to add items to your current POS draft.</p><div className="staffapp-quick-pos">{settings.shortcuts.map((item,i)=><button key={i} onClick={()=>addQuick(item)}><FiPlus/> {item.label||DEMO_PRODUCTS.find(p=>p.id===item.id)?.label} <small>{formatMoney(DEMO_PRICES[item.id])} × {item.quantity}</small></button>)}</div><div className="staffapp-widget-footer"><small>{Object.values(sale.quantities).reduce((a,b)=>a+b,0)} item(s) in draft</small><button className="staffapp-primary" onClick={()=>show('pos')}>Review POS</button></div></section>
-     :w.id==='urgent'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiBell/> Next Up · Oldest Orders</h2><p>Oldest unclaimed refill or delivery orders. Not automatically marked urgent.</p>{[...pending,...ready].sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins).slice(0,settings.previewCount).map(o=><div className="staffapp-next-row" key={o.id}><div><strong>{o.id} · {o.customer}</strong><small>{orderItems(o)} • {elapsed(o,clock).label}</small></div><button onClick={()=>o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>{o.stage==='pending'?'Claim Refill':'Claim Delivery'}</button></div>)}</section>
-     :<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiPackage/> Shift & Stock Snapshot</h2><p>On-duty status: {availability['Staff A']?.onDuty===false?'Offline':'Online'} • Claimed tasks: {mine.length}</p><p>Stock quantities are not connected to staff demo data. View inventory through a future authorized integration.</p></section>
+     w.id==='active'?<section className="staffapp-panel staffapp-widget staffapp-widget-active" key={w.id}>
+       <h2><FiClipboard/> Active Task Pin <span className="staffapp-widget-count">{mine.length}</span></h2>
+       {nextActive&&<div className="staffapp-pinned-task"><div><strong>{nextActive.id} · {nextActive.customer}</strong><small>{orderItems(nextActive)}</small></div>
+       <button className="staffapp-primary" onClick={()=>nextActive.stage==='refilling'?completeRefill(nextActive.id):nextActive.stage==='delivery'?startDelivery(nextActive.id):startProof(nextActive.id)}>
+       {nextActive.stage==='refilling'?'Complete Refill':nextActive.stage==='delivery'?'Out for Delivery':'Confirm Delivery'}</button></div>}
+       {mine.length>1&&<button className="staffapp-widget-textlink" onClick={()=>show('tasks')}>View all {mine.length} tasks <FiArrowRight/></button>}
+      </section>
+     :w.id==='quick'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiShoppingCart/> Quick Walk-in POS</h2>
+       <div className="staffapp-quick-pos">{settings.shortcuts.map((item,i)=><button key={i} onClick={()=>addQuick(item)} aria-label={'Add '+(item.quantity||1)+' '+item.label+' to POS'}><span><FiPlus/> {item.label||DEMO_PRODUCTS.find(p=>p.id===item.id)?.label}</span><small>{formatMoney(DEMO_PRICES[item.id])} × {item.quantity}</small></button>)}</div>
+       <div className="staffapp-widget-footer"><small>{Object.values(sale.quantities).reduce((a,b)=>a+b,0)} in draft</small><button className="staffapp-widget-textlink" onClick={()=>show('pos')}>Review POS <FiArrowRight/></button></div>
+      </section>
+     :w.id==='urgent'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiBell/> Next Up · Oldest Orders</h2>
+       {[...pending,...ready].sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins).slice(0,settings.previewCount).map(o=><div className="staffapp-next-row" key={o.id}><div><strong>{o.id} · {o.customer}</strong><small>{orderItems(o)} · {elapsed(o,clock).label}</small></div>
+       <button onClick={()=>o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>Claim</button></div>)}
+       {![...pending,...ready].length&&<p className="mgmt-sub">No unclaimed refill or delivery orders.</p>}
+      </section>
+     :<section className="staffapp-panel staffapp-widget staffapp-widget-shift" key={w.id}><h2><FiTarget/> Shift & Stock Snapshot</h2>
+       <div className="staffapp-shift-stats"><div><small>Refilled today (demo)</small><strong>{gallonsToday} / {dailyTarget} gal</strong></div><div><small>Clean containers</small><strong>Not tracked</strong></div><div><small>Seals remaining</small><strong>Not tracked</strong></div></div>
+       <div className="staffapp-shift-progress" role="progressbar" aria-label="Demo gallons refilled today versus target" aria-valuenow={Math.min(gallonsToday,dailyTarget)} aria-valuemin={0} aria-valuemax={dailyTarget}><span style={{width:Math.min(100,Math.round(gallonsToday/dailyTarget*100))+'%'}}/></div>
+       <small className="staffapp-muted">Only refills completed in this browser are counted; inventory and seals have no connected data source.</small>
+      </section>
     )}</div>
    </>}
    {(page==='queue'||page==='tasks'||page==='history')&&<>
