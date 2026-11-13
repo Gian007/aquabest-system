@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FiActivity, FiArrowLeft, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiClipboard, FiDroplet, FiHome, FiLogOut, FiMapPin, FiPhone, FiSearch, FiShoppingCart, FiTruck, FiX, FiSettings, FiMenu, FiArrowUp, FiArrowDown, FiPlus, FiPackage } from 'react-icons/fi';
+import { FiActivity, FiArrowLeft, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiClipboard, FiDroplet, FiHome, FiLogOut, FiMapPin, FiPhone, FiSearch, FiShoppingCart, FiTruck, FiX, FiSettings, FiMenu, FiArrowUp, FiArrowDown, FiPlus, FiPackage, FiArrowRight, FiTarget } from 'react-icons/fi';
 import logo from '../assets/AquaBest logo.png';
 import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import { useEmployeeAvailability } from './EmployeeAvailability.jsx';
@@ -21,7 +21,8 @@ const widgetCatalog=[
 const defaultSettings={
  widgets:[{id:'active',enabled:true},{id:'quick',enabled:true},{id:'urgent',enabled:true},{id:'shift',enabled:false}],
  previewCount:2,
- shortcuts:[{id:'round5',label:'Round Refill',quantity:1},{id:'slim5',label:'Slim Refill',quantity:1},{id:'slim25',label:'2.5 Gal Slim',quantity:1}]
+ dailyTarget:40, // Editable example target, not live shift data.
+ shortcuts:[{id:'round5',label:'Round Refill',quantity:1},{id:'slim5',label:'Slim Refill',quantity:1},{id:'slim25',label:'2.5 Gal Slim',quantity:1},{id:'round5',label:'Round ×2',quantity:2}]
 };
 const readSettings=()=>{try{
  const found=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'null');
@@ -32,6 +33,7 @@ const elapsed=(o,clock)=>{const entered=o.createdAtISO?new Date(o.createdAtISO):
  if(!o.createdAtISO&&o.createdAt){const m=o.createdAt.match(/(\d+):(\d+)\s*(AM|PM)/i);if(m){entered.setHours(Number(m[1])%12+(m[3].toUpperCase()==='PM'?12:0),Number(m[2]),0,0);}}
  const mins=Math.max(0,Math.floor((clock-entered.getTime())/60000));return {mins,label:mins<60?mins+'m ago':Math.floor(mins/60)+'h '+(mins%60)+'m ago'};};
 const orderItems=o=>(o.items?.length?o.items:[{sizeId:'round5',quantity:o.quantity||1}]).map(item=>{const p=DEMO_PRODUCTS.find(x=>x.id===item.sizeId);return item.quantity+' × '+(p?.label==='2.5 Gallons'?'2.5 Gal':'5 Gal')+' ('+(p?.shape?.startsWith('Round')?'Round':'Slim')+')';}).join(' · ');
+const getOrderQuantity=o=>o.items?.length?o.items.reduce((sum,item)=>sum+Number(item.quantity||0),0):Number(o.quantity||0);
 const badgeText=o=>o.paymentStatus==='Paid'?'Paid • '+(o.service==='Pickup'?'Pickup':o.address||'Delivery'):(o.paymentMethod==='GCash'?'GCash pending':'COD')+' • '+(o.service==='Pickup'?'Pickup':o.address||'Delivery');
 
 const seed=[
@@ -91,7 +93,7 @@ export default function StaffOperations({onLogout}){
  const show=(p)=>{if(p==='queue'&&page!=='queue')setTab('all');if(p==='tasks'&&page!=='tasks')setTaskFilter('all');setSearch('');setPage(p);setDetail(null);setNotice('');setSelected([]);window.scrollTo({top:0,behavior:'smooth'});};
  const update=(ids,change,message)=>{setOrders(prev=>prev.map(o=>ids.includes(o.id)?{...o,...change,updatedAt:now()}:o));setSelected([]);setDetail(null);if(message)setNotice(message);};
  const claimRefill=(id)=>update([id],{stage:'refilling',claimedBy:'staff',refillClaimedAt:now()},'Refill task added to My Tasks.');
- const completeRefill=(id)=>{const o=orders.find(v=>v.id===id);if(!o)return;update([id],{stage:o.service==='Pickup'?'pickup':'ready',claimedBy:null,refilledBy:'staff',refillCompletedAt:now()},'Refill completed. Order moved to '+(o.service==='Pickup'?'Pickup':'Delivery')+' queue.');};
+ const completeRefill=(id)=>{const o=orders.find(v=>v.id===id);if(!o)return;update([id],{stage:o.service==='Pickup'?'pickup':'ready',claimedBy:null,refilledBy:'staff',refillCompletedAt:now(),refillCompletedAtISO:new Date().toISOString()},'Refill completed. Order moved to '+(o.service==='Pickup'?'Pickup':'Delivery')+' queue.');};
  const claimDelivery=()=>{const valid=ready.filter(o=>selected.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()});show('tasks');setNotice(valid.length+' delivery order(s) added to My Tasks.');};
  const completePickup=(id)=>{if(window.confirm('Confirm that the customer received this order?'))update([id],{stage:'picked',releasedBy:'staff',releasedAt:now()},'Pickup confirmed.');};
  const startDelivery=(id)=>update([id],{stage:'out',dispatchedAt:now()},'Order marked Out for Delivery.');
@@ -102,6 +104,10 @@ export default function StaffOperations({onLogout}){
  const filtered=useMemo(()=>list.filter(o=>(o.id+' '+o.customer+' '+o.address+' '+o.source).toLowerCase().includes(search.toLowerCase())).slice().sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins),[list,search,clock]);
  const title=({home:'Operations Dashboard',queue:'Operations Queue',tasks:'My Tasks',history:'Completed History',pos:'New POS Sale',more:'More',settings:'Customize Dashboard',notifications:'Notifications'})[page]||'Operations';
  const myRefill=mine.filter(o=>o.stage==='refilling').length,myDelivery=mine.filter(o=>o.stage==='delivery'||o.stage==='out').length;
+ const nextActive=mine.find(o=>o.stage==='refilling')||mine.find(o=>o.stage==='delivery')||mine.find(o=>o.stage==='out');
+ const todayKey=new Date(clock).toLocaleDateString('en-CA');
+ const gallonsToday=orders.filter(o=>o.refillCompletedAtISO&&new Date(o.refillCompletedAtISO).toLocaleDateString('en-CA')===todayKey).reduce((sum,o)=>sum+getOrderQuantity(o),0);
+ const dailyTarget=Math.max(1,Number(settings.dailyTarget)||40);
  return <div className="staffapp">
   <header className="mgmt-header staffapp-shared-header"><div className="mgmt-header-inner">
     <button className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>show('home')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong>Staff Operations</strong></span></button>
@@ -114,22 +120,39 @@ export default function StaffOperations({onLogout}){
    {notice&&<div className="staffapp-notice" role="status">{notice}<button onClick={()=>setNotice('')} aria-label="Dismiss notice"><FiX/></button></div>}
    {page==='home'&&<>
     <div className="staffapp-stats">
-     <button onClick={()=>{show('queue');setTab('refill')}}><FiDroplet/><b>{count.refill}</b><small>Pending Refill</small></button>
-     <button onClick={()=>{show('queue');setTab('delivery')}}><FiTruck/><b>{count.delivery}</b><small>Ready Delivery</small></button>
-     <button onClick={()=>{show('queue');setTab('pickup')}}><FiCheckCircle/><b>{count.pickup}</b><small>Ready Pickup</small></button>
-     <button onClick={()=>show('tasks')}><FiClipboard/><b>{mine.length}</b><small>My Tasks</small></button>
+     <button onClick={()=>{show('queue');setTab('refill')}}><FiDroplet/><b>{count.refill}</b><small>Pending Refill <FiArrowRight aria-hidden="true"/></small></button>
+     <button onClick={()=>{show('queue');setTab('delivery')}}><FiTruck/><b>{count.delivery}</b><small>Ready Delivery <FiArrowRight aria-hidden="true"/></small></button>
+     <button onClick={()=>{show('queue');setTab('pickup')}}><FiCheckCircle/><b>{count.pickup}</b><small>Ready Pickup <FiArrowRight aria-hidden="true"/></small></button>
+     <button onClick={()=>show('tasks')}><FiClipboard/><b>{mine.length}</b><small>My Tasks <FiArrowRight aria-hidden="true"/></small></button>
     </div>
     <div className="staffapp-widget-heading"><h2>My Dashboard</h2><button onClick={()=>show('settings')} aria-label="Customize Dashboard"><FiSettings/> Customize</button></div>
     <div className="staffapp-widgets">{settings.widgets.filter(w=>w.enabled&&(w.id!=='active'||mine.length>0)).sort((a,b)=>a.id==='active'?-1:b.id==='active'?1:0).map(w=>
-     w.id==='active'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiClipboard/> Continue My Tasks <span className="staffapp-widget-count">{mine.length}</span></h2><p>{myRefill} refill • {myDelivery} delivery tasks waiting for you</p><button className="staffapp-primary" onClick={()=>show('tasks')}>Open My Tasks</button></section>
-     :w.id==='quick'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiShoppingCart/> Quick Walk-in POS</h2><p>Tap to add items to your current POS draft.</p><div className="staffapp-quick-pos">{settings.shortcuts.map((item,i)=><button key={i} onClick={()=>addQuick(item)}><FiPlus/> {item.label||DEMO_PRODUCTS.find(p=>p.id===item.id)?.label} <small>{formatMoney(DEMO_PRICES[item.id])} × {item.quantity}</small></button>)}</div><div className="staffapp-widget-footer"><small>{Object.values(sale.quantities).reduce((a,b)=>a+b,0)} item(s) in draft</small><button className="staffapp-primary" onClick={()=>show('pos')}>Review POS</button></div></section>
-     :w.id==='urgent'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiBell/> Next Up · Oldest Orders</h2><p>Oldest unclaimed refill or delivery orders. Not automatically marked urgent.</p>{[...pending,...ready].sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins).slice(0,settings.previewCount).map(o=><div className="staffapp-next-row" key={o.id}><div><strong>{o.id} · {o.customer}</strong><small>{orderItems(o)} • {elapsed(o,clock).label}</small></div><button onClick={()=>o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>{o.stage==='pending'?'Claim Refill':'Claim Delivery'}</button></div>)}</section>
-     :<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiPackage/> Shift & Stock Snapshot</h2><p>On-duty status: {availability['Staff A']?.onDuty===false?'Offline':'Online'} • Claimed tasks: {mine.length}</p><p>Stock quantities are not connected to staff demo data. View inventory through a future authorized integration.</p></section>
+     w.id==='active'?<section className="staffapp-panel staffapp-widget staffapp-widget-active" key={w.id}>
+       <h2><FiClipboard/> Active Task Pin <span className="staffapp-widget-count">{mine.length}</span></h2>
+       {nextActive&&<div className="staffapp-pinned-task"><div><strong>{nextActive.id} · {nextActive.customer}</strong><small>{orderItems(nextActive)}</small></div>
+       <button className="staffapp-primary" onClick={()=>nextActive.stage==='refilling'?completeRefill(nextActive.id):nextActive.stage==='delivery'?startDelivery(nextActive.id):startProof(nextActive.id)}>
+       {nextActive.stage==='refilling'?'Complete Refill':nextActive.stage==='delivery'?'Out for Delivery':'Confirm Delivery'}</button></div>}
+       {mine.length>1&&<button className="staffapp-widget-textlink" onClick={()=>show('tasks')}>View all {mine.length} tasks <FiArrowRight/></button>}
+      </section>
+     :w.id==='quick'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiShoppingCart/> Quick Walk-in POS</h2>
+       <div className="staffapp-quick-pos">{settings.shortcuts.map((item,i)=><button key={i} onClick={()=>addQuick(item)} aria-label={'Add '+(item.quantity||1)+' '+item.label+' to POS'}><span><FiPlus/> {item.label||DEMO_PRODUCTS.find(p=>p.id===item.id)?.label}</span><small>{formatMoney(DEMO_PRICES[item.id])} × {item.quantity}</small></button>)}</div>
+       <div className="staffapp-widget-footer"><small>{Object.values(sale.quantities).reduce((a,b)=>a+b,0)} in draft</small><button className="staffapp-widget-textlink" onClick={()=>show('pos')}>Review POS <FiArrowRight/></button></div>
+      </section>
+     :w.id==='urgent'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiBell/> Next Up · Oldest Orders</h2>
+       {[...pending,...ready].sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins).slice(0,settings.previewCount).map(o=><div className="staffapp-next-row" key={o.id}><div><strong>{o.id} · {o.customer}</strong><small>{orderItems(o)} · {elapsed(o,clock).label}</small></div>
+       <button onClick={()=>o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>Claim</button></div>)}
+       {![...pending,...ready].length&&<p className="mgmt-sub">No unclaimed refill or delivery orders.</p>}
+      </section>
+     :<section className="staffapp-panel staffapp-widget staffapp-widget-shift" key={w.id}><h2><FiTarget/> Shift & Stock Snapshot</h2>
+       <div className="staffapp-shift-stats"><div><small>Refilled today (demo)</small><strong>{gallonsToday} / {dailyTarget} gal</strong></div><div><small>Clean containers</small><strong>Not tracked</strong></div><div><small>Seals remaining</small><strong>Not tracked</strong></div></div>
+       <div className="staffapp-shift-progress" role="progressbar" aria-label="Demo gallons refilled today versus target" aria-valuenow={Math.min(gallonsToday,dailyTarget)} aria-valuemin={0} aria-valuemax={dailyTarget}><span style={{width:Math.min(100,Math.round(gallonsToday/dailyTarget*100))+'%'}}/></div>
+       <small className="staffapp-muted">Only refills completed in this browser are counted; inventory and seals have no connected data source.</small>
+      </section>
     )}</div>
    </>}
    {(page==='queue'||page==='tasks'||page==='history')&&<>
     {page==='queue'&&<div className="staffapp-tabs">{[['all','All',FiClipboard],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setSelected([]);setSearch('')}}><Icon/>{label}<span>{count[id]}</span></button>)}</div>}
-    {page==='tasks'&&<div className="staffapp-tasks-summary" role="group" aria-label="Filter my active tasks">
+    {page==='tasks'&&<div className="staffapp-tabs staffapp-task-tabs" role="group" aria-label="Filter my active tasks">
       {[
        ['all','All Active',mine.length,FiClipboard],
        ['refill','Refill',myRefill,FiDroplet],
@@ -138,17 +161,23 @@ export default function StaffOperations({onLogout}){
      </div>}
     <label className="staffapp-search"><FiSearch/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search order, customer or address" aria-label="Search orders"/></label>
     <div className="staffapp-list">{filtered.length===0&&<div className="staffapp-empty"><FiCheckCircle/><strong>No matching orders</strong><p>Try another queue or search.</p></div>}
-    {filtered.map(o=><article className={"staffapp-order staffapp-type-"+categoryOf(o)} key={o.id} onTouchStart={page==='queue'&&(tab==='delivery'||tab==='all')&&o.stage==='ready'?e=>{touchStart.current={x:e.touches[0].clientX,y:e.touches[0].clientY,id:o.id};}:undefined} onTouchEnd={page==='queue'&&(tab==='delivery'||tab==='all')&&o.stage==='ready'?e=>{const start=touchStart.current;if(!start||start.id!==o.id)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;touchStart.current=null;if(dx>90&&Math.abs(dx)>Math.abs(dy)*1.5)setSelected(prev=>prev.includes(o.id)?prev:[...prev,o.id]);}:undefined}>
-      <div className="staffapp-order-top"><div className="staffapp-order-id">{page==='queue'&&o.stage==='ready'&&<input type="checkbox" aria-label={'Select '+o.id} checked={selected.includes(o.id)} onChange={e=>setSelected(prev=>e.target.checked?[...prev,o.id]:prev.filter(id=>id!==o.id))}/>}<strong>{o.id}</strong></div><span className="staffapp-payment-badge">{badgeText(o)}</span></div>
-      <div className="staffapp-order-person">{o.customer}</div><div className="staffapp-order-meta"><span><FiDroplet/> {orderItems(o)}</span><span>{o.service}</span><span className={elapsed(o,clock).mins>15?'staffapp-overdue':''}>{o.createdAt} • {elapsed(o,clock).label}</span></div>
-      {page==='tasks'&&<div className="staffapp-ownership">Claimed by you • {o.stage==='refilling'?'Refill':'Delivery'}</div>}
-      <div className="staffapp-order-actions"><button className="staffapp-secondary" onClick={()=>setDetail(o.id)}>Details <FiChevronDown/></button>
-      {page==='queue'&&o.stage==='pending'&&<button className="staffapp-primary" onClick={()=>claimRefill(o.id)}>Claim Refill</button>}
-      {page==='queue'&&o.stage==='pickup'&&<button className="staffapp-primary" onClick={()=>completePickup(o.id)}>Confirm Pickup</button>}
-      {page==='queue'&&o.stage==='ready'&&<button className="staffapp-primary" onClick={()=>setSelected(p=>p.includes(o.id)?p.filter(id=>id!==o.id):[...p,o.id])}>{selected.includes(o.id)?'Unselect':'Select'}</button>}
-      {page==='tasks'&&o.stage==='refilling'&&<button className="staffapp-primary" onClick={()=>completeRefill(o.id)}>Complete Refill</button>}
-      {page==='tasks'&&o.stage==='delivery'&&<button className="staffapp-primary" onClick={()=>startDelivery(o.id)}>Out for Delivery</button>}
-      {page==='tasks'&&o.stage==='out'&&<button className="staffapp-primary" onClick={()=>startProof(o.id)}><FiCamera/> Confirm Delivery</button>}
+    {filtered.map(o=><article className={"staffapp-order staffapp-type-"+categoryOf(o)} key={o.id}
+      onTouchStart={page==='queue'&&(tab==='delivery'||tab==='all')&&o.stage==='ready'?e=>{touchStart.current={x:e.touches[0].clientX,y:e.touches[0].clientY,id:o.id};}:undefined}
+      onTouchEnd={page==='queue'&&(tab==='delivery'||tab==='all')&&o.stage==='ready'?e=>{const start=touchStart.current;if(!start||start.id!==o.id)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;touchStart.current=null;if(dx>90&&Math.abs(dx)>Math.abs(dy)*1.5)setSelected(prev=>prev.includes(o.id)?prev:[...prev,o.id]);}:undefined}>
+      <div className="staffapp-compact-row staffapp-compact-head">
+       <div className="staffapp-compact-identity">{page==='queue'&&o.stage==='ready'&&<input type="checkbox" aria-label={'Select '+o.id} checked={selected.includes(o.id)} onChange={e=>setSelected(prev=>e.target.checked?[...prev,o.id]:prev.filter(id=>id!==o.id))}/>}
+        <strong>{o.id} <span className="staffapp-id-divider">·</span> {o.customer}</strong></div>
+       <span className="staffapp-payment-badge" title={badgeText(o)}>{badgeText(o)}</span>
+      </div>
+      <div className="staffapp-compact-row staffapp-compact-meta"><span>{orderItems(o)}</span><span className={elapsed(o,clock).mins>15&&!['delivered','picked'].includes(o.stage)?'staffapp-overdue':''}>{o.createdAt||'—'} · {elapsed(o,clock).label}</span></div>
+      <div className="staffapp-compact-row staffapp-compact-actions">
+       <button className="staffapp-secondary" onClick={()=>setDetail(o.id)}>Details <FiChevronDown/></button>
+       {page==='queue'&&o.stage==='pending'&&<button className="staffapp-primary" onClick={()=>claimRefill(o.id)}>Claim Refill</button>}
+       {page==='queue'&&o.stage==='pickup'&&<button className="staffapp-primary" onClick={()=>completePickup(o.id)}>Confirm Pickup</button>}
+       {page==='queue'&&o.stage==='ready'&&<button className="staffapp-primary" onClick={()=>setSelected(p=>p.includes(o.id)?p.filter(id=>id!==o.id):[...p,o.id])}>{selected.includes(o.id)?'Unselect':'Select Delivery'}</button>}
+       {page==='tasks'&&o.stage==='refilling'&&<button className="staffapp-primary" onClick={()=>completeRefill(o.id)}>Complete Refill</button>}
+       {page==='tasks'&&o.stage==='delivery'&&<button className="staffapp-primary" onClick={()=>startDelivery(o.id)}>Out for Delivery</button>}
+       {page==='tasks'&&o.stage==='out'&&<button className="staffapp-primary" onClick={()=>startProof(o.id)}><FiCamera/> Confirm Delivery</button>}
       </div>
      </article>)}</div>
     {page==='queue'&&(tab==='delivery'||tab==='all')&&selected.length>0&&<div className="staffapp-selection"><span><b>{selected.length}</b> selected <button onClick={()=>setSelected([])}>Clear</button></span><button onClick={claimDelivery}>Claim Selected ({selected.length})</button></div>}
@@ -162,14 +191,15 @@ export default function StaffOperations({onLogout}){
    </div>}
    {page==='notifications'&&<section className="staffapp-panel"><h2>Notifications</h2><p>Shared live notifications aren't connected yet. My Tasks badge counts locally claimed active tasks.</p></section>}
    {page==='settings'&&<div className="staffapp-customize">
-     <section className="staffapp-panel"><h2>Home Screen Widgets</h2><p>Turn widgets on or off. Drag on desktop, or use arrows to reorder on mobile. Active tasks stay above other widgets when enabled.</p>
+     <section className="staffapp-panel"><h2>Dashboard & Quick POS Customization</h2><h3 className="staffapp-settings-subhead">Home Screen Widgets</h3><p>Turn widgets on or off. Drag on desktop, or use arrows to reorder on mobile. Active tasks stay above other widgets when enabled.</p>
       {settings.widgets.map((w,i)=><div key={w.id} className="staffapp-setting-row" draggable onDragStart={()=>setDragging(w.id)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(dragging)reorderWidget(dragging,w.id);setDragging(null);}} onDragEnd={()=>setDragging(null)}>
-       <label><input type="checkbox" checked={w.enabled} onChange={e=>setWidget(w.id,e.target.checked)}/><span>{widgetCatalog.find(v=>v.id===w.id).label}</span></label>
+       <label className="staffapp-switch-label"><input type="checkbox" role="switch" checked={w.enabled} onChange={e=>setWidget(w.id,e.target.checked)}/><span>{widgetCatalog.find(v=>v.id===w.id).label}</span></label>
        <div><button aria-label={'Move '+w.id+' up'} disabled={i===0} onClick={()=>moveWidget(w.id,-1)}><FiArrowUp/></button><button aria-label={'Move '+w.id+' down'} disabled={i===settings.widgets.length-1} onClick={()=>moveWidget(w.id,1)}><FiArrowDown/></button></div>
       </div>)}
       <label className="staffapp-setting-select">Queue preview count <select value={settings.previewCount} onChange={e=>setSettings(prev=>({...prev,previewCount:Number(e.target.value)}))}><option value={2}>Top 2</option><option value={3}>Top 3</option></select></label>
+      <label className="staffapp-setting-select">Daily refill target (gallons) <input aria-label="Daily refill target" type="number" min="1" max="9999" value={settings.dailyTarget??40} onChange={e=>setSettings(prev=>({...prev,dailyTarget:Math.max(1,Math.min(9999,Number(e.target.value)||1))}))}/></label>
      </section>
-     <section className="staffapp-panel"><h2>Manage Quick-Tap Items</h2><p>Choose from the original POS catalog. Prices follow the existing demo catalog and cannot be edited independently here.</p>
+     <section className="staffapp-panel"><h2>Manage Quick-Tap Items</h2><p>Up to four slots. Choose from the original POS catalog. Prices follow the existing demo catalog and cannot be edited independently here.</p>
       {settings.shortcuts.map((item,i)=><div className="staffapp-shortcut-row" key={i}>
        <strong>Slot {i+1}</strong><select aria-label={'Product for slot '+(i+1)} value={item.id} onChange={e=>setShortcut(i,'id',e.target.value)}>{DEMO_PRODUCTS.map(p=><option key={p.id} value={p.id}>{p.label} — {p.shape} ({formatMoney(DEMO_PRICES[p.id])})</option>)}</select>
        <input aria-label={'Short label '+(i+1)} maxLength={20} value={item.label} onChange={e=>setShortcut(i,'label',e.target.value)} placeholder="Short button label"/>
@@ -186,7 +216,7 @@ export default function StaffOperations({onLogout}){
    <div className="staffapp-sheet-head"><h2>{cameraOrder?'Confirm Delivery':detailOrder.id}</h2><button aria-label="Close" onClick={()=>{setDetail(null);setCameraOrder(null);setPhoto(null)}}><FiX/></button></div>
    <div className="staffapp-sheet-row"><b>Customer</b><span>{detailOrder.customer}</span></div>
    <div className="staffapp-sheet-row"><b>Contact</b><span>{detailOrder.phone||'Not provided'}</span></div>
-   <div className="staffapp-sheet-row"><b>Quantity</b><span>{detailOrder.quantity} × 5 Gallon</span></div>
+   <div className="staffapp-sheet-row"><b>Items</b><span>{orderItems(detailOrder)}</span></div>
    <div className="staffapp-sheet-row"><b>Type</b><span>{detailOrder.service}</span></div>
    <div className="staffapp-sheet-row"><b>Source</b><span>{detailOrder.source}</span></div>
    <div className="staffapp-sheet-row"><b>Status</b><span>{labels[detailOrder.stage]}</span></div>

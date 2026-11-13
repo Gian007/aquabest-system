@@ -188,3 +188,71 @@
 .staffapp .staffapp-tabs button svg{width:13px;height:13px}
 .staffapp .staffapp-tasks-summary button{font-size:11px}
 }
+
+
+/* Staff compact UX: 8pt rhythm, 12px card internals, 16px between cards. */
+.staffapp .staffapp-main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));}
+.staffapp .staffapp-list{gap:16px;}
+.staffapp .staffapp-order{padding:12px;display:grid;gap:12px;min-width:0;}
+.staffapp .staffapp-compact-row{margin:0;min-width:0;}
+.staffapp .staffapp-compact-head{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.staffapp .staffapp-compact-identity{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
+.staffapp .staffapp-compact-identity strong{color:#1b2f63;font-size:13px;line-height:1.35;font-weight:800;overflow-wrap:anywhere;}
+.staffapp .staffapp-id-divider{color:#8393aa;}
+.staffapp .staffapp-payment-badge{max-width:48%;font-size:10px;min-width:0;text-align:center;}
+.staffapp .staffapp-compact-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:#60728a;line-height:1.5;}
+.staffapp .staffapp-compact-meta>span:first-child{font-weight:700;color:#486583;}
+.staffapp .staffapp-compact-meta .staffapp-overdue{background:#fff2d9;color:#915b09;border-radius:7px;padding:3px 6px;font-weight:800;}
+.staffapp .staffapp-compact-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;}
+.staffapp .staffapp-compact-actions .staffapp-primary,.staffapp .staffapp-compact-actions .staffapp-secondary{min-height:42px;padding:9px 12px;font-size:12px;}
+.staffapp .staffapp-compact-actions .staffapp-primary{max-width:60%;margin-left:auto;}
+.staffapp .staffapp-compact-actions .staffapp-secondary{flex-shrink:0;}
+.staffapp .staffapp-task-tabs{grid-template-columns:repeat(3,minmax(0,1fr));}
+.staffapp .staffapp-task-tabs button{min-height:45px;}
+.staffapp .staffapp-stats button{position:relative;}
+.staffapp .staffapp-stats button small{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;}
+.staffapp .staffapp-stats button small svg{width:13px;height:13px;color:#8094b1;}
+.staffapp .staffapp-widgets{display:flex;flex-direction:column;gap:16px;}
+.staffapp .staffapp-widget{width:100%;padding:16px;min-width:0;}
+.staffapp .staffapp-widget h2{font-size:16px;line-height:1.35;margin:0 0 12px;}
+.staffapp .staffapp-widget-textlink{display:inline-flex;align-items:center;gap:4px;color:#244ea3;background:transparent;border:0;font-weight:800;font-size:12px;padding:8px 2px;}
+.staffapp .staffapp-pinned-task{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.staffapp .staffapp-pinned-task>div{min-width:0;display:grid;gap:5px;flex:1;}
+.staffapp .staffapp-pinned-task strong{font-size:13px;line-height:1.3;overflow-wrap:anywhere;}
+.staffapp .staffapp-pinned-task small{font-size:11px;color:#677b99;}
+.staffapp .staffapp-pinned-task .staffapp-primary{flex-shrink:0;font-size:12px;min-height:44px;}
+.staffapp .staffapp-quick-pos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.staffapp .staffapp-quick-pos button{min-height:58px;padding:9px;display:grid;align-content:center;gap:5px;min-width:0;font-size:11px;}
+.staffapp .staffapp-quick-pos button span{display:flex;align-items:flex-start;gap:4px;line-height:1.3;overflow-wrap:anywhere;}
+.staffapp .staffapp-quick-pos button span svg{flex-shrink:0;}
+.staffapp .staffapp-quick-pos button small{font-size:10px;}
+.staffapp .staffapp-widget-footer{margin-top:8px;}
+.staffapp .staffapp-shift-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.staffapp .staffapp-shift-stats>div{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.staffapp .staffapp-shift-stats small{font-size:10px;color:#667788;line-height:1.4;}
+.staffapp .staffapp-shift-stats strong{font-size:13px;color:#1b2f63;overflow-wrap:anywhere;}
+.staffapp .staffapp-shift-progress{width:100%;height:6px;background:#eaf1fb;border-radius:999px;margin:12px 0 8px;overflow:hidden;}
+.staffapp .staffapp-shift-progress>span{display:block;height:100%;border-radius:999px;background:#2aa9c5;}
+.staffapp .staffapp-muted{font-size:10px;color:#728298;line-height:1.45;}
+.staffapp .staffapp-settings-subhead{font-size:14px;font-weight:800;color:#244ea3;margin:16px 0 4px;}
+.staffapp .staffapp-switch-label{display:flex;align-items:center;gap:10px;}
+.staffapp .staffapp-switch-label input[role=switch]{appearance:none;width:38px;height:22px;background:#d8e2ee;border-radius:30px;position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
+.staffapp .staffapp-switch-label input[role=switch]::after{content:'';position:absolute;left:3px;top:3px;width:16px;height:16px;background:#fff;border-radius:50%;box-shadow:0 1px 3px #2e415e33;transition:transform .15s;}
+.staffapp .staffapp-switch-label input[role=switch]:checked{background:#244ea3;}
+.staffapp .staffapp-switch-label input[role=switch]:checked::after{transform:translateX(16px);}
+.staffapp .staffapp-switch-label input[role=switch]:focus-visible{outline:3px solid #2aa9c5;outline-offset:3px;}
+.staffapp .staffapp-setting-select input[type=number]{max-width:96px;width:100%;height:41px;padding:7px 9px;border-radius:10px;border:1px solid #d1deee;}
+.staffapp .staffapp-setting-select{justify-content:space-between;}
+@media(max-width:550px){
+ .staffapp .staffapp-main{padding-bottom:calc(108px + env(safe-area-inset-bottom,0px));}
+ .staffapp .staffapp-quick-pos{grid-template-columns:repeat(2,minmax(0,1fr));}
+ .staffapp .staffapp-compact-head{align-items:flex-start;}
+ .staffapp .staffapp-pinned-task{flex-wrap:wrap;}
+ .staffapp .staffapp-pinned-task .staffapp-primary{width:100%;}
+}
+@media(max-width:370px){
+ .staffapp .staffapp-payment-badge{font-size:9px;max-width:46%;}
+ .staffapp .staffapp-compact-identity strong{font-size:12px;}
+ .staffapp .staffapp-compact-actions .staffapp-primary{max-width:65%;}
+ .staffapp .staffapp-compact-actions button{font-size:11px;}
+}
