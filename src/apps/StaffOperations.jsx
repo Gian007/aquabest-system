@@ -29,6 +29,7 @@ export default function StaffOperations({onLogout}){
  const [remarks,setRemarks]=useState('');
  const [cameraOrder,setCameraOrder]=useState(null);
  const fileRef=useRef(null);
+ const touchStart=useRef(null);
  useEffect(()=>{try{localStorage.setItem(STORE_KEY,JSON.stringify(orders));}catch{setNotice('Browser storage is unavailable; changes may not persist.');}},[orders]);
  const mine=orders.filter(o=>o.claimedBy==='staff'&&['refilling','delivery','out'].includes(o.stage));
  const pending=orders.filter(o=>o.stage==='pending');
@@ -65,7 +66,7 @@ export default function StaffOperations({onLogout}){
     {page==='tasks'&&<div className="staffapp-tasks-summary"><span><FiDroplet/> {myRefill} Refill</span><span><FiTruck/> {myDelivery} Delivery</span><span>{mine.length} Active</span></div>}
     <label className="staffapp-search"><FiSearch/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search order, customer or address" aria-label="Search orders"/></label>
     <div className="staffapp-list">{filtered.length===0&&<div className="staffapp-empty"><FiCheckCircle/><strong>No matching orders</strong><p>Try another queue or search.</p></div>}
-    {filtered.map(o=><article className="staffapp-order" key={o.id}>
+    {filtered.map(o=><article className="staffapp-order" key={o.id} onTouchStart={page==='queue'&&tab==='delivery'?e=>{touchStart.current={x:e.touches[0].clientX,y:e.touches[0].clientY,id:o.id};}:undefined} onTouchEnd={page==='queue'&&tab==='delivery'?e=>{const start=touchStart.current;if(!start||start.id!==o.id)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;touchStart.current=null;if(dx>90&&Math.abs(dx)>Math.abs(dy)*1.5)setSelected(prev=>prev.includes(o.id)?prev:[...prev,o.id]);}:undefined}>
       <div className="staffapp-order-top"><div className="staffapp-order-id">{page==='queue'&&tab==='delivery'&&<input type="checkbox" aria-label={'Select '+o.id} checked={selected.includes(o.id)} onChange={e=>setSelected(prev=>e.target.checked?[...prev,o.id]:prev.filter(id=>id!==o.id))}/>}<strong>{o.id}</strong></div><span className={'staffapp-status '+o.stage}>{labels[o.stage]}</span></div>
       <div className="staffapp-order-person">{o.customer}</div><div className="staffapp-order-meta"><span><FiDroplet/> {o.quantity} × 5 Gallon</span><span>{o.service}</span><span>{o.createdAt}</span></div>
       {page==='tasks'&&<div className="staffapp-ownership">Claimed by you • {o.stage==='refilling'?'Refill':'Delivery'}</div>}
