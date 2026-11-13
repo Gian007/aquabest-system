@@ -29,7 +29,7 @@ const readSettings=()=>{try{
  return {...defaultSettings,...found,widgets:[...(Array.isArray(found.widgets)?found.widgets.filter(v=>widgetCatalog.some(w=>w.id===v.id)):[]),...defaultSettings.widgets.filter(v=>!found.widgets?.some(w=>w.id===v.id))],shortcuts:Array.isArray(found.shortcuts)?found.shortcuts.filter(v=>DEMO_PRODUCTS.some(p=>p.id===v.id)).slice(0,4):defaultSettings.shortcuts};
 }catch{return defaultSettings;}};
 const elapsed=(o,clock)=>{const entered=o.createdAtISO?new Date(o.createdAtISO):new Date();
- if(!o.createdAtISO&&o.createdAt){const m=o.createdAt.match(/(\\d+):(\\d+)\\s*(AM|PM)/i);if(m){entered.setHours(Number(m[1])%12+(m[3].toUpperCase()==='PM'?12:0),Number(m[2]),0,0);}}
+ if(!o.createdAtISO&&o.createdAt){const m=o.createdAt.match(/(\d+):(\d+)\s*(AM|PM)/i);if(m){entered.setHours(Number(m[1])%12+(m[3].toUpperCase()==='PM'?12:0),Number(m[2]),0,0);}}
  const mins=Math.max(0,Math.floor((clock-entered.getTime())/60000));return {mins,label:mins<60?mins+'m ago':Math.floor(mins/60)+'h '+(mins%60)+'m ago'};};
 const orderItems=o=>(o.items?.length?o.items:[{sizeId:'round5',quantity:o.quantity||1}]).map(item=>{const p=DEMO_PRODUCTS.find(x=>x.id===item.sizeId);return item.quantity+' × '+(p?.label==='2.5 Gallons'?'2.5 Gal':'5 Gal')+' ('+(p?.shape?.startsWith('Round')?'Round':'Slim')+')';}).join(' · ');
 const badgeText=o=>o.paymentStatus==='Paid'?'Paid • '+(o.service==='Pickup'?'Pickup':o.address||'Delivery'):(o.paymentMethod==='GCash'?'GCash pending':'COD')+' • '+(o.service==='Pickup'?'Pickup':o.address||'Delivery');
@@ -52,7 +52,8 @@ export default function StaffOperations({onLogout}){
  const [dragging,setDragging]=useState(null);
  const {entries:availability,update:updateAvailability}=useEmployeeAvailability();
  const [page,setPage]=useState('home');
- const [tab,setTab]=useState('refill');
+ const [tab,setTab]=useState('all');
+ const [taskFilter,setTaskFilter]=useState('all');
  const [search,setSearch]=useState('');
  const [selected,setSelected]=useState([]);
  const [detail,setDetail]=useState(null);
@@ -78,15 +79,16 @@ export default function StaffOperations({onLogout}){
  const itemList=entries.map(([sizeId,quantity])=>({sizeId,quantity}));
  const amount=entries.reduce((sum,[id,q])=>sum+q*(DEMO_PRICES[id]||0),0);
  setOrders(prev=>[{id,customer:sale.customer.trim()||'Walk-in Customer',phone:'',source:sale.source,items:itemList,quantity:entries.reduce((sum,[,q])=>sum+q,0),service,address:'',notes:sale.notes,amount,stage:'pending',claimedBy:null,createdAtISO,createdAt:new Date().toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}),paymentMethod:sale.paymentMethod,paymentStatus:sale.paymentStatus,ownership:sale.ownership,reference:sale.reference},...prev]);
- setSale(initialStaffSale());setTab('refill');show('queue');setNotice(id+' saved to Refill Queue (this browser only).');
+ setSale(initialStaffSale());show('queue');setTab('refill');setNotice(id+' saved to Refill Queue (this browser only).');
  };
 
  const mine=orders.filter(o=>o.claimedBy==='staff'&&['refilling','delivery','out'].includes(o.stage));
  const pending=orders.filter(o=>o.stage==='pending');
  const ready=orders.filter(o=>o.stage==='ready');
  const pickup=orders.filter(o=>o.stage==='pickup');
- const count={refill:pending.length,delivery:ready.length,pickup:pickup.length};
- const show=(p)=>{setPage(p);setDetail(null);setNotice('');setSelected([]);window.scrollTo({top:0,behavior:'smooth'});};
+ const count={all:pending.length+ready.length+pickup.length,refill:pending.length,delivery:ready.length,pickup:pickup.length};
+ const categoryOf=o=>o.stage==='pending'||o.stage==='refilling'?'refill':o.stage==='pickup'||o.stage==='picked'?'pickup':'delivery';
+ const show=(p)=>{if(p==='queue'&&page!=='queue')setTab('all');if(p==='tasks'&&page!=='tasks')setTaskFilter('all');setSearch('');setPage(p);setDetail(null);setNotice('');setSelected([]);window.scrollTo({top:0,behavior:'smooth'});};
  const update=(ids,change,message)=>{setOrders(prev=>prev.map(o=>ids.includes(o.id)?{...o,...change,updatedAt:now()}:o));setSelected([]);setDetail(null);if(message)setNotice(message);};
  const claimRefill=(id)=>update([id],{stage:'refilling',claimedBy:'staff',refillClaimedAt:now()},'Refill task added to My Tasks.');
  const completeRefill=(id)=>{const o=orders.find(v=>v.id===id);if(!o)return;update([id],{stage:o.service==='Pickup'?'pickup':'ready',claimedBy:null,refilledBy:'staff',refillCompletedAt:now()},'Refill completed. Order moved to '+(o.service==='Pickup'?'Pickup':'Delivery')+' queue.');};
@@ -96,7 +98,7 @@ export default function StaffOperations({onLogout}){
  const startProof=(id)=>{setCameraOrder(id);setCash('');setRemarks('');setPhoto(null);setDetail(id);};
  const saveDelivery=()=>{if(!cameraOrder||!photo){setNotice('A delivery photo is required before completion.');return;}const parsed=Number(cash);if(!cash.trim()||!Number.isFinite(parsed)||parsed<0){setNotice('Enter the actual COD cash collected (0 if none).');return;}update([cameraOrder],{stage:'delivered',deliveredBy:'staff',deliveredAt:now(),cashCollected:parsed,podRecorded:true,remittance:'Pending manager verification'},'Delivery recorded. Cash remittance still requires manager verification.');setCameraOrder(null);setPhoto(null);};
  const detailOrder=orders.find(o=>o.id===detail);
- const list=page==='tasks'?mine:page==='history'?orders.filter(o=>['delivered','picked','failed'].includes(o.stage)):page==='queue'?(tab==='refill'?pending:tab==='delivery'?ready:pickup):[];
+ const list=page==='tasks'?mine.filter(o=>taskFilter==='all'||(taskFilter==='refill'?o.stage==='refilling':['delivery','out'].includes(o.stage))):page==='history'?orders.filter(o=>['delivered','picked','failed'].includes(o.stage)):page==='queue'?(tab==='all'?[...pending,...ready,...pickup]:tab==='refill'?pending:tab==='delivery'?ready:pickup):[];
  const filtered=useMemo(()=>list.filter(o=>(o.id+' '+o.customer+' '+o.address+' '+o.source).toLowerCase().includes(search.toLowerCase())).slice().sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins),[list,search,clock]);
  const title=({home:'Operations Dashboard',queue:'Operations Queue',tasks:'My Tasks',history:'Completed History',pos:'New POS Sale',more:'More',settings:'Customize Dashboard',notifications:'Notifications'})[page]||'Operations';
  const myRefill=mine.filter(o=>o.stage==='refilling').length,myDelivery=mine.filter(o=>o.stage==='delivery'||o.stage==='out').length;
@@ -112,9 +114,9 @@ export default function StaffOperations({onLogout}){
    {notice&&<div className="staffapp-notice" role="status">{notice}<button onClick={()=>setNotice('')} aria-label="Dismiss notice"><FiX/></button></div>}
    {page==='home'&&<>
     <div className="staffapp-stats">
-     <button onClick={()=>{setTab('refill');show('queue')}}><FiDroplet/><b>{count.refill}</b><small>Pending Refill</small></button>
-     <button onClick={()=>{setTab('delivery');show('queue')}}><FiTruck/><b>{count.delivery}</b><small>Ready Delivery</small></button>
-     <button onClick={()=>{setTab('pickup');show('queue')}}><FiCheckCircle/><b>{count.pickup}</b><small>Ready Pickup</small></button>
+     <button onClick={()=>{show('queue');setTab('refill')}}><FiDroplet/><b>{count.refill}</b><small>Pending Refill</small></button>
+     <button onClick={()=>{show('queue');setTab('delivery')}}><FiTruck/><b>{count.delivery}</b><small>Ready Delivery</small></button>
+     <button onClick={()=>{show('queue');setTab('pickup')}}><FiCheckCircle/><b>{count.pickup}</b><small>Ready Pickup</small></button>
      <button onClick={()=>show('tasks')}><FiClipboard/><b>{mine.length}</b><small>My Tasks</small></button>
     </div>
     <div className="staffapp-widget-heading"><h2>My Dashboard</h2><button onClick={()=>show('settings')} aria-label="Customize Dashboard"><FiSettings/> Customize</button></div>
@@ -126,24 +128,30 @@ export default function StaffOperations({onLogout}){
     )}</div>
    </>}
    {(page==='queue'||page==='tasks'||page==='history')&&<>
-    {page==='queue'&&<div className="staffapp-tabs">{[['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setSelected([]);setSearch('')}}><Icon/>{label}<span>{count[id]}</span></button>)}</div>}
-    {page==='tasks'&&<div className="staffapp-tasks-summary"><span><FiDroplet/> {myRefill} Refill</span><span><FiTruck/> {myDelivery} Delivery</span><span>{mine.length} Active</span></div>}
+    {page==='queue'&&<div className="staffapp-tabs">{[['all','All',FiClipboard],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setSelected([]);setSearch('')}}><Icon/>{label}<span>{count[id]}</span></button>)}</div>}
+    {page==='tasks'&&<div className="staffapp-tasks-summary" role="group" aria-label="Filter my active tasks">
+      {[
+       ['all','All Active',mine.length,FiClipboard],
+       ['refill','Refill',myRefill,FiDroplet],
+       ['delivery','Delivery',myDelivery,FiTruck]
+      ].map(([id,label,n,Icon])=><button key={id} type="button" aria-pressed={taskFilter===id} className={taskFilter===id?'active':''} onClick={()=>{setTaskFilter(id);setSearch('')}}><Icon/> {label} <span>{n}</span></button>)}
+     </div>}
     <label className="staffapp-search"><FiSearch/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search order, customer or address" aria-label="Search orders"/></label>
     <div className="staffapp-list">{filtered.length===0&&<div className="staffapp-empty"><FiCheckCircle/><strong>No matching orders</strong><p>Try another queue or search.</p></div>}
-    {filtered.map(o=><article className="staffapp-order" key={o.id} onTouchStart={page==='queue'&&tab==='delivery'?e=>{touchStart.current={x:e.touches[0].clientX,y:e.touches[0].clientY,id:o.id};}:undefined} onTouchEnd={page==='queue'&&tab==='delivery'?e=>{const start=touchStart.current;if(!start||start.id!==o.id)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;touchStart.current=null;if(dx>90&&Math.abs(dx)>Math.abs(dy)*1.5)setSelected(prev=>prev.includes(o.id)?prev:[...prev,o.id]);}:undefined}>
-      <div className="staffapp-order-top"><div className="staffapp-order-id">{page==='queue'&&tab==='delivery'&&<input type="checkbox" aria-label={'Select '+o.id} checked={selected.includes(o.id)} onChange={e=>setSelected(prev=>e.target.checked?[...prev,o.id]:prev.filter(id=>id!==o.id))}/>}<strong>{o.id}</strong></div><span className="staffapp-payment-badge">{badgeText(o)}</span></div>
+    {filtered.map(o=><article className={"staffapp-order staffapp-type-"+categoryOf(o)} key={o.id} onTouchStart={page==='queue'&&(tab==='delivery'||tab==='all')&&o.stage==='ready'?e=>{touchStart.current={x:e.touches[0].clientX,y:e.touches[0].clientY,id:o.id};}:undefined} onTouchEnd={page==='queue'&&(tab==='delivery'||tab==='all')&&o.stage==='ready'?e=>{const start=touchStart.current;if(!start||start.id!==o.id)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;touchStart.current=null;if(dx>90&&Math.abs(dx)>Math.abs(dy)*1.5)setSelected(prev=>prev.includes(o.id)?prev:[...prev,o.id]);}:undefined}>
+      <div className="staffapp-order-top"><div className="staffapp-order-id">{page==='queue'&&o.stage==='ready'&&<input type="checkbox" aria-label={'Select '+o.id} checked={selected.includes(o.id)} onChange={e=>setSelected(prev=>e.target.checked?[...prev,o.id]:prev.filter(id=>id!==o.id))}/>}<strong>{o.id}</strong></div><span className="staffapp-payment-badge">{badgeText(o)}</span></div>
       <div className="staffapp-order-person">{o.customer}</div><div className="staffapp-order-meta"><span><FiDroplet/> {orderItems(o)}</span><span>{o.service}</span><span className={elapsed(o,clock).mins>15?'staffapp-overdue':''}>{o.createdAt} • {elapsed(o,clock).label}</span></div>
       {page==='tasks'&&<div className="staffapp-ownership">Claimed by you • {o.stage==='refilling'?'Refill':'Delivery'}</div>}
       <div className="staffapp-order-actions"><button className="staffapp-secondary" onClick={()=>setDetail(o.id)}>Details <FiChevronDown/></button>
-      {page==='queue'&&tab==='refill'&&<button className="staffapp-primary" onClick={()=>claimRefill(o.id)}>Claim Refill</button>}
-      {page==='queue'&&tab==='pickup'&&<button className="staffapp-primary" onClick={()=>completePickup(o.id)}>Confirm Pickup</button>}
-      {page==='queue'&&tab==='delivery'&&<button className="staffapp-primary" onClick={()=>setSelected(p=>p.includes(o.id)?p.filter(id=>id!==o.id):[...p,o.id])}>{selected.includes(o.id)?'Unselect':'Select'}</button>}
+      {page==='queue'&&o.stage==='pending'&&<button className="staffapp-primary" onClick={()=>claimRefill(o.id)}>Claim Refill</button>}
+      {page==='queue'&&o.stage==='pickup'&&<button className="staffapp-primary" onClick={()=>completePickup(o.id)}>Confirm Pickup</button>}
+      {page==='queue'&&o.stage==='ready'&&<button className="staffapp-primary" onClick={()=>setSelected(p=>p.includes(o.id)?p.filter(id=>id!==o.id):[...p,o.id])}>{selected.includes(o.id)?'Unselect':'Select'}</button>}
       {page==='tasks'&&o.stage==='refilling'&&<button className="staffapp-primary" onClick={()=>completeRefill(o.id)}>Complete Refill</button>}
       {page==='tasks'&&o.stage==='delivery'&&<button className="staffapp-primary" onClick={()=>startDelivery(o.id)}>Out for Delivery</button>}
       {page==='tasks'&&o.stage==='out'&&<button className="staffapp-primary" onClick={()=>startProof(o.id)}><FiCamera/> Confirm Delivery</button>}
       </div>
      </article>)}</div>
-    {page==='queue'&&tab==='delivery'&&selected.length>0&&<div className="staffapp-selection"><span><b>{selected.length}</b> selected <button onClick={()=>setSelected([])}>Clear</button></span><button onClick={claimDelivery}>Claim Selected ({selected.length})</button></div>}
+    {page==='queue'&&(tab==='delivery'||tab==='all')&&selected.length>0&&<div className="staffapp-selection"><span><b>{selected.length}</b> selected <button onClick={()=>setSelected([])}>Clear</button></span><button onClick={claimDelivery}>Claim Selected ({selected.length})</button></div>}
    </>}
    {page==='pos'&&<StaffPOS sale={sale} onChange={setSale} onSave={saveSale} onClear={()=>setSale(initialStaffSale())}/>}
    {page==='more'&&<div className="staffapp-more">

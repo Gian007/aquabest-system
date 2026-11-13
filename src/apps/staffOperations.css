@@ -156,3 +156,35 @@
  .staffapp .staffapp-title{align-items:center}
 }
 @media(max-width:410px){.staffapp-pos .mgmt-formgrid{grid-template-columns:1fr}.staffapp-widget-footer{flex-wrap:wrap}}
+
+
+/* Queue category cues: extremely light tints, readable text, AquaBest blue CTAs. */
+.staffapp .staffapp-tabs{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}
+.staffapp .staffapp-tabs button{gap:4px;min-width:0;padding:12px 3px;font-size:12px}
+.staffapp .staffapp-tabs button svg{width:15px;height:15px;flex-shrink:0}
+.staffapp .staffapp-tabs button span{min-width:17px;text-align:center}
+.staffapp-order.staffapp-type-refill{background:#f4f9ff;border-color:#d9eafa;border-left:4px solid #9ec9f2}
+.staffapp-order.staffapp-type-delivery{background:#f4fbf7;border-color:#d8ecdf;border-left:4px solid #a0d7b4}
+.staffapp-order.staffapp-type-pickup{background:#faf7ff;border-color:#e6ddf4;border-left:4px solid #c1ace9}
+.staffapp-order.staffapp-type-refill .staffapp-ownership{background:#e8f2ff;color:#285c91}
+.staffapp-order.staffapp-type-delivery .staffapp-ownership{background:#e9f6ee;color:#306a4b}
+.staffapp-order.staffapp-type-pickup .staffapp-ownership{background:#f1eafc;color:#69499a}
+.staffapp-order.staffapp-type-refill .staffapp-payment-badge{background:#e8f2ff;color:#285c91}
+.staffapp-order.staffapp-type-delivery .staffapp-payment-badge{background:#e7f5ec;color:#316d4e}
+.staffapp-order.staffapp-type-pickup .staffapp-payment-badge{background:#f0e9fc;color:#684994}
+.staffapp-stats button:nth-child(1){background:#f4f9ff;border-color:#d9eafa}
+.staffapp-stats button:nth-child(2){background:#f4fbf7;border-color:#d8ecdf}
+.staffapp-stats button:nth-child(3){background:#faf7ff;border-color:#e6ddf4}
+.staffapp-stats button:nth-child(4){background:#f2f6fd;border-color:#dce5f2}
+.staffapp-stats button:nth-child(2) svg{color:#4a9a70}
+.staffapp-stats button:nth-child(3) svg{color:#9270c6}
+.staffapp .staffapp-tasks-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.staffapp .staffapp-tasks-summary button{min-width:0;min-height:45px;display:flex;justify-content:center;align-items:center;gap:5px;border:1px solid #d9e2ec;background:#fff;border-radius:12px;color:#4b6480;font-weight:750;font-size:12px;padding:9px 5px}
+.staffapp .staffapp-tasks-summary button span{font-size:11px;padding:2px 5px;border-radius:99px;background:#edf3fa}
+.staffapp .staffapp-tasks-summary button.active{background:#eaf1ff;color:#244ea3;border-color:#a8c6ee;box-shadow:inset 0 0 0 1px #c5dcfa}
+.staffapp .staffapp-tasks-summary button:focus-visible,.staffapp .staffapp-tabs button:focus-visible{outline:3px solid #2aa9c5;outline-offset:2px}
+@media(max-width:390px){
+.staffapp .staffapp-tabs button{font-size:11px;gap:3px}
+.staffapp .staffapp-tabs button svg{width:13px;height:13px}
+.staffapp .staffapp-tasks-summary button{font-size:11px}
+}
