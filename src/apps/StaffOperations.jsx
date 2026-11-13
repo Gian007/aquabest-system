@@ -174,7 +174,10 @@ export default function StaffOperations({onLogout}){
     )}</div>
    </>}
    {(page==='queue'||page==='tasks'||page==='history')&&<>
-    {page==='queue'&&<div className="staffapp-tabs staffapp-scroll-tabs" role="group" aria-label="Filter available operations">{[['all','All',FiClipboard],['collection','Collect',FiPackage],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button type="button" key={id} aria-pressed={tab===id} className={tab===id?'active':''} onClick={e=>{setTab(id);setSelected([]);setSelectedCollection([]);setSearch('');e.currentTarget.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}}><Icon aria-hidden="true"/><span className="staffapp-tab-label">{label}</span><span className="staffapp-tab-count" aria-label={count[id]+' orders'}>{compactCount(count[id])}</span></button>)}</div>}
+    {page==='queue'&&<>
+      <div className="staffapp-tabs staffapp-main-segments" role="group" aria-label="Filter available operations">{[['all','All',FiClipboard],['collection','Collect',FiPackage],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck]].map(([id,label,Icon])=><button type="button" key={id} aria-pressed={tab===id} className={tab===id?'active':''} onClick={()=>{setTab(id);setSelected([]);setSelectedCollection([]);setSearch('')}}><Icon aria-hidden="true"/><span className="staffapp-tab-label">{label}</span><span className="staffapp-tab-count" aria-label={count[id]+' orders'}>{compactCount(count[id])}</span></button>)}</div>
+      <div className="staffapp-pickup-link-row"><button type="button" className={tab==='pickup'?'active':''} aria-pressed={tab==='pickup'} onClick={()=>{setTab(tab==='pickup'?'all':'pickup');setSelected([]);setSelectedCollection([]);setSearch('')}}><FiCheckCircle aria-hidden="true"/> {tab==='pickup'?'Viewing Pickup · Show All':'Ready for Pickup'} <span>{compactCount(count.pickup)}</span></button></div>
+     </>}
     {page==='tasks'&&<div className="staffapp-tabs staffapp-task-tabs staffapp-scroll-tabs" role="group" aria-label="Filter my active tasks">
       {[
        ['all','All Active',mine.length,FiClipboard],

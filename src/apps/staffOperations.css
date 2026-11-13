@@ -449,3 +449,120 @@
  }
  .staffapp .staffapp-scroll-tabs .staffapp-tab-count{min-width:18px;padding:0 4px;}
 }
+
+
+/* Four equal, single-layer queue segments. Overrides earlier scrollable/pill styles. */
+.staffapp .staffapp-tabs.staffapp-main-segments{
+ display:flex;
+ flex-wrap:nowrap;
+ width:100%;
+ max-width:100%;
+ min-width:0;
+ box-sizing:border-box;
+ padding:4px;
+ gap:4px;
+ overflow:visible;
+ scroll-snap-type:none;
+ border:1px solid #dce6f2;
+ border-radius:14px;
+ background:#f2f6fc;
+}
+.staffapp .staffapp-tabs.staffapp-main-segments>button{
+ display:flex;
+ flex:1 1 0;
+ width:0;
+ min-width:0;
+ max-width:none;
+ box-sizing:border-box;
+ align-items:center;
+ justify-content:center;
+ flex-wrap:nowrap;
+ gap:4px;
+ min-height:42px;
+ padding:8px 3px;
+ border:0;
+ border-radius:10px;
+ background:transparent;
+ color:#365476;
+ box-shadow:none;
+ font-size:12px;
+ font-weight:500;
+ line-height:1.2;
+ white-space:nowrap;
+ scroll-snap-align:none;
+}
+.staffapp .staffapp-tabs.staffapp-main-segments>button.active{
+ background:#244ea3;
+ color:white;
+ font-weight:650;
+}
+.staffapp .staffapp-tabs.staffapp-main-segments>button .staffapp-tab-label{
+ display:block;
+ flex:0 1 auto;
+ min-width:0;
+ overflow:visible;
+ text-overflow:clip;
+ white-space:nowrap;
+ font-size:12px;
+ font-weight:inherit;
+}
+.staffapp .staffapp-tabs.staffapp-main-segments>button svg{
+ display:block;
+ flex:0 0 auto;
+ width:13px;
+ height:13px;
+}
+.staffapp .staffapp-tabs.staffapp-main-segments>button .staffapp-tab-count{
+ display:inline-block;
+ flex:0 0 auto;
+ min-width:0;
+ max-width:none;
+ width:auto;
+ height:auto;
+ padding:0;
+ margin:0;
+ border:0;
+ border-radius:0;
+ background:transparent;
+ color:#6880a0;
+ font-size:10px;
+ font-weight:750;
+ line-height:1.2;
+ font-variant-numeric:tabular-nums;
+}
+.staffapp .staffapp-tabs.staffapp-main-segments>button.active .staffapp-tab-count{
+ background:transparent;
+ color:#d9e8ff;
+}
+.staffapp .staffapp-tabs.staffapp-main-segments>button:focus-visible{
+ outline:2px solid #2aa9c5;
+ outline-offset:-2px;
+}
+.staffapp .staffapp-pickup-link-row{
+ display:flex;
+ justify-content:flex-end;
+ margin:-5px 0 12px;
+}
+.staffapp .staffapp-pickup-link-row button{
+ display:inline-flex;
+ align-items:center;
+ gap:5px;
+ min-height:32px;
+ border:0;
+ background:transparent;
+ color:#536d94;
+ padding:4px 7px;
+ font-size:11px;
+ font-weight:650;
+}
+.staffapp .staffapp-pickup-link-row button.active{color:#244ea3;}
+.staffapp .staffapp-pickup-link-row button span{
+ font-weight:800;
+ font-variant-numeric:tabular-nums;
+}
+@media(max-width:380px){
+ .staffapp .staffapp-tabs.staffapp-main-segments>button svg{display:none;}
+ .staffapp .staffapp-tabs.staffapp-main-segments>button{gap:3px;padding:8px 2px;font-size:11px;}
+ .staffapp .staffapp-tabs.staffapp-main-segments>button .staffapp-tab-label{font-size:11px;}
+ .staffapp .staffapp-tabs.staffapp-main-segments>button .staffapp-tab-count{font-size:10px;}
+}
