@@ -173,14 +173,14 @@ export default function StaffOperations({onLogout}){
     )}</div>
    </>}
    {(page==='queue'||page==='tasks'||page==='history')&&<>
-    {page==='queue'&&<div className="staffapp-tabs">{[['all','All',FiClipboard],['collection','Collect',FiPackage],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setSelected([]);setSelectedCollection([]);setSearch('')}}><Icon/>{label}<span>{count[id]}</span></button>)}</div>}
-    {page==='tasks'&&<div className="staffapp-tabs staffapp-task-tabs" role="group" aria-label="Filter my active tasks">
+    {page==='queue'&&<div className="staffapp-tabs staffapp-scroll-tabs" role="group" aria-label="Filter available operations">{[['all','All',FiClipboard],['collection','Collect',FiPackage],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button type="button" key={id} aria-pressed={tab===id} className={tab===id?'active':''} onClick={e=>{setTab(id);setSelected([]);setSelectedCollection([]);setSearch('');e.currentTarget.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}}><Icon aria-hidden="true"/><span className="staffapp-tab-label">{label}</span><span className="staffapp-tab-count" aria-label={count[id]+' orders'}>{count[id]}</span></button>)}</div>}
+    {page==='tasks'&&<div className="staffapp-tabs staffapp-task-tabs staffapp-scroll-tabs" role="group" aria-label="Filter my active tasks">
       {[
        ['all','All Active',mine.length,FiClipboard],
         ['collection','Collect',myCollection,FiPackage],
        ['refill','Refill',myRefill,FiDroplet],
        ['delivery','Delivery',myDelivery,FiTruck]
-      ].map(([id,label,n,Icon])=><button key={id} type="button" aria-pressed={taskFilter===id} className={taskFilter===id?'active':''} onClick={()=>{setTaskFilter(id);setSearch('')}}><Icon/> {label} <span>{n}</span></button>)}
+      ].map(([id,label,n,Icon])=><button key={id} type="button" aria-pressed={taskFilter===id} className={taskFilter===id?'active':''} onClick={e=>{setTaskFilter(id);setSearch('');e.currentTarget.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}}><Icon aria-hidden="true"/><span className="staffapp-tab-label">{label}</span><span className="staffapp-tab-count" aria-label={n+' tasks'}>{n}</span></button>)}
      </div>}
     <label className="staffapp-search"><FiSearch/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search order, customer or address" aria-label="Search orders"/></label>
     <div className="staffapp-list">{filtered.length===0&&<div className="staffapp-empty"><FiCheckCircle/><strong>No matching orders</strong><p>Try another queue or search.</p></div>}
