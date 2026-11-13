@@ -256,3 +256,33 @@
  .staffapp .staffapp-compact-actions .staffapp-primary{max-width:65%;}
  .staffapp .staffapp-compact-actions button{font-size:11px;}
 }
+
+
+/* Collection is a separate soft amber stage; no change to AquaBest primary buttons. */
+.staffapp .staffapp-tabs{grid-template-columns:repeat(5,minmax(0,1fr));}
+.staffapp .staffapp-task-tabs{grid-template-columns:repeat(4,minmax(0,1fr));}
+.staffapp .staffapp-tabs button{flex-wrap:wrap;gap:2px;font-size:11px;line-height:1.2;min-height:47px;}
+.staffapp .staffapp-tabs button svg{width:14px;height:14px;}
+.staffapp .staffapp-tabs button span{padding:2px 5px;}
+.staffapp-order.staffapp-type-collection{background:#fffaf2;border-color:#f2e6d2;border-left:4px solid #e5bc79;}
+.staffapp-order.staffapp-type-collection .staffapp-payment-badge{background:#fff0d9;color:#8e682f;}
+.staffapp-order.staffapp-type-collection .staffapp-compact-meta>span:first-child{color:#80613d;}
+.staffapp-collection-field{display:grid;gap:7px;margin-top:15px;font-size:13px;font-weight:750;}
+.staffapp-collection-field input,.staffapp-collection-field select{width:100%;padding:12px;border:1px solid #cfdbeb;border-radius:11px;background:white;font-size:14px;color:#1b2f63;}
+.staffapp-collection-error{color:#aa3434;font-weight:700;font-size:12px;}
+.staffapp-sheet>.staffapp-primary{width:100%;margin-top:20px;min-height:45px;}
+.staffapp-toast{position:fixed;z-index:19;right:16px;top:85px;max-width:min(380px,calc(100% - 32px));display:flex;align-items:flex-start;gap:12px;background:#fff;border:1px solid #bcd8f3;border-left:4px solid #2aa9c5;border-radius:14px;padding:13px 14px;box-shadow:0 12px 35px #173d6929;color:#1b2f63;}
+.staffapp-toast-icon{font-size:19px;color:#244ea3;flex-shrink:0;margin-top:2px;}
+.staffapp-toast>div{min-width:0;flex:1;}
+.staffapp-toast strong{font-size:13px;}
+.staffapp-toast p{font-size:12px;color:#586d87;line-height:1.45;margin:4px 0;}
+.staffapp-toast>div button{color:#244ea3;background:transparent;border:0;padding:4px 0;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;}
+.staffapp-toast-close{border:0;background:transparent;color:#7186a0;flex-shrink:0;}
+.staffapp-notification-header{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.staffapp-notification-header button{border:1px solid #d9e2ec;color:#244ea3;background:#fff;padding:7px 11px;border-radius:9px;font-size:12px;}
+.staffapp-notification-row{display:flex;align-items:flex-start;gap:12px;border-top:1px solid #e5edf5;padding:12px 0;}
+.staffapp-notification-row>svg{color:#244ea3;flex-shrink:0;}
+.staffapp-notification-row div{display:grid;gap:4px;}
+.staffapp-notification-row strong{font-size:12px;line-height:1.45;}
+.staffapp-notification-row small{color:#667788;font-size:11px;}
+@media(max-width:375px){.staffapp .staffapp-tabs button{font-size:10px;}.staffapp .staffapp-tabs button svg{width:12px;height:12px;}.staffapp-toast{top:74px;}}

@@ -6,7 +6,7 @@ import { DEMO_PRICES, DEMO_PRODUCTS, formatMoney } from '../data/managerDemo.js'
 // Staff transactions are routed to the isolated local demo queue, not to Supabase.
 const Field=({label,children})=><div className="mgmt-field"><label>{label}</label>{children}</div>;
 const Section=({title})=><div className="mgmt-section-title"><h2>{title}</h2></div>;
-export const initialStaffSale=()=>({source:'Walk-in',customer:'',ownership:'own',arrangement:'purchase',service:'Walk-in',quantities:{round5:0,slim25:0,slim5:0},paymentMethod:'Cash',paymentStatus:'Unpaid',reference:'',notes:''});
+export const initialStaffSale=()=>({source:'Walk-in',customer:'',ownership:'own',arrangement:'purchase',service:'Walk-in',phone:'',address:'',quantities:{round5:0,slim25:0,slim5:0},paymentMethod:'Cash',paymentStatus:'Unpaid',reference:'',notes:''});
 export default function StaffPOS({sale,onChange,onSave,onClear}){
  const change=(key,value)=>onChange(prev=>({...prev,[key]:value}));
  const quantity=(id,delta)=>onChange(prev=>({...prev,quantities:{...prev.quantities,[id]:Math.max(0,Math.min(99,(prev.quantities[id]||0)+delta))}}));
@@ -18,8 +18,11 @@ export default function StaffPOS({sale,onChange,onSave,onClear}){
     <Field label="Order Source"><select value={sale.source} onChange={e=>change('source',e.target.value)}>{['Walk-in','Messenger','Phone'].map(x=><option key={x}>{x}</option>)}</select></Field>
     <Field label="Customer Name"><input value={sale.customer} onChange={e=>change('customer',e.target.value)} placeholder={sale.source==='Walk-in'?'Optional for walk-in':'Customer / contact name'}/></Field>
     <Field label="Containers"><select value={sale.ownership} onChange={e=>change('ownership',e.target.value)}><option value="own">Customer-owned (Refill)</option><option value="store">AquaBest-provided</option></select></Field>
-    <Field label="Service / Fulfillment"><select value={sale.service} onChange={e=>change('service',e.target.value)}><option>Walk-in</option><option>Pickup & Delivery</option><option>Drop-off & Delivery</option><option>Delivery</option></select></Field>
+    <Field label="Service / Fulfillment"><select value={sale.service} onChange={e=>change('service',e.target.value)}><option>Walk-in</option><option>Pickup & Delivery</option><option>Drop-off & Delivery</option><option>Delivery</option><option>Collect & Return (Same Bottles)</option></select></Field>
    </div>
+   {sale.service==='Collect & Return (Same Bottles)'&&<><p className="mgmt-sub">Collect the customer's exact empty containers, return them to station, refill, then deliver back. Collection and Delivery are assigned separately.</p>
+    <div className="mgmt-formgrid"><Field label="Customer Phone (required)"><input value={sale.phone||''} onChange={e=>change('phone',e.target.value)} placeholder="Contact number"/></Field>
+    <Field label="Collection Address (required)"><input value={sale.address||''} onChange={e=>change('address',e.target.value)} placeholder="Full collection and return address"/></Field></div></>}
    {sale.ownership==='store'&&<Field label="Container Arrangement"><select value={sale.arrangement} onChange={e=>change('arrangement',e.target.value)}><option value="purchase">Purchase container</option><option value="returnable">Returnable / borrowed (policy pending)</option></select></Field>}
   </div>
   <div className="mgmt-card" style={{marginTop:12}}><Section title="2. Select Sizes & Quantities"/><p className="mgmt-sub">Same available products and demo prices as AquaBest Manager POS.</p>
