@@ -378,3 +378,74 @@
  .staffapp .staffapp-scroll-tabs.staffapp-task-tabs button{font-size:12px;padding:10px 12px;min-height:44px;}
  .staffapp .staffapp-scroll-tabs button svg{width:15px;height:15px;}
 }
+
+
+/* Responsive notification filter strip: grows only as needed, never stretches into empty space. */
+.staffapp .staffapp-scroll-tabs,
+.staffapp .staffapp-scroll-tabs.staffapp-task-tabs{
+ display:flex;
+ width:max-content;
+ max-width:100%;
+ min-width:0;
+ box-sizing:border-box;
+ gap:6px;
+ padding:5px;
+ overflow-x:auto;
+ overflow-y:hidden;
+ scroll-snap-type:x proximity;
+ -webkit-overflow-scrolling:touch;
+ scrollbar-width:none;
+}
+.staffapp .staffapp-scroll-tabs button,
+.staffapp .staffapp-scroll-tabs.staffapp-task-tabs button{
+ position:relative;
+ flex:0 0 auto;
+ width:auto;
+ min-width:74px;
+ max-width:138px;
+ min-height:42px;
+ padding:9px 10px;
+ gap:6px;
+ font-size:12px;
+ white-space:nowrap;
+ flex-wrap:nowrap;
+}
+.staffapp .staffapp-scroll-tabs .staffapp-tab-label{
+ display:inline-block;
+ min-width:0;
+ overflow:hidden;
+ text-overflow:ellipsis;
+ white-space:nowrap;
+}
+.staffapp .staffapp-scroll-tabs .staffapp-tab-count{
+ display:inline-flex;
+ flex-shrink:0;
+ min-width:19px;
+ max-width:36px;
+ height:19px;
+ padding:0 5px;
+ font-size:10px;
+ line-height:19px;
+ font-variant-numeric:tabular-nums;
+ white-space:nowrap;
+}
+.staffapp .staffapp-scroll-tabs button svg{flex-shrink:0;width:14px;height:14px;}
+.staffapp .staffapp-nav-icon em{
+ min-width:18px;
+ max-width:34px;
+ height:18px;
+ padding:2px 5px;
+ font-variant-numeric:tabular-nums;
+ white-space:nowrap;
+}
+@media(max-width:420px){
+ .staffapp .staffapp-scroll-tabs button,
+ .staffapp .staffapp-scroll-tabs.staffapp-task-tabs button{
+  min-width:70px;
+  max-width:123px;
+  padding:9px 8px;
+  gap:5px;
+  font-size:11px;
+ }
+ .staffapp .staffapp-scroll-tabs .staffapp-tab-count{min-width:18px;padding:0 4px;}
+}

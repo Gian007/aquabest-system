@@ -13,6 +13,7 @@ import './staffOperations.css';
 const STORE_KEY='aquabest-staff-operations-demo-v1';
 const SETTINGS_KEY='aquabest-staff-dashboard-settings-v1';
 const NOTIFICATIONS_KEY='aquabest-staff-notifications-demo-v1';
+const compactCount=n=>n>99?'99+':String(n);
 const readNotifications=()=>{try{const n=JSON.parse(localStorage.getItem(NOTIFICATIONS_KEY)||'[]');return Array.isArray(n)?n:[];}catch{return [];}};
 const widgetCatalog=[
  {id:'active',label:'Active Task Pin'},
@@ -173,14 +174,14 @@ export default function StaffOperations({onLogout}){
     )}</div>
    </>}
    {(page==='queue'||page==='tasks'||page==='history')&&<>
-    {page==='queue'&&<div className="staffapp-tabs staffapp-scroll-tabs" role="group" aria-label="Filter available operations">{[['all','All',FiClipboard],['collection','Collect',FiPackage],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button type="button" key={id} aria-pressed={tab===id} className={tab===id?'active':''} onClick={e=>{setTab(id);setSelected([]);setSelectedCollection([]);setSearch('');e.currentTarget.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}}><Icon aria-hidden="true"/><span className="staffapp-tab-label">{label}</span><span className="staffapp-tab-count" aria-label={count[id]+' orders'}>{count[id]}</span></button>)}</div>}
+    {page==='queue'&&<div className="staffapp-tabs staffapp-scroll-tabs" role="group" aria-label="Filter available operations">{[['all','All',FiClipboard],['collection','Collect',FiPackage],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button type="button" key={id} aria-pressed={tab===id} className={tab===id?'active':''} onClick={e=>{setTab(id);setSelected([]);setSelectedCollection([]);setSearch('');e.currentTarget.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}}><Icon aria-hidden="true"/><span className="staffapp-tab-label">{label}</span><span className="staffapp-tab-count" aria-label={count[id]+' orders'}>{compactCount(count[id])}</span></button>)}</div>}
     {page==='tasks'&&<div className="staffapp-tabs staffapp-task-tabs staffapp-scroll-tabs" role="group" aria-label="Filter my active tasks">
       {[
        ['all','All Active',mine.length,FiClipboard],
         ['collection','Collect',myCollection,FiPackage],
        ['refill','Refill',myRefill,FiDroplet],
        ['delivery','Delivery',myDelivery,FiTruck]
-      ].map(([id,label,n,Icon])=><button key={id} type="button" aria-pressed={taskFilter===id} className={taskFilter===id?'active':''} onClick={e=>{setTaskFilter(id);setSearch('');e.currentTarget.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}}><Icon aria-hidden="true"/><span className="staffapp-tab-label">{label}</span><span className="staffapp-tab-count" aria-label={n+' tasks'}>{n}</span></button>)}
+      ].map(([id,label,n,Icon])=><button key={id} type="button" aria-pressed={taskFilter===id} className={taskFilter===id?'active':''} onClick={e=>{setTaskFilter(id);setSearch('');e.currentTarget.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}}><Icon aria-hidden="true"/><span className="staffapp-tab-label">{label}</span><span className="staffapp-tab-count" aria-label={n+' tasks'}>{compactCount(n)}</span></button>)}
      </div>}
     <label className="staffapp-search"><FiSearch/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search order, customer or address" aria-label="Search orders"/></label>
     <div className="staffapp-list">{filtered.length===0&&<div className="staffapp-empty"><FiCheckCircle/><strong>No matching orders</strong><p>Try another queue or search.</p></div>}
@@ -244,7 +245,7 @@ export default function StaffOperations({onLogout}){
      </aside>}
    <p className="staffapp-disclaimer">Frontend prototype only. Saved changes stay in this browser; they do not update GitHub, Supabase or other employees' phones. Demo account is not secure production authentication.</p>
   </main>
-  <nav className="staffapp-bottom" aria-label="Staff navigation">{[['home','Home',FiHome],['queue','Queues',FiDroplet],['tasks','My Tasks',FiClipboard],['pos','POS',FiShoppingCart],['more','More',FiMenu]].map(([id,label,Icon])=><button key={id} className={page===id||(id==='more'&&['settings','history','notifications'].includes(page))?'active':''} onClick={()=>show(id)}><span className="staffapp-nav-icon"><Icon/>{id==='tasks'&&mine.length>0&&<em>{mine.length}</em>}</span><small>{label}</small></button>)}</nav>
+  <nav className="staffapp-bottom" aria-label="Staff navigation">{[['home','Home',FiHome],['queue','Queues',FiDroplet],['tasks','My Tasks',FiClipboard],['pos','POS',FiShoppingCart],['more','More',FiMenu]].map(([id,label,Icon])=><button key={id} className={page===id||(id==='more'&&['settings','history','notifications'].includes(page))?'active':''} onClick={()=>show(id)}><span className="staffapp-nav-icon"><Icon/>{id==='tasks'&&mine.length>0&&<em>{compactCount(mine.length)}</em>}</span><small>{label}</small></button>)}</nav>
   {collectionForm&&<div className="staffapp-overlay" onClick={()=>setCollectionForm(null)}><section className="staffapp-sheet" role="dialog" aria-modal="true" aria-label="Confirm customer empty containers" onClick={e=>e.stopPropagation()}>
     <div className="staffapp-sheet-head"><h2>{collectionForm.mode==='site'?'Confirm Collection':'Confirm Station Receipt'}</h2><button aria-label="Close" onClick={()=>setCollectionForm(null)}><FiX/></button></div>
     <p className="staffapp-muted">Order {collectionForm.id} · Keep the customer's exact containers linked to this order. No bottle exchange.</p>
