@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import CustomerWeb from './apps/CustomerWeb.jsx';
 import ManagementWeb from './apps/ManagementWeb.jsx';
+import StaffOperations from './apps/StaffOperations.jsx';
 import BusinessLogin from './apps/BusinessLogin.jsx';
 import { getDemoBusinessSession, loginDemoBusiness, logoutDemoBusiness } from './services/demoBusinessAuth.js';
 
@@ -26,7 +27,7 @@ function App() {
   };
   if (!businessViews.includes(view)) return <CustomerWeb />;
   return session
-    ? <ManagementWeb key={session.role + ':' + session.username} role={session.role} onLogout={signOut} />
+    ? (session.role === 'staff' ? <StaffOperations onLogout={signOut} /> : <ManagementWeb key={session.role + ':' + session.username} role={session.role} onLogout={signOut} />)
     : <BusinessLogin onLogin={signIn} />;
 }
 createRoot(document.getElementById('root')).render(<StrictMode><App /></StrictMode>);
