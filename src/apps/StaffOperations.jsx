@@ -56,6 +56,7 @@ export default function StaffOperations({onLogout}){
  const [collectionForm,setCollectionForm]=useState(null);
  const [collectionQty,setCollectionQty]=useState('');
  const [collectionCondition,setCollectionCondition]=useState('Good');
+ const [collectionError,setCollectionError]=useState('');
  const [settings,setSettings]=useState(readSettings);
  const [sale,setSale]=useState(initialStaffSale);
  const [clock,setClock]=useState(Date.now());
@@ -95,7 +96,7 @@ export default function StaffOperations({onLogout}){
  const itemList=entries.map(([sizeId,quantity])=>({sizeId,quantity}));
  const amount=entries.reduce((sum,[id,q])=>sum+q*(DEMO_PRICES[id]||0),0);
  setOrders(prev=>[{id,customer:sale.customer.trim()||'Walk-in Customer',phone:'',source:sale.source,items:itemList,quantity:entries.reduce((sum,[,q])=>sum+q,0),service,address:'',notes:sale.notes,amount,stage:collectionRequired?'collection':'pending',collectionRequired,claimedBy:null,createdAtISO,createdAt:new Date().toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}),paymentMethod:sale.paymentMethod,paymentStatus:sale.paymentStatus,ownership:sale.ownership,reference:sale.reference},...prev]);
- setSale(initialStaffSale());show('queue');setTab('refill');setNotice(id+' saved to '+(collectionRequired?'Collection':'Refill')+' Queue (this browser only).');notify(id+' is ready for '+(collectionRequired?'collection':'refill')+'.');
+ setSale(initialStaffSale());show('queue');setTab(collectionRequired?'collection':'refill');setNotice(id+' saved to '+(collectionRequired?'Collection':'Refill')+' Queue (this browser only).');notify(id+' is ready for '+(collectionRequired?'collection':'refill')+'.');
  };
 
  const mine=orders.filter(o=>o.claimedBy==='staff'&&['collectionClaimed','collectionTransit','refilling','delivery','out'].includes(o.stage));
@@ -108,11 +109,11 @@ export default function StaffOperations({onLogout}){
  const show=(p)=>{if(p==='queue'&&page!=='queue')setTab('all');if(p==='tasks'&&page!=='tasks')setTaskFilter('all');setSearch('');setPage(p);setDetail(null);setNotice('');setSelected([]);setSelectedCollection([]);window.scrollTo({top:0,behavior:'smooth'});};
  const update=(ids,change,message)=>{setOrders(prev=>prev.map(o=>ids.includes(o.id)?{...o,...change,updatedAt:now()}:o));setSelected([]);setDetail(null);if(message){setNotice(message);notify(message);}};
  const claimCollections=()=>{const valid=collection.filter(o=>selectedCollection.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'collectionClaimed',claimedBy:'staff',collectedBy:'staff',collectionClaimedAt:now()},valid.length+' collection task(s) added to My Tasks.');setSelectedCollection([]);};
- const openCollection=(o,mode)=>{setCollectionForm({id:o.id,mode});setCollectionQty(String(mode==='site'?o.quantity:o.collectedQty??o.quantity));setCollectionCondition(o.containerCondition||'Good');};
- const confirmCollection=()=>{const o=orders.find(x=>x.id===collectionForm?.id);if(!o)return;const qty=Number(collectionQty);if(!Number.isInteger(qty)||qty<1||qty>getOrderQuantity(o)){setNotice('Enter a quantity between 1 and the ordered quantity.');return;}if(collectionForm.mode==='site')update([o.id],{stage:'collectionTransit',collectedQty:qty,containerCondition:collectionCondition,collectedAt:now()},'Empty containers collected. Return them to station.');else if(qty!==Number(o.collectedQty)){setNotice('Station received quantity must match collected quantity. Report a discrepancy to manager.');return;}else update([o.id],{stage:'pending',claimedBy:null,receivedAtStation:now(),stationReceivedQty:qty,containerCondition:collectionCondition},'Customer-owned containers received. Refill Queue updated.');setCollectionForm(null);};
+ const openCollection=(o,mode)=>{setCollectionError('');setCollectionForm({id:o.id,mode});setCollectionQty(String(mode==='site'?o.quantity:o.collectedQty??o.quantity));setCollectionCondition(o.containerCondition||'Good');};
+ const confirmCollection=()=>{const o=orders.find(x=>x.id===collectionForm?.id);if(!o)return;const qty=Number(collectionQty);if(!Number.isInteger(qty)||qty<1||qty>getOrderQuantity(o)){setCollectionError('Enter a quantity between 1 and the ordered quantity.');return;}if(collectionForm.mode==='site')update([o.id],{stage:'collectionTransit',collectedQty:qty,containerCondition:collectionCondition,collectedAt:now()},'Empty containers collected. Return them to station.');else if(qty!==Number(o.collectedQty)){setCollectionError('Station received quantity must match the collected quantity. Record an issue with the manager.');return;}else update([o.id],{stage:'pending',claimedBy:null,receivedAtStation:now(),stationReceivedQty:qty,containerCondition:collectionCondition},'Customer-owned containers received. Refill Queue updated.');setCollectionForm(null);setCollectionError('');};
  const claimRefill=(id)=>update([id],{stage:'refilling',claimedBy:'staff',refillClaimedAt:now()},'Refill task added to My Tasks.');
  const completeRefill=(id)=>{const o=orders.find(v=>v.id===id);if(!o)return;update([id],{stage:o.service==='Pickup'?'pickup':'ready',claimedBy:null,refilledBy:'staff',refillCompletedAt:now(),refillCompletedAtISO:new Date().toISOString()},'Refill completed. Order moved to '+(o.service==='Pickup'?'Pickup':'Delivery')+' queue.');};
- const claimDelivery=()=>{const valid=ready.filter(o=>selected.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()});show('tasks');setNotice(valid.length+' delivery order(s) added to My Tasks.');};
+ const claimDelivery=()=>{const valid=ready.filter(o=>selected.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},valid.length+' delivery order(s) added to My Tasks.');show('tasks');};
  const completePickup=(id)=>{if(window.confirm('Confirm that the customer received this order?'))update([id],{stage:'picked',releasedBy:'staff',releasedAt:now()},'Pickup confirmed.');};
  const startDelivery=(id)=>update([id],{stage:'out',dispatchedAt:now()},'Order marked Out for Delivery.');
  const startProof=(id)=>{setCameraOrder(id);setCash('');setRemarks('');setPhoto(null);setDetail(id);};
@@ -170,7 +171,7 @@ export default function StaffOperations({onLogout}){
     )}</div>
    </>}
    {(page==='queue'||page==='tasks'||page==='history')&&<>
-    {page==='queue'&&<div className="staffapp-tabs">{[['all','All',FiClipboard],['collection','Collect',FiPackage],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setSelected([]);setSearch('')}}><Icon/>{label}<span>{count[id]}</span></button>)}</div>}
+    {page==='queue'&&<div className="staffapp-tabs">{[['all','All',FiClipboard],['collection','Collect',FiPackage],['refill','Refill',FiDroplet],['delivery','Delivery',FiTruck],['pickup','Pickup',FiCheckCircle]].map(([id,label,Icon])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setSelected([]);setSelectedCollection([]);setSearch('')}}><Icon/>{label}<span>{count[id]}</span></button>)}</div>}
     {page==='tasks'&&<div className="staffapp-tabs staffapp-task-tabs" role="group" aria-label="Filter my active tasks">
       {[
        ['all','All Active',mine.length,FiClipboard],
@@ -213,7 +214,9 @@ export default function StaffOperations({onLogout}){
      <button onClick={()=>show('notifications')}><FiBell/> <span><strong>Notifications</strong><small>Demo announcements</small></span></button>
      <button onClick={onLogout}><FiLogOut/> <span><strong>Log Out</strong><small>Exit business workspace</small></span></button>
    </div>}
-   {page==='notifications'&&<section className="staffapp-panel"><h2>Notifications</h2><p>Shared live notifications aren't connected yet. My Tasks badge counts locally claimed active tasks.</p></section>}
+   {page==='notifications'&&<section className="staffapp-panel staffapp-notification-list"><div className="staffapp-notification-header"><h2>Staff Activity Notifications</h2><button type="button" onClick={()=>setNotifications([])} disabled={!notifications.length}>Clear</button></div>
+    <p className="staffapp-muted">Updates from this browser only. No device push or real-time alerts from other employees.</p>
+    {notifications.length?notifications.map(n=><div key={n.id} className="staffapp-notification-row"><FiBell/><div><strong>{n.message}</strong><small>{n.time}</small></div></div>):<p>No recent notifications.</p>}</section>}
    {page==='settings'&&<div className="staffapp-customize">
      <section className="staffapp-panel"><h2>Dashboard & Quick POS Customization</h2><h3 className="staffapp-settings-subhead">Home Screen Widgets</h3><p>Turn widgets on or off. Drag on desktop, or use arrows to reorder on mobile. Active tasks stay above other widgets when enabled.</p>
       {settings.widgets.map((w,i)=><div key={w.id} className="staffapp-setting-row" draggable onDragStart={()=>setDragging(w.id)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(dragging)reorderWidget(dragging,w.id);setDragging(null);}} onDragEnd={()=>setDragging(null)}>
@@ -233,15 +236,29 @@ export default function StaffOperations({onLogout}){
       {settings.shortcuts.length<4&&<button className="staffapp-secondary" onClick={()=>setSettings(prev=>({...prev,shortcuts:[...prev.shortcuts,{id:DEMO_PRODUCTS[0].id,label:DEMO_PRODUCTS[0].label,quantity:1}]}))}><FiPlus/> Add Slot</button>}
      </section>
     </div>}
+   {toast&&<aside className="staffapp-toast" role="status" aria-live="polite">
+      <FiBell className="staffapp-toast-icon"/><div><strong>Staff update</strong><p>{toast.message}</p><button type="button" onClick={()=>{setToast(null);show('notifications')}}>Show More <FiArrowRight/></button></div>
+      <button className="staffapp-toast-close" aria-label="Dismiss notification" onClick={()=>setToast(null)}><FiX/></button>
+     </aside>}
    <p className="staffapp-disclaimer">Frontend prototype only. Saved changes stay in this browser; they do not update GitHub, Supabase or other employees' phones. Demo account is not secure production authentication.</p>
   </main>
   <nav className="staffapp-bottom" aria-label="Staff navigation">{[['home','Home',FiHome],['queue','Queues',FiDroplet],['tasks','My Tasks',FiClipboard],['pos','POS',FiShoppingCart],['more','More',FiMenu]].map(([id,label,Icon])=><button key={id} className={page===id||(id==='more'&&['settings','history','notifications'].includes(page))?'active':''} onClick={()=>show(id)}><span className="staffapp-nav-icon"><Icon/>{id==='tasks'&&mine.length>0&&<em>{mine.length}</em>}</span><small>{label}</small></button>)}</nav>
+  {collectionForm&&<div className="staffapp-overlay" onClick={()=>setCollectionForm(null)}><section className="staffapp-sheet" role="dialog" aria-modal="true" aria-label="Confirm customer empty containers" onClick={e=>e.stopPropagation()}>
+    <div className="staffapp-sheet-head"><h2>{collectionForm.mode==='site'?'Confirm Collection':'Confirm Station Receipt'}</h2><button aria-label="Close" onClick={()=>setCollectionForm(null)}><FiX/></button></div>
+    <p className="staffapp-muted">Order {collectionForm.id} · Keep the customer's exact containers linked to this order. No bottle exchange.</p>
+    <label className="staffapp-collection-field">Number of customer containers <input type="number" min="1" max={getOrderQuantity(orders.find(o=>o.id===collectionForm.id)||{})} value={collectionQty} onChange={e=>setCollectionQty(e.target.value)}/></label>
+    <label className="staffapp-collection-field">Container condition <select value={collectionCondition} onChange={e=>setCollectionCondition(e.target.value)}><option>Good</option><option>Needs inspection</option><option>Damaged</option></select></label>
+    {collectionForm.mode==='station'&&<p className="staffapp-muted">Collected: {orders.find(o=>o.id===collectionForm.id)?.collectedQty||0} container(s). Check that the station receives the same quantity.</p>}
+    {collectionError&&<p role="alert" className="staffapp-collection-error">{collectionError}</p>}
+    <button className="staffapp-primary" onClick={confirmCollection}>{collectionForm.mode==='site'?'Collected from Customer':'Received at Station'}</button>
+   </section></div>}
   {detailOrder&&<div className="staffapp-overlay" onClick={()=>{setDetail(null);setCameraOrder(null);setPhoto(null)}}><section className="staffapp-sheet" role="dialog" aria-modal="true" aria-label="Order details" onClick={e=>e.stopPropagation()}>
    <div className="staffapp-sheet-head"><h2>{cameraOrder?'Confirm Delivery':detailOrder.id}</h2><button aria-label="Close" onClick={()=>{setDetail(null);setCameraOrder(null);setPhoto(null)}}><FiX/></button></div>
    <div className="staffapp-sheet-row"><b>Customer</b><span>{detailOrder.customer}</span></div>
    <div className="staffapp-sheet-row"><b>Contact</b><span>{detailOrder.phone||'Not provided'}</span></div>
    <div className="staffapp-sheet-row"><b>Items</b><span>{orderItems(detailOrder)}</span></div>
-   <div className="staffapp-sheet-row"><b>Type</b><span>{detailOrder.service}</span></div>
+   <div className="staffapp-sheet-row"><b>Type</b><span>{detailOrder.collectionRequired?'Collect & Return':detailOrder.service}</span></div>
+   {detailOrder.collectionRequired&&<><div className="staffapp-sheet-row"><b>Collected by</b><span>{detailOrder.collectedBy||'Not yet claimed'}</span></div><div className="staffapp-sheet-row"><b>Empty containers received</b><span>{detailOrder.stationReceivedQty??'Awaiting collection'} </span></div></>}
    <div className="staffapp-sheet-row"><b>Source</b><span>{detailOrder.source}</span></div>
    <div className="staffapp-sheet-row"><b>Status</b><span>{labels[detailOrder.stage]}</span></div>
    {detailOrder.address&&<div className="staffapp-sheet-info"><FiMapPin/> {detailOrder.address}</div>}
