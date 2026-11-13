@@ -102,7 +102,7 @@ export default function StaffOperations({onLogout}){
  const detailOrder=orders.find(o=>o.id===detail);
  const list=page==='tasks'?mine.filter(o=>taskFilter==='all'||(taskFilter==='refill'?o.stage==='refilling':['delivery','out'].includes(o.stage))):page==='history'?orders.filter(o=>['delivered','picked','failed'].includes(o.stage)):page==='queue'?(tab==='all'?[...pending,...ready,...pickup]:tab==='refill'?pending:tab==='delivery'?ready:pickup):[];
  const filtered=useMemo(()=>list.filter(o=>(o.id+' '+o.customer+' '+o.address+' '+o.source).toLowerCase().includes(search.toLowerCase())).slice().sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins),[list,search,clock]);
- const title=({home:'Operations Dashboard',queue:'Operations Queue',tasks:'My Tasks',history:'Completed History',pos:'New POS Sale',more:'More',settings:'Customize Dashboard',notifications:'Notifications'})[page]||'Operations';
+ const title=({home:'Operations Dashboard',queue:'Operations Queue',tasks:'My Tasks',history:'Completed History',pos:'POS',more:'More',settings:'Customize Dashboard',notifications:'Notifications'})[page]||'Operations';
  const myRefill=mine.filter(o=>o.stage==='refilling').length,myDelivery=mine.filter(o=>o.stage==='delivery'||o.stage==='out').length;
  const nextActive=mine.find(o=>o.stage==='refilling')||mine.find(o=>o.stage==='delivery')||mine.find(o=>o.stage==='out');
  const todayKey=new Date(clock).toLocaleDateString('en-CA');
