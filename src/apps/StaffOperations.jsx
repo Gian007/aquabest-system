@@ -29,7 +29,7 @@ const readSettings=()=>{try{
  return {...defaultSettings,...found,widgets:[...(Array.isArray(found.widgets)?found.widgets.filter(v=>widgetCatalog.some(w=>w.id===v.id)):[]),...defaultSettings.widgets.filter(v=>!found.widgets?.some(w=>w.id===v.id))],shortcuts:Array.isArray(found.shortcuts)?found.shortcuts.filter(v=>DEMO_PRODUCTS.some(p=>p.id===v.id)).slice(0,4):defaultSettings.shortcuts};
 }catch{return defaultSettings;}};
 const elapsed=(o,clock)=>{const entered=o.createdAtISO?new Date(o.createdAtISO):new Date();
- if(!o.createdAtISO&&o.createdAt){const m=o.createdAt.match(/(\\d+):(\\d+)\\s*(AM|PM)/i);if(m){entered.setHours(Number(m[1])%12+(m[3].toUpperCase()==='PM'?12:0),Number(m[2]),0,0);}}
+ if(!o.createdAtISO&&o.createdAt){const m=o.createdAt.match(/(\d+):(\d+)\s*(AM|PM)/i);if(m){entered.setHours(Number(m[1])%12+(m[3].toUpperCase()==='PM'?12:0),Number(m[2]),0,0);}}
  const mins=Math.max(0,Math.floor((clock-entered.getTime())/60000));return {mins,label:mins<60?mins+'m ago':Math.floor(mins/60)+'h '+(mins%60)+'m ago'};};
 const orderItems=o=>(o.items?.length?o.items:[{sizeId:'round5',quantity:o.quantity||1}]).map(item=>{const p=DEMO_PRODUCTS.find(x=>x.id===item.sizeId);return item.quantity+' × '+(p?.label==='2.5 Gallons'?'2.5 Gal':'5 Gal')+' ('+(p?.shape?.startsWith('Round')?'Round':'Slim')+')';}).join(' · ');
 const badgeText=o=>o.paymentStatus==='Paid'?'Paid • '+(o.service==='Pickup'?'Pickup':o.address||'Delivery'):(o.paymentMethod==='GCash'?'GCash pending':'COD')+' • '+(o.service==='Pickup'?'Pickup':o.address||'Delivery');
