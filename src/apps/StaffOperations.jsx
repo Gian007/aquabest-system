@@ -130,7 +130,7 @@ export default function StaffOperations({onLogout}){
  const detailOrder=orders.find(o=>o.id===detail);
  const list=page==='tasks'?mine.filter(o=>taskFilter==='all'||(taskFilter==='collection'?['collectionClaimed','collectionTransit'].includes(o.stage):taskFilter==='refill'?o.stage==='refilling':['delivery','out'].includes(o.stage))):page==='history'?orders.filter(o=>['delivered','picked','failed'].includes(o.stage)):page==='queue'?(tab==='all'?[...collection,...pending,...ready,...pickup]:tab==='collection'?collection:tab==='refill'?pending:tab==='delivery'?ready:pickup):[];
  const stageGroup=o=>['collectionClaimed','refilling','delivery'].includes(o.stage)?'claimed':['collectionTransit','out'].includes(o.stage)?'progress':'waiting';
- const filtered=useMemo(()=>list.filter(o=>(o.id+' '+o.customer+' '+o.address+' '+o.source).toLowerCase().includes(search.toLowerCase())&&(stageFilter==='all'||stageGroup(o)===stageFilter)).slice().sort((a,b)=>sortOrder==='oldest'?elapsed(b,clock).mins-elapsed(a,clock).mins:elapsed(a,clock).mins-elapsed(b,clock).mins),[list,search,clock,sortOrder,stageFilter]);
+ const filtered=useMemo(()=>list.filter(o=>(o.id+' '+o.customer+' '+o.address+' '+o.source).toLowerCase().includes(search.toLowerCase())&&(stageFilter==='all'||(stageFilter==='overdue'?elapsed(o,clock).mins>15:stageGroup(o)===stageFilter))).slice().sort((a,b)=>sortOrder==='oldest'?elapsed(b,clock).mins-elapsed(a,clock).mins:elapsed(a,clock).mins-elapsed(b,clock).mins),[list,search,clock,sortOrder,stageFilter]);
  const title=({home:'Operations Dashboard',queue:'Operations Queue',tasks:'My Tasks',history:'Completed History',pos:'POS',more:'More',settings:'Customize Dashboard',notifications:'Notifications'})[page]||'Operations';
  const myCollection=mine.filter(o=>['collectionClaimed','collectionTransit'].includes(o.stage)).length;
  const myRefill=mine.filter(o=>o.stage==='refilling').length,myDelivery=mine.filter(o=>o.stage==='delivery'||o.stage==='out').length;
@@ -153,8 +153,9 @@ export default function StaffOperations({onLogout}){
   {id:'pickup',label:'Pickup',count:count.pickup,icon:FiCheckCircle}
  ];
  const chosenCategory=categories.find(c=>c.id===currentCategory)||categories[0];
+ const pendingElsewhere=categories.filter(c=>c.id!=='all'&&c.id!==currentCategory&&c.count>0).reduce((sum,c)=>sum+c.count,0);
  const otherPending=categories.filter(c=>c.id!=='all'&&c.id!==currentCategory&&c.count>0).length;
- const chooseCategory=id=>{if(isTasks)setTaskFilter(id);else {setTab(id);setSelected([]);setSelectedCollection([]);}setSearch('');setCategoryOpen(false);setStageFilter('all');};
+ const chooseCategory=id=>{if(isTasks)setTaskFilter(id);else {setTab(id);setSelected([]);setSelectedCollection([]);}setSearch('');setCategoryOpen(false);setStageFilter('all');setSortOrder('oldest');};
  const openAdvanced=()=>{setDraftSort(sortOrder);setDraftStage(stageFilter);setCategoryOpen(false);setAdvancedOpen(true);};
  const applyAdvanced=()=>{setSortOrder(draftSort);setStageFilter(draftStage);setAdvancedOpen(false);};
 
@@ -207,7 +208,7 @@ export default function StaffOperations({onLogout}){
         {chosenCategory&&<chosenCategory.icon aria-hidden="true"/>}
         <span className="staffapp-category-name">{chosenCategory.label} ({chosenCategory.count})</span>
         <FiChevronDown className="staffapp-category-chevron" aria-hidden="true"/>
-        {otherPending>0&&<span className="staffapp-category-alert" aria-label={otherPending+' other categories with pending work'}>{otherPending}</span>}
+        {otherPending>0&&<span className="staffapp-category-alert" aria-label={pendingElsewhere+' tasks in other categories'}>{otherPending}</span>}
        </button>
        {categoryOpen&&<div className="staffapp-category-menu" role="listbox" aria-label="Select work category">
          <p className="staffapp-menu-hint">{otherPending>0?'You have unfinished work in other categories.':'Choose a category to view tasks.'}</p>
@@ -291,7 +292,7 @@ export default function StaffOperations({onLogout}){
       <label><input type="radio" name="staff-sort" checked={draftSort==='newest'} onChange={()=>setDraftSort('newest')}/> Newest first</label>
     </fieldset>
     <fieldset><legend>Work stage</legend>
-      {[['all','All stages'],['claimed','Claimed / Not started'],['progress','In progress'],['waiting','Waiting / Available']].filter(([id])=>!isTasks||id!=='waiting').map(([id,label])=><label key={id}><input type="radio" name="staff-stage" checked={draftStage===id} onChange={()=>setDraftStage(id)}/> {label}</label>)}
+      {(isTasks?[['all','All stages'],['claimed','Claimed / Not started'],['progress','In progress']]:[['all','All available'],['overdue','Waiting over 15 minutes']]).map(([id,label])=><label key={id}><input type="radio" name="staff-stage" checked={draftStage===id} onChange={()=>setDraftStage(id)}/> {label}</label>)}
     </fieldset>
     <div className="staffapp-filter-sheet-actions"><button className="staffapp-secondary" onClick={()=>{setDraftSort('oldest');setDraftStage('all');}}>Reset</button><button className="staffapp-primary" onClick={applyAdvanced}>Apply Filters</button></div>
    </section>
