@@ -89,3 +89,70 @@
 @media(max-width:560px){.staffapp-main{padding:17px 12px 125px}.staffapp-header{height:64px;padding:8px 13px}.staffapp-brand img{width:95px}.staffapp-header>span{font-size:12px}.staffapp-logout{width:38px;height:38px}.staffapp-stats{gap:7px}.staffapp-stats button{padding:11px 7px}.staffapp-stats b{font-size:22px}.staffapp-stats small{font-size:9px}.staffapp-stats svg{font-size:20px}.staffapp-demo{font-size:9px;max-width:117px;white-space:normal;text-align:right}.staffapp-tabs button{font-size:12px}.staffapp-order-actions button{font-size:12px;padding:9px 11px}.staffapp-selection>button{font-size:12px;padding:10px}}
 @media(max-width:360px){.staffapp-title{flex-direction:column}.staffapp-quick{grid-template-columns:1fr}.staffapp-order-top{align-items:flex-start}.staffapp-order-meta{font-size:11px}}
 @media(min-width:800px){.staffapp-main{padding-bottom:130px}.staffapp-sheet{align-self:center;border-radius:22px}}
+
+
+/* Staff-only refinements, using AquaBest management palette; no global site changes. */
+.staffapp{--staff-blue:#244ea3;--staff-dark:#1b2f63;--staff-line:#d9e2ec;background:#f8fbff}
+.staffapp .mgmt-header{z-index:12}
+.staffapp-shared-header .mgmt-brand img{width:108px;height:36px}
+.staffapp-shared-header .mgmt-brand-label strong{font-size:12px;color:#1b2f63}
+.staffapp .staffapp-title{margin-bottom:16px}
+.staffapp .staffapp-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.staffapp .staffapp-stats button{padding:16px;min-height:104px;border-radius:16px}
+.staffapp .staffapp-stats b{font-size:26px}
+.staffapp-widget-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:22px 0 10px}
+.staffapp-widget-heading h2{font-size:16px;margin:0;font-weight:800}
+.staffapp-widget-heading button{display:flex;align-items:center;gap:6px;border:0;color:#244ea3;background:transparent;font-weight:800;font-size:12px}
+.staffapp-widgets{display:grid;gap:12px}
+.staffapp-widget h2{display:flex;align-items:center;gap:8px}
+.staffapp-widget h2 svg{color:#244ea3}
+.staffapp-widget-count{background:#e5f1ff;border-radius:30px;font-size:12px;padding:3px 9px;color:#244ea3}
+.staffapp-widget-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
+.staffapp-widget-footer small{color:#667788}
+.staffapp-quick-pos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.staffapp-quick-pos button{border:1px solid #d3e1f1;background:#f6faff;color:#244ea3;border-radius:12px;padding:12px;min-height:66px;text-align:left;font-size:12px;font-weight:800;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:4px}
+.staffapp-quick-pos button svg{display:inline}
+.staffapp-quick-pos button small{display:block;font-size:10px;color:#667788}
+.staffapp-next-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #e5edf5;padding:13px 0}
+.staffapp-next-row div{display:grid;gap:3px;min-width:0}
+.staffapp-next-row strong{font-size:13px}
+.staffapp-next-row small{font-size:11px;color:#667788}
+.staffapp-next-row button{flex-shrink:0;background:#244ea3;color:white;border:0;border-radius:10px;min-height:40px;padding:9px 11px;font-weight:750;font-size:11px}
+.staffapp-payment-badge{max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;border-radius:99px;padding:7px 10px;font-weight:800;color:#205e77;background:#eaf7fb}
+.staffapp-overdue{background:#fff2d9;color:#915b09;padding:4px 7px;border-radius:7px;font-weight:800}
+.staffapp-order-meta{line-height:1.45}
+.staffapp-setting-row{border-top:1px solid #e5edf5;padding:12px 0;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.staffapp-setting-row label{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:750}
+.staffapp-setting-row input[type=checkbox]{width:21px;height:21px;accent-color:#244ea3}
+.staffapp-setting-row>div{display:flex;gap:5px}
+.staffapp-setting-row button{width:36px;height:36px;background:#eef4ff;color:#244ea3;border:1px solid #cedef3;border-radius:9px}
+.staffapp-setting-row button:disabled{opacity:.4}
+.staffapp-setting-select{display:flex;align-items:center;gap:15px;font-size:12px;font-weight:750;margin-top:12px}
+.staffapp-setting-select select,.staffapp-shortcut-row select,.staffapp-shortcut-row input{background:white;border:1px solid #d1deee;border-radius:10px;min-height:41px;padding:9px;width:100%;min-width:0}
+.staffapp-customize{display:grid;gap:13px}
+.staffapp-shortcut-row{display:grid;grid-template-columns:90px 1fr 1fr 90px auto;gap:8px;align-items:center;border-top:1px solid #e5edf5;padding:12px 0}
+.staffapp-shortcut-row strong{font-size:12px}
+.staffapp-shortcut-row label{font-size:11px;color:#667788}
+.staffapp-shortcut-row label input{display:block}
+.staffapp-remove-slot{background:none;border:0;color:#ab3b3b;font-size:11px;font-weight:750}
+.staffapp-more{display:grid;gap:11px}
+.staffapp-more>button{width:100%;min-height:73px;border:1px solid #d9e2ec;background:white;border-radius:15px;padding:15px;display:flex;align-items:center;gap:14px;text-align:left;color:#244ea3}
+.staffapp-more>button>svg{font-size:23px;flex-shrink:0}
+.staffapp-more>button span{display:grid;gap:4px}
+.staffapp-more strong{font-size:14px;color:#1b2f63}
+.staffapp-more small{font-size:11px;color:#667788}
+.staffapp-pos .mgmt-card{padding:16px}
+.staffapp-pos .mgmt-formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.staffapp-pos-actions{display:flex;gap:9px;margin-top:15px}
+.staffapp-pos-actions .mgmt-btn:last-child{flex:1}
+.staffapp-pos .mgmt-product-info{min-width:0}
+.staffapp .staffapp-primary{background:#244ea3}
+.staffapp .staffapp-tabs button.active{background:#244ea3}
+@media(max-width:650px){
+ .staffapp-shortcut-row{grid-template-columns:1fr 1fr;gap:8px}
+ .staffapp-shortcut-row strong{grid-column:1/-1}
+ .staffapp-shortcut-row select{grid-column:1/-1}
+ .staffapp-shortcut-row label{max-width:140px}
+ .staffapp .staffapp-title{align-items:center}
+}
+@media(max-width:410px){.staffapp-pos .mgmt-formgrid{grid-template-columns:1fr}.staffapp-widget-footer{flex-wrap:wrap}}
