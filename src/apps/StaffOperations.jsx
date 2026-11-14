@@ -4,6 +4,7 @@ import logo from '../assets/AquaBest logo.png';
 import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import { useEmployeeAvailability } from './EmployeeAvailability.jsx';
 import StaffPOS, { initialStaffSale } from './StaffPOS.jsx';
+import { bottleOptions } from './Component_Customer/orderData.js';
 import { DEMO_PRICES, DEMO_PRODUCTS, formatMoney } from '../data/managerDemo.js';
 import './managementWeb.css';
 import './staffOperations.css';
@@ -36,6 +37,9 @@ const elapsed=(o,clock)=>{const entered=o.createdAtISO?new Date(o.createdAtISO):
  if(!o.createdAtISO&&o.createdAt){const m=o.createdAt.match(/(\d+):(\d+)\s*(AM|PM)/i);if(m){entered.setHours(Number(m[1])%12+(m[3].toUpperCase()==='PM'?12:0),Number(m[2]),0,0);}}
  const mins=Math.max(0,Math.floor((clock-entered.getTime())/60000));return {mins,label:mins<60?mins+'m ago':Math.floor(mins/60)+'h '+(mins%60)+'m ago'};};
 const orderItems=o=>(o.items?.length?o.items:[{sizeId:'round5',quantity:o.quantity||1}]).map(item=>{const p=DEMO_PRODUCTS.find(x=>x.id===item.sizeId);return item.quantity+' × '+(p?.label==='2.5 Gallons'?'2.5 Gal':'5 Gal')+' ('+(p?.shape?.startsWith('Round')?'Round':'Slim')+')';}).join(' · ');
+const quickProductImage=id=>bottleOptions.find(p=>p.id===id)?.image;
+const activeType=o=>['collectionClaimed','collectionTransit'].includes(o.stage)?'collection':o.stage==='refilling'?'refill':['delivery','out'].includes(o.stage)?'delivery':'pickup';
+const activeTypeLabel=o=>activeType(o)==='collection'?'Collect':activeType(o)==='refill'?'Refill':activeType(o)==='delivery'?'Delivery':'Pickup';
 const getOrderQuantity=o=>o.items?.length?o.items.reduce((sum,item)=>sum+Number(item.quantity||0),0):Number(o.quantity||0);
 const badgeText=o=>o.paymentStatus==='Paid'?'Paid • '+(o.service==='Pickup'?'Pickup':o.address||'Delivery'):(o.paymentMethod==='GCash'?'GCash pending':'COD')+' • '+(o.service==='Pickup'?'Pickup':o.address||'Delivery');
 
@@ -180,22 +184,22 @@ export default function StaffOperations({onLogout}){
     <div className="staffapp-widgets">{settings.widgets.filter(w=>w.enabled&&(w.id!=='active'||mine.length>0)).sort((a,b)=>a.id==='active'?-1:b.id==='active'?1:0).map(w=>
      w.id==='active'?<section className="staffapp-panel staffapp-widget staffapp-widget-active" key={w.id}>
        <h2><FiClipboard/> Active Task Pin <span className="staffapp-widget-count">{mine.length}</span></h2>
-       {nextActive&&<div className="staffapp-pinned-task"><div><strong>{nextActive.id} · {nextActive.customer}</strong><small>{orderItems(nextActive)}</small></div>
+       {nextActive&&<div className={'staffapp-pinned-task staffapp-pinned-task-'+activeType(nextActive)}><div><div className="staffapp-pinned-heading"><strong>{nextActive.id} · {nextActive.customer}</strong><span className={'staffapp-next-type staffapp-next-type-'+activeType(nextActive)}>{activeTypeLabel(nextActive)}</span></div><small>{orderItems(nextActive)}</small></div>
        <button className="staffapp-primary" onClick={()=>nextActive.stage==='collectionClaimed'?openCollection(nextActive,'site'):nextActive.stage==='collectionTransit'?openCollection(nextActive,'station'):nextActive.stage==='refilling'?completeRefill(nextActive.id):nextActive.stage==='delivery'?startDelivery(nextActive.id):startProof(nextActive.id)}>
        {nextActive.stage==='collectionClaimed'?'Confirm Collection':nextActive.stage==='collectionTransit'?'Received at Station':nextActive.stage==='refilling'?'Complete Refill':nextActive.stage==='delivery'?'Out for Delivery':'Confirm Delivery'}</button></div>}
        {mine.length>1&&<button className="staffapp-widget-textlink" onClick={()=>show('tasks')}>View all {mine.length} tasks <FiArrowRight/></button>}
       </section>
      :w.id==='quick'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiShoppingCart/> Quick Walk-in POS</h2>
-       <div className="staffapp-quick-pos">{settings.shortcuts.map((item,i)=><button key={i} onClick={()=>addQuick(item)} aria-label={'Add '+(item.quantity||1)+' '+item.label+' to POS'}><span><FiPlus/> {item.label||DEMO_PRODUCTS.find(p=>p.id===item.id)?.label}</span><small>{formatMoney(DEMO_PRICES[item.id])} × {item.quantity}</small></button>)}</div>
+       <div className="staffapp-quick-pos">{settings.shortcuts.map((item,i)=><button key={i} onClick={()=>addQuick(item)} aria-label={'Add '+(item.quantity||1)+' '+(item.label||DEMO_PRODUCTS.find(p=>p.id===item.id)?.label)+' to POS'}><span className="staffapp-quick-pos-content">{quickProductImage(item.id)&&<img className="staffapp-quick-pos-image" src={quickProductImage(item.id)} alt="" loading="lazy"/>}<span className="staffapp-quick-pos-copy"><strong><FiPlus aria-hidden="true"/> {item.label||DEMO_PRODUCTS.find(p=>p.id===item.id)?.label}</strong><small>{formatMoney(DEMO_PRICES[item.id])} × {item.quantity}</small></span></span></button>)}</div>
        <div className="staffapp-widget-footer"><small>{Object.values(sale.quantities).reduce((a,b)=>a+b,0)} in draft</small><button className="staffapp-widget-textlink" onClick={()=>show('pos')}>Review POS <FiArrowRight/></button></div>
       </section>
      :w.id==='urgent'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiBell/> Next Up · Oldest Orders</h2>
-       {[...collection,...pending,...ready].sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins).slice(0,settings.previewCount).map(o=><div className="staffapp-next-row" key={o.id}>
+       {[...collection,...pending,...ready].sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins).slice(0,settings.previewCount).map(o=><div className={'staffapp-next-row staffapp-next-row-'+categoryOf(o)} key={o.id}>
         <div className="staffapp-next-details">
          <span className="staffapp-next-heading"><strong>{o.id} · {o.customer}</strong><span className={'staffapp-next-type staffapp-next-type-'+categoryOf(o)}>{o.stage==='collection'?'Collect':o.stage==='pending'?'Refill':'Delivery'}</span></span>
          <small>{orderItems(o)} · {elapsed(o,clock).label}</small>
         </div>
-        <button type="button" aria-label={'Claim '+(o.stage==='collection'?'collection':o.stage==='pending'?'refill':'delivery')+' for '+o.id} onClick={()=>o.stage==='collection'?update([o.id],{stage:'collectionClaimed',claimedBy:'staff',collectedBy:'staff',collectionClaimedAt:now()},'Collection added to My Tasks.'):o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>Claim</button>
+        <button type="button" aria-label={'Claim '+(o.stage==='collection'?'collection':o.stage==='pending'?'refill':'delivery')+' for '+o.id} onClick={()=>o.stage==='collection'?update([o.id],{stage:'collectionClaimed',claimedBy:'staff',collectedBy:'staff',collectionClaimedAt:now()},'Collection added to My Tasks.'):o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>{o.stage==='collection'?'Claim Collect':o.stage==='pending'?'Claim Refill':'Claim Delivery'}</button>
        </div>)}
        {![...collection,...pending,...ready].length&&<p className="mgmt-sub">No unclaimed refill or delivery orders.</p>}
       </section>
