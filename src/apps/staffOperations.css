@@ -599,3 +599,57 @@
 .staffapp .staffapp-filter-sheet-actions{display:flex;gap:10px;margin-top:10px}
 .staffapp .staffapp-filter-sheet-actions button{flex:1;min-height:46px}
 @media(max-width:370px){.staffapp .staffapp-filter-controls{gap:7px}.staffapp .staffapp-filter-trigger{min-width:80px;padding:8px}.staffapp .staffapp-category-trigger{gap:5px;padding:8px}.staffapp .staffapp-filter-trigger,.staffapp .staffapp-category-trigger{font-size:12px}}
+
+
+/* Staff POS submit: clear primary action and readable disabled state on mobile. */
+.staffapp .staffapp-pos-actions{
+ display:flex;
+ align-items:stretch;
+ gap:12px;
+ margin-top:16px;
+ width:100%;
+}
+.staffapp .staffapp-pos-actions>.mgmt-btn.secondary{flex:0 0 auto;min-width:92px}
+.staffapp .staffapp-pos-submit{
+ display:inline-flex;
+ flex:1 1 0;
+ justify-content:center;
+ align-items:center;
+ gap:8px;
+ min-width:0;
+ min-height:48px;
+ border:0;
+ border-radius:12px;
+ padding:12px 14px;
+ background:#244ea3;
+ color:#fff;
+ font-size:14px;
+ font-weight:800;
+ text-align:center;
+ box-shadow:0 3px 9px #244ea321;
+ cursor:pointer;
+}
+.staffapp .staffapp-pos-submit svg{height:17px;width:17px;flex-shrink:0}
+.staffapp .staffapp-pos-submit:disabled{
+ background:#e2e9f3;
+ color:#526782;
+ border:1px solid #c4d1e1;
+ box-shadow:none;
+ cursor:not-allowed;
+ opacity:1;
+}
+.staffapp .staffapp-pos-submit:focus-visible{outline:3px solid #2aa9c5;outline-offset:2px}
+/* Next Up queue: compact action-type badges. */
+.staffapp .staffapp-next-details{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.staffapp .staffapp-next-heading{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.staffapp .staffapp-next-heading strong{min-width:0;overflow-wrap:anywhere}
+.staffapp .staffapp-next-type{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;min-height:22px;padding:4px 8px;border-radius:7px;font-size:11px;font-weight:850;line-height:1.1}
+.staffapp .staffapp-next-type-collection{background:#fff0d9;color:#95611f}
+.staffapp .staffapp-next-type-refill{background:#e7f2ff;color:#2465a4}
+.staffapp .staffapp-next-type-delivery{background:#e5f5ed;color:#236c47}
+@media(max-width:390px){
+ .staffapp .staffapp-pos-actions{gap:8px}
+ .staffapp .staffapp-pos-actions>.mgmt-btn.secondary{min-width:78px}
+ .staffapp .staffapp-pos-submit{padding:10px 9px;font-size:13px}
+ .staffapp .staffapp-next-heading{gap:5px}
+}

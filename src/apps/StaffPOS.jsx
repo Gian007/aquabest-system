@@ -35,7 +35,7 @@ export default function StaffPOS({sale,onChange,onSave,onClear}){
    <Field label="Internal note"><input placeholder="Special request or instructions" value={sale.notes} onChange={e=>change('notes',e.target.value)}/></Field>
   </div></div>
   <div className="mgmt-summary" style={{marginTop:12}}><strong>Transaction Summary</strong>{DEMO_PRODUCTS.filter(p=>sale.quantities[p.id]>0).map(p=><div key={p.id}><span>{p.label} · {p.shape} × {sale.quantities[p.id]}</span><b>{formatMoney(sale.quantities[p.id]*DEMO_PRICES[p.id])}</b></div>)}<div className="total"><span>Sample total</span><strong>{formatMoney(total)}</strong></div></div>
-  <div className="staffapp-pos-actions"><button className="mgmt-btn secondary" onClick={onClear}>Clear</button><button className="mgmt-btn" disabled={!qty} onClick={onSave}><FiSave/> Save Demo Transaction</button></div>
+  <div className="staffapp-pos-actions"><button type="button" className="mgmt-btn secondary" onClick={onClear}>Clear</button><button type="button" className="staffapp-pos-submit" disabled={!qty} onClick={onSave}><FiSave aria-hidden="true"/> Submit Order</button></div>
   <p className="mgmt-demo">Demo order only. Payment status is recorded, not verified. No real stock, billing, Supabase or backend changes. New orders appear in this browser's Refill Queue.</p>
  </div>;
 }
