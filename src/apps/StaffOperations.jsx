@@ -263,7 +263,24 @@ export default function StaffOperations({onLogout}){
       <button type="button" className="staffapp-filter-trigger" aria-expanded={advancedOpen} onClick={openAdvanced}><FiFilter aria-hidden="true"/> Filter{(stageFilter!=='all'||sortOrder!=='oldest')&&<span className="staffapp-filter-active-dot" aria-label="Filters active"/>}</button>
      </div>}
     <label className="staffapp-search"><FiSearch/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search order, customer or address" aria-label="Search orders"/></label>
-    <div className="staffapp-list">{filtered.length===0&&<div className="staffapp-empty"><FiCheckCircle/><strong>No matching orders</strong><p>Try another queue or search.</p></div>}
+    {page==='tasks'&&<div className="staffapp-personal-tasks">
+      <div className="staffapp-task-workload"><span>Your current workload</span><strong>{filtered.length} {filtered.length===1?'task':'tasks'}</strong></div>
+      {taskCurrent?<section className={'staffapp-current-task staffapp-type-'+categoryOf(taskCurrent)}>
+       <div className="staffapp-current-task-header"><span><FiClipboard/> CURRENT TASK</span><span className={'staffapp-next-type staffapp-next-type-'+categoryOf(taskCurrent)}>{activeTypeLabel(taskCurrent)}</span></div>
+       <h2>{taskCurrent.customer}</h2>
+       <p className="staffapp-current-task-sub">{taskCurrent.id} · {labels[taskCurrent.stage]}</p>
+       <p className="staffapp-current-task-quantity">{orderItems(taskCurrent)}</p>
+       {taskCurrent.address&&<p className="staffapp-current-task-address"><FiMapPin/> {taskCurrent.address}</p>}
+       <div className="staffapp-current-task-buttons"><button className="staffapp-secondary" onClick={()=>setDetail(taskCurrent.id)}>Details <FiChevronDown/></button>{taskAction(taskCurrent)}</div>
+      </section>:<div className="staffapp-empty staffapp-task-empty"><FiCheckCircle/><strong>No tasks in this view</strong><p>Choose another category or claim work from Queues.</p><button className="staffapp-secondary" onClick={()=>show('queue')}>Open Queues</button></div>}
+      {upcomingTasks.length>0&&<section className="staffapp-up-next"><div className="staffapp-up-next-heading"><h2>Up Next</h2><span>{upcomingTasks.length} remaining</span></div>
+       {upcomingTasks.map(o=><div key={o.id} className={'staffapp-up-next-row staffapp-type-'+categoryOf(o)}>
+        <div className="staffapp-up-next-info"><strong>{o.customer}</strong><span>{o.id} · {orderItems(o)}</span><span className={'staffapp-next-type staffapp-next-type-'+categoryOf(o)}>{activeTypeLabel(o)} · {labels[o.stage]}</span></div>
+        <div className="staffapp-up-next-actions"><button className="staffapp-secondary" onClick={()=>setDetail(o.id)}>Details</button>{taskAction(o)}</div>
+       </div>)}
+      </section>}
+     </div>}
+     {page!=='tasks'&&<div className="staffapp-list">{filtered.length===0&&<div className="staffapp-empty"><FiCheckCircle/><strong>No matching orders</strong><p>Try another queue or search.</p></div>}
     {filtered.map(o=><article className={"staffapp-order staffapp-type-"+categoryOf(o)} key={o.id}
       onTouchStart={page==='queue'&&((tab==='delivery'&&o.stage==='ready')||(tab==='collection'&&o.stage==='collection')||(tab==='all'&&['ready','collection'].includes(o.stage)))?e=>{touchStart.current={x:e.touches[0].clientX,y:e.touches[0].clientY,id:o.id};}:undefined}
       onTouchEnd={page==='queue'&&((tab==='delivery'&&o.stage==='ready')||(tab==='collection'&&o.stage==='collection')||(tab==='all'&&['ready','collection'].includes(o.stage)))?e=>{const start=touchStart.current;if(!start||start.id!==o.id)return;const dx=e.changedTouches[0].clientX-start.x,dy=e.changedTouches[0].clientY-start.y;touchStart.current=null;if(dx>90&&Math.abs(dx)>Math.abs(dy)*1.5){if(o.stage==='collection')setSelectedCollection(prev=>prev.includes(o.id)?prev:[...prev,o.id]);else setSelected(prev=>prev.includes(o.id)?prev:[...prev,o.id]);}}:undefined}>
@@ -285,7 +302,7 @@ export default function StaffOperations({onLogout}){
        {page==='tasks'&&o.stage==='delivery'&&<button className="staffapp-primary" onClick={()=>startDelivery(o.id)}>Out for Delivery</button>}
        {page==='tasks'&&o.stage==='out'&&<button className="staffapp-primary" onClick={()=>startProof(o.id)}><FiCamera/> Confirm Delivery</button>}
       </div>
-     </article>)}</div>
+     </article>)}</div>}
     {page==='queue'&&(tab==='delivery'||tab==='all')&&selected.length>0&&<div className="staffapp-selection"><span><b>{selected.length}</b> selected <button onClick={()=>setSelected([])}>Clear</button></span><button onClick={claimDelivery}>Claim Selected ({selected.length})</button></div>}
     {page==='queue'&&(tab==='collection'||tab==='all')&&selectedCollection.length>0&&<div className="staffapp-selection"><span><b>{selectedCollection.length}</b> collection(s) selected <button onClick={()=>setSelectedCollection([])}>Clear</button></span><button onClick={claimCollections}>Claim Collections ({selectedCollection.length})</button></div>}
    </>}
