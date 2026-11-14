@@ -795,3 +795,7 @@
  .staffapp .staffapp-current-task-buttons .staffapp-primary{font-size:11px}
  .staffapp .staffapp-notification-config-heading,.staffapp .staffapp-notification-config-row{grid-template-columns:minmax(0,1fr) 44px 38px 42px;gap:4px}
 }
+
+
+.staffapp .staffapp-header-alerts{position:relative;display:flex;align-items:center}
+.staffapp .staffapp-header-unread{position:absolute;right:-5px;top:-7px;display:grid;place-items:center;min-width:18px;height:18px;padding:1px 4px;background:#d93c3c;color:white;border:2px solid white;border-radius:999px;font-size:10px;font-weight:850;line-height:1;font-variant-numeric:tabular-nums;pointer-events:none}
