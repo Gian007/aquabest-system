@@ -296,9 +296,27 @@ export default function StaffOperations({onLogout}){
      <button onClick={()=>show('notifications')}><FiBell/> <span><strong>Notifications</strong><small>Demo announcements</small></span></button>
      <button onClick={onLogout}><FiLogOut/> <span><strong>Log Out</strong><small>Exit business workspace</small></span></button>
    </div>}
-   {page==='notifications'&&<section className="staffapp-panel staffapp-notification-list"><div className="staffapp-notification-header"><h2>Staff Activity Notifications</h2><button type="button" onClick={()=>setNotifications([])} disabled={!notifications.length}>Clear</button></div>
-    <p className="staffapp-muted">Updates from this browser only. No device push or real-time alerts from other employees.</p>
-    {notifications.length?notifications.map(n=><div key={n.id} className="staffapp-notification-row"><FiBell/><div><strong>{n.message}</strong><small>{n.time}</small></div></div>):<p>No recent notifications.</p>}</section>}
+   {page==='notifications'&&<section className="staffapp-panel staffapp-notification-list">
+      <h2>Staff Notifications</h2>
+      <div className="staffapp-notification-tabs" role="tablist" aria-label="Notification options">
+       <button role="tab" aria-selected={notificationView==='list'} className={notificationView==='list'?'active':''} onClick={()=>setNotificationView('list')}>List {notificationUnread>0&&<span>{compactCount(notificationUnread)}</span>}</button>
+       <button role="tab" aria-selected={notificationView==='configure'} className={notificationView==='configure'?'active':''} onClick={()=>setNotificationView('configure')}>Configure</button>
+      </div>
+      {notificationView==='list'?<>
+       <div className="staffapp-notification-actions"><button onClick={()=>markNotificationsRead(notifications.map(n=>n.id))} disabled={!notificationUnread}><FiCheckSquare/> Mark all read</button><button onClick={()=>setNotifications([])} disabled={!notifications.length}><FiTrash2/> Clear all</button></div>
+       {notifications.length?notifications.map(n=><div key={n.id} className={'staffapp-notification-entry '+(n.read?'is-read':'is-unread')}>
+        <span className="staffapp-notification-entry-icon"><FiBell/></span><div className="staffapp-notification-entry-body"><strong>{n.message}</strong><small>{n.time}</small></div>
+        <div className="staffapp-notification-entry-actions"><button onClick={()=>markNotificationsRead([n.id])} disabled={n.read} aria-label={'Mark as read: '+n.message}><FiCheck/></button><button onClick={()=>deleteNotification(n.id)} aria-label={'Delete: '+n.message}><FiX/></button></div>
+       </div>):<p className="staffapp-muted">No recent notifications in this browser.</p>}</>
+      :<><p className="staffapp-muted">Choose which events create in-app popups. Events are still saved in List. Email and phone notifications are not connected to this demo.</p>
+       <div className="staffapp-notification-config-heading"><span>Event</span><span>In-app</span><span>Email</span><span>Mobile</span></div>
+       {notificationTypes.map(t=><div className="staffapp-notification-config-row" key={t.id}>
+        <strong>{t.label}</strong><label><input type="checkbox" aria-label={t.label+' in-app'} checked={notificationPrefs[t.id]!==false} onChange={e=>setNotificationPrefs(prev=>({...prev,[t.id]:e.target.checked}))}/></label>
+        <span title="Email notifications not connected">—</span><span title="Mobile push notifications not connected">—</span>
+       </div>)}
+      </>}
+      <p className="staffapp-muted">Local demo activity only. No cross-device or push notifications.</p>
+     </section>}
    {page==='settings'&&<div className="staffapp-customize">
      <section className="staffapp-panel"><h2>Dashboard & Quick POS Customization</h2><h3 className="staffapp-settings-subhead">Home Screen Widgets</h3><p>Turn widgets on or off. Drag on desktop, or use arrows to reorder on mobile. Active tasks stay above other widgets when enabled.</p>
       {settings.widgets.map((w,i)=><div key={w.id} className="staffapp-setting-row" draggable onDragStart={()=>setDragging(w.id)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(dragging)reorderWidget(dragging,w.id);setDragging(null);}} onDragEnd={()=>setDragging(null)}>
