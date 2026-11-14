@@ -697,3 +697,101 @@
  .staffapp .staffapp-quick-pos .staffapp-quick-pos-image{width:34px;height:44px;flex-basis:34px}
  .staffapp .staffapp-next-row button{min-width:74px;max-width:94px;font-size:10px;padding:8px 5px}
 }
+
+
+/* Staff Settings: make removal clearly actionable and safe for touch. */
+.staffapp .staffapp-remove-slot{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:39px;min-width:84px;padding:8px 12px;
+ border:1px solid #eeb9b9;border-radius:10px;
+ background:#fff3f3;color:#a33030;
+ font-size:12px;font-weight:800;cursor:pointer;
+}
+.staffapp .staffapp-remove-slot:hover{background:#ffe7e7;border-color:#e79797}
+.staffapp .staffapp-remove-slot:focus-visible{outline:3px solid #2aa9c5;outline-offset:2px}
+/* Separate personal task workspace, keeping queue cards as-is. */
+.staffapp .staffapp-personal-tasks{display:grid;gap:16px}
+.staffapp .staffapp-task-workload{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:#60738f}
+.staffapp .staffapp-task-workload strong{font-size:12px;color:#244ea3;background:#e8f2ff;border-radius:30px;padding:6px 10px}
+.staffapp .staffapp-current-task{
+ background:#fff;border:1px solid #dce6f2;border-left:5px solid #9ec9f2;border-radius:18px;
+ padding:18px;box-shadow:0 4px 14px #173d690b;
+}
+.staffapp .staffapp-current-task.staffapp-type-collection{border-left-color:#e5bc79;background:#fffcf7}
+.staffapp .staffapp-current-task.staffapp-type-refill{border-left-color:#9ec9f2;background:#f8fbff}
+.staffapp .staffapp-current-task.staffapp-type-delivery{border-left-color:#a0d7b4;background:#f7fdf9}
+.staffapp .staffapp-current-task-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.staffapp .staffapp-current-task-header>span:first-child{display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.5px;font-weight:900;color:#446caa}
+.staffapp .staffapp-current-task h2{font-size:20px;line-height:1.3;color:#1b2f63;margin:0 0 6px;overflow-wrap:anywhere}
+.staffapp .staffapp-current-task-sub{font-size:12px;color:#617893;margin:0}
+.staffapp .staffapp-current-task-quantity{font-size:14px;font-weight:750;color:#244ea3;margin:14px 0 8px}
+.staffapp .staffapp-current-task-address{font-size:12px;color:#647d9b;margin:8px 0;display:flex;gap:6px;align-items:center}
+.staffapp .staffapp-current-task-buttons{display:flex;align-items:center;gap:10px;margin-top:18px}
+.staffapp .staffapp-current-task-buttons .staffapp-primary{flex:1;min-width:0;min-height:46px}
+.staffapp .staffapp-current-task-buttons .staffapp-secondary{min-height:46px}
+.staffapp .staffapp-up-next{background:white;border:1px solid #dce6f2;border-radius:17px;padding:14px;display:grid;gap:8px}
+.staffapp .staffapp-up-next-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px}
+.staffapp .staffapp-up-next-heading h2{font-size:16px;font-weight:800;margin:0;color:#1b2f63}
+.staffapp .staffapp-up-next-heading span{font-size:11px;color:#657c9a}
+.staffapp .staffapp-up-next-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:13px 8px 13px 12px;border-top:1px solid #e5edf6;border-left:3px solid #9ec9f2}
+.staffapp .staffapp-up-next-row.staffapp-type-collection{border-left-color:#e5bc79}
+.staffapp .staffapp-up-next-row.staffapp-type-delivery{border-left-color:#a0d7b4}
+.staffapp .staffapp-up-next-info{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;flex:1}
+.staffapp .staffapp-up-next-info strong{font-size:13px;color:#1b2f63;overflow-wrap:anywhere}
+.staffapp .staffapp-up-next-info>span:not(.staffapp-next-type){font-size:11px;color:#647d9b;line-height:1.4}
+.staffapp .staffapp-up-next-actions{display:flex;flex-direction:column;gap:7px;align-items:stretch;min-width:100px;max-width:145px}
+.staffapp .staffapp-up-next-actions button{min-height:38px;padding:7px 9px;font-size:11px;white-space:normal;line-height:1.2}
+.staffapp .staffapp-task-empty{min-height:175px}
+/* ELMS-inspired Staff notification popover and List / Configure screens. */
+.staffapp .mgmt-header{z-index:25}
+.staffapp .mgmt-header-end{position:relative}
+.staffapp .staffapp-notification-popover{
+ position:absolute;top:calc(100% + 16px);right:0;
+ width:min(365px,calc(100vw - 24px));max-width:calc(100vw - 24px);
+ background:#fff;border:1px solid #d2e1f1;border-radius:16px;
+ box-shadow:0 16px 40px #132f5c35;z-index:40;overflow:hidden;color:#1b2f63;
+}
+.staffapp .staffapp-popover-heading{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 11px;border-bottom:1px solid #e6eef7}
+.staffapp .staffapp-popover-heading strong{display:flex;gap:8px;align-items:center;font-size:15px}
+.staffapp .staffapp-popover-heading strong span{background:#244ea3;color:white;border-radius:20px;padding:2px 7px;font-size:10px}
+.staffapp .staffapp-popover-heading>button{background:transparent;border:0;color:#6b80a1;padding:4px}
+.staffapp .staffapp-popover-items{max-height:min(360px,55dvh);overflow-y:auto;padding:4px 12px}
+.staffapp .staffapp-popover-item{display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:1px solid #e9eef6}
+.staffapp .staffapp-popover-item>svg{color:#244ea3;margin-top:3px;flex-shrink:0}
+.staffapp .staffapp-popover-item>div{flex:1;min-width:0;display:grid;gap:5px}
+.staffapp .staffapp-popover-item strong{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.staffapp .staffapp-popover-item small{font-size:10px;color:#7184a0}
+.staffapp .staffapp-popover-item.is-read{opacity:.65}
+.staffapp .staffapp-popover-item>button{border:0;background:transparent;color:#244ea3;padding:4px}
+.staffapp .staffapp-popover-footer{display:flex;align-items:center;justify-content:space-around;border-top:1px solid #e6eef7;padding:9px 4px;gap:3px}
+.staffapp .staffapp-popover-footer button{display:flex;align-items:center;justify-content:center;gap:5px;border:0;background:transparent;color:#244ea3;font-weight:750;font-size:10px;min-height:34px;padding:4px}
+.staffapp .staffapp-popover-footer button:disabled{color:#91a0b5}
+.staffapp .staffapp-notification-tabs{display:inline-flex;gap:4px;padding:4px;border-radius:12px;background:#edf3fc;margin:14px 0}
+.staffapp .staffapp-notification-tabs button{border:0;background:transparent;border-radius:9px;color:#4e6487;font-size:12px;font-weight:800;padding:10px 15px}
+.staffapp .staffapp-notification-tabs button.active{background:#244ea3;color:#fff}
+.staffapp .staffapp-notification-tabs span{background:white;color:#244ea3;border-radius:20px;padding:2px 6px;margin-left:5px}
+.staffapp .staffapp-notification-actions{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-bottom:9px;flex-wrap:wrap}
+.staffapp .staffapp-notification-actions button{border:0;background:transparent;color:#244ea3;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:750;padding:9px}
+.staffapp .staffapp-notification-actions button:disabled{opacity:.35}
+.staffapp .staffapp-notification-entry{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid #e9eef6}
+.staffapp .staffapp-notification-entry.is-read{opacity:.65}
+.staffapp .staffapp-notification-entry-icon{width:34px;height:34px;border-radius:11px;background:#eaf2ff;display:grid;place-items:center;color:#244ea3;flex-shrink:0}
+.staffapp .staffapp-notification-entry-body{display:grid;gap:6px;min-width:0;flex:1}
+.staffapp .staffapp-notification-entry-body strong{font-size:13px;line-height:1.4;overflow-wrap:anywhere;color:#1b2f63}
+.staffapp .staffapp-notification-entry-body small{font-size:11px;color:#7184a0}
+.staffapp .staffapp-notification-entry-actions{display:flex;gap:4px;flex-shrink:0}
+.staffapp .staffapp-notification-entry-actions button{border:0;background:#f2f6fd;color:#244ea3;border-radius:8px;padding:7px}
+.staffapp .staffapp-notification-entry-actions button:disabled{opacity:.3}
+.staffapp .staffapp-notification-config-heading,.staffapp .staffapp-notification-config-row{
+ display:grid;grid-template-columns:minmax(0,1fr) 50px 45px 47px;gap:6px;align-items:center;padding:12px 6px;
+}
+.staffapp .staffapp-notification-config-heading{background:#eef4fc;border-radius:9px;font-size:10px;font-weight:800;color:#526a8d}
+.staffapp .staffapp-notification-config-row{border-bottom:1px solid #e9eef6;font-size:11px;text-align:center}
+.staffapp .staffapp-notification-config-row strong{text-align:left;font-size:12px;color:#1b2f63}
+.staffapp .staffapp-notification-config-row input{width:19px;height:19px;accent-color:#244ea3}
+@media(max-width:410px){
+ .staffapp .staffapp-up-next-row{gap:8px;padding-left:8px}
+ .staffapp .staffapp-up-next-actions{min-width:88px;max-width:107px}
+ .staffapp .staffapp-current-task-buttons .staffapp-primary{font-size:11px}
+ .staffapp .staffapp-notification-config-heading,.staffapp .staffapp-notification-config-row{grid-template-columns:minmax(0,1fr) 44px 38px 42px;gap:4px}
+}
