@@ -190,8 +190,13 @@ export default function StaffOperations({onLogout}){
        <div className="staffapp-widget-footer"><small>{Object.values(sale.quantities).reduce((a,b)=>a+b,0)} in draft</small><button className="staffapp-widget-textlink" onClick={()=>show('pos')}>Review POS <FiArrowRight/></button></div>
       </section>
      :w.id==='urgent'?<section className="staffapp-panel staffapp-widget" key={w.id}><h2><FiBell/> Next Up · Oldest Orders</h2>
-       {[...collection,...pending,...ready].sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins).slice(0,settings.previewCount).map(o=><div className="staffapp-next-row" key={o.id}><div><strong>{o.id} · {o.customer}</strong><small>{orderItems(o)} · {elapsed(o,clock).label}</small></div>
-       <button onClick={()=>o.stage==='collection'?update([o.id],{stage:'collectionClaimed',claimedBy:'staff',collectedBy:'staff',collectionClaimedAt:now()},'Collection added to My Tasks.'):o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>Claim</button></div>)}
+       {[...collection,...pending,...ready].sort((a,b)=>elapsed(b,clock).mins-elapsed(a,clock).mins).slice(0,settings.previewCount).map(o=><div className="staffapp-next-row" key={o.id}>
+        <div className="staffapp-next-details">
+         <span className="staffapp-next-heading"><strong>{o.id} · {o.customer}</strong><span className={'staffapp-next-type staffapp-next-type-'+categoryOf(o)}>{o.stage==='collection'?'Collect':o.stage==='pending'?'Refill':'Delivery'}</span></span>
+         <small>{orderItems(o)} · {elapsed(o,clock).label}</small>
+        </div>
+        <button type="button" aria-label={'Claim '+(o.stage==='collection'?'collection':o.stage==='pending'?'refill':'delivery')+' for '+o.id} onClick={()=>o.stage==='collection'?update([o.id],{stage:'collectionClaimed',claimedBy:'staff',collectedBy:'staff',collectionClaimedAt:now()},'Collection added to My Tasks.'):o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>Claim</button>
+       </div>)}
        {![...collection,...pending,...ready].length&&<p className="mgmt-sub">No unclaimed refill or delivery orders.</p>}
       </section>
      :<section className="staffapp-panel staffapp-widget staffapp-widget-shift" key={w.id}><h2><FiTarget/> Shift & Stock Snapshot</h2>
