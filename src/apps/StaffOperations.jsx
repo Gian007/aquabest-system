@@ -188,7 +188,7 @@ export default function StaffOperations({onLogout}){
  return <div className="staffapp">
   <header className="mgmt-header staffapp-shared-header"><div className="mgmt-header-inner">
     <button className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>show('home')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong>Staff Operations</strong></span></button>
-    <div className="mgmt-header-end"><ManagementHeaderActions name="Staff A" entries={availability} orders={mine.map(o=>({id:o.id,assigned:'Staff A',status:o.stage==='refilling'?'Preparing':'Out for Delivery'}))} onUpdate={updateAvailability} onNotifications={()=>setNotificationOpen(v=>!v)}/>
+    <div className="mgmt-header-end"><div className="staffapp-header-alerts"><ManagementHeaderActions name="Staff A" entries={availability} orders={mine.map(o=>({id:o.id,assigned:'Staff A',status:o.stage==='refilling'?'Preparing':'Out for Delivery'}))} onUpdate={updateAvailability} onNotifications={()=>setNotificationOpen(v=>!v)}/>{notificationUnread>0&&<span className="staffapp-header-unread" aria-label={notificationUnread+' unread notifications'}>{compactCount(notificationUnread)}</span>}</div>
      {notificationOpen&&<div className="staffapp-notification-popover" role="dialog" aria-label="Recent Staff Notifications">
       <div className="staffapp-popover-heading"><strong>Notifications {notificationUnread>0&&<span>{compactCount(notificationUnread)}</span>}</strong><button aria-label="Close notifications" onClick={()=>setNotificationOpen(false)}><FiX/></button></div>
       <div className="staffapp-popover-items">
