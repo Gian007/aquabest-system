@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FiActivity, FiArrowLeft, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiClipboard, FiDroplet, FiHome, FiLogOut, FiMapPin, FiPhone, FiSearch, FiShoppingCart, FiTruck, FiX, FiSettings, FiMenu, FiArrowUp, FiArrowDown, FiPlus, FiPackage, FiArrowRight, FiTarget, FiFilter } from 'react-icons/fi';
+import { FiActivity, FiArrowLeft, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiClipboard, FiDroplet, FiHome, FiLogOut, FiMapPin, FiPhone, FiSearch, FiShoppingCart, FiTruck, FiX, FiSettings, FiMenu, FiArrowUp, FiArrowDown, FiPlus, FiPackage, FiArrowRight, FiTarget, FiFilter, FiTrash2, FiList, FiSliders, FiEye, FiCheckSquare } from 'react-icons/fi';
 import logo from '../assets/AquaBest logo.png';
 import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import { useEmployeeAvailability } from './EmployeeAvailability.jsx';
@@ -14,6 +14,10 @@ import './staffOperations.css';
 const STORE_KEY='aquabest-staff-operations-demo-v1';
 const SETTINGS_KEY='aquabest-staff-dashboard-settings-v1';
 const NOTIFICATIONS_KEY='aquabest-staff-notifications-demo-v1';
+const NOTIFICATION_PREFS_KEY='aquabest-staff-notification-prefs-v1';
+const notificationTypes=[{id:'orders',label:'New orders and queue changes'},{id:'collection',label:'Collection updates'},{id:'refill',label:'Refill updates'},{id:'delivery',label:'Delivery and pickup updates'}];
+const notificationType=message=>/collect|container.*station/i.test(message)?'collection':/refill/i.test(message)?'refill':/deliver|pickup|remittance/i.test(message)?'delivery':'orders';
+const readNotificationPrefs=()=>{try{return {...{orders:true,collection:true,refill:true,delivery:true},...JSON.parse(localStorage.getItem(NOTIFICATION_PREFS_KEY)||'{}')};}catch{return {orders:true,collection:true,refill:true,delivery:true};}};
 const compactCount=n=>n>99?'99+':String(n);
 const readNotifications=()=>{try{const n=JSON.parse(localStorage.getItem(NOTIFICATIONS_KEY)||'[]');return Array.isArray(n)?n:[];}catch{return [];}};
 const widgetCatalog=[
@@ -57,6 +61,9 @@ const now=()=>new Date().toLocaleString('en-PH');
 export default function StaffOperations({onLogout}){
  const [orders,setOrders]=useState(read);
  const [notifications,setNotifications]=useState(readNotifications);
+ const [notificationPrefs,setNotificationPrefs]=useState(readNotificationPrefs);
+ const [notificationOpen,setNotificationOpen]=useState(false);
+ const [notificationView,setNotificationView]=useState('list');
  const [toast,setToast]=useState(null);
  const [collectionForm,setCollectionForm]=useState(null);
  const [collectionQty,setCollectionQty]=useState('');
@@ -89,8 +96,15 @@ export default function StaffOperations({onLogout}){
  const touchStart=useRef(null);
  useEffect(()=>{try{localStorage.setItem(STORE_KEY,JSON.stringify(orders));}catch{setNotice('Browser storage is unavailable; changes may not persist.');}},[orders]);
  useEffect(()=>{try{localStorage.setItem(NOTIFICATIONS_KEY,JSON.stringify(notifications));}catch{/* demo only */}},[notifications]);
+ useEffect(()=>{try{localStorage.setItem(NOTIFICATION_PREFS_KEY,JSON.stringify(notificationPrefs));}catch{/* demo only */}},[notificationPrefs]);
+ useEffect(()=>{if(!notificationOpen)return;const close=e=>{if(e.key==='Escape')setNotificationOpen(false)};document.addEventListener('keydown',close);return ()=>document.removeEventListener('keydown',close)},[notificationOpen]);
  useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(null),6500);return ()=>clearTimeout(timer);},[toast]);
- const notify=(message)=>{const event={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),message,time:new Date().toLocaleString('en-PH')};setNotifications(prev=>[event,...prev].slice(0,60));setToast(event);};
+ const notify=(message)=>{const type=notificationType(message);const event={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),message,type,read:false,time:new Date().toLocaleString('en-PH')};setNotifications(prev=>[event,...prev].slice(0,60));if(notificationPrefs[type]!==false)setToast(event);};
+ const markNotificationsRead=(ids)=>setNotifications(prev=>prev.map(n=>ids.includes(n.id)?{...n,read:true}:n));
+ const deleteNotification=(id)=>setNotifications(prev=>prev.filter(n=>n.id!==id));
+ const notificationUnread=notifications.filter(n=>!n.read).length;
+ const openNotificationPage=(view='list')=>{setNotificationView(view);show('notifications');};
+
 
  useEffect(()=>{try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch{/* Local demo preferences only */}},[settings]);
  useEffect(()=>{const id=setInterval(()=>setClock(Date.now()),60000);return ()=>clearInterval(id);},[]);
@@ -119,7 +133,7 @@ export default function StaffOperations({onLogout}){
  const pickup=orders.filter(o=>o.stage==='pickup');
  const count={all:collection.length+pending.length+ready.length+pickup.length,collection:collection.length,refill:pending.length,delivery:ready.length,pickup:pickup.length};
  const categoryOf=o=>['collection','collectionClaimed','collectionTransit'].includes(o.stage)?'collection':o.stage==='pending'||o.stage==='refilling'?'refill':o.stage==='pickup'||o.stage==='picked'?'pickup':'delivery';
- const show=(p)=>{setCategoryOpen(false);setAdvancedOpen(false);setStageFilter('all');if(p==='queue'&&page!=='queue')setTab('all');if(p==='tasks'&&page!=='tasks')setTaskFilter('all');setSearch('');setPage(p);setDetail(null);setNotice('');setSelected([]);setSelectedCollection([]);window.scrollTo({top:0,behavior:'smooth'});};
+ const show=(p)=>{setNotificationOpen(false);setCategoryOpen(false);setAdvancedOpen(false);setStageFilter('all');if(p==='queue'&&page!=='queue')setTab('all');if(p==='tasks'&&page!=='tasks')setTaskFilter('all');setSearch('');setPage(p);setDetail(null);setNotice('');setSelected([]);setSelectedCollection([]);window.scrollTo({top:0,behavior:'smooth'});};
  const update=(ids,change,message)=>{setOrders(prev=>prev.map(o=>ids.includes(o.id)?{...o,...change,updatedAt:now()}:o));setSelected([]);setDetail(null);if(message){setNotice(message);notify(message);}};
  const claimCollections=()=>{const valid=collection.filter(o=>selectedCollection.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'collectionClaimed',claimedBy:'staff',collectedBy:'staff',collectionClaimedAt:now()},valid.length+' collection task(s) added to My Tasks.');setSelectedCollection([]);};
  const openCollection=(o,mode)=>{setCollectionError('');setCollectionForm({id:o.id,mode});setCollectionQty(String(mode==='site'?o.quantity:o.collectedQty??o.quantity));setCollectionCondition(o.containerCondition||'Good');};
@@ -142,6 +156,14 @@ export default function StaffOperations({onLogout}){
  const todayKey=new Date(clock).toLocaleDateString('en-CA');
  const gallonsToday=orders.filter(o=>o.refillCompletedAtISO&&new Date(o.refillCompletedAtISO).toLocaleDateString('en-CA')===todayKey).reduce((sum,o)=>sum+getOrderQuantity(o),0);
  const dailyTarget=Math.max(1,Number(settings.dailyTarget)||40);
+ const taskCurrent=page==='tasks'?(filtered.find(o=>['out','collectionTransit'].includes(o.stage))||filtered[0]):null;
+ const upcomingTasks=page==='tasks'?filtered.filter(o=>o.id!==taskCurrent?.id):[];
+ const taskAction=(o)=>o.stage==='collectionClaimed'?<button className="staffapp-primary" onClick={()=>openCollection(o,'site')}>Confirm Collection</button>
+ :o.stage==='collectionTransit'?<button className="staffapp-primary" onClick={()=>openCollection(o,'station')}>Received at Station</button>
+ :o.stage==='refilling'?<button className="staffapp-primary" onClick={()=>completeRefill(o.id)}>Complete Refill</button>
+ :o.stage==='delivery'?<button className="staffapp-primary" onClick={()=>startDelivery(o.id)}>Out for Delivery</button>
+ :o.stage==='out'?<button className="staffapp-primary" onClick={()=>startProof(o.id)}><FiCamera aria-hidden="true"/> Confirm Delivery</button>:null;
+
  const isTasks=page==='tasks';
  const currentCategory=isTasks?taskFilter:tab;
  const categories=isTasks?[
@@ -166,7 +188,17 @@ export default function StaffOperations({onLogout}){
  return <div className="staffapp">
   <header className="mgmt-header staffapp-shared-header"><div className="mgmt-header-inner">
     <button className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>show('home')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong>Staff Operations</strong></span></button>
-    <div className="mgmt-header-end"><ManagementHeaderActions name="Staff A" entries={availability} orders={mine.map(o=>({id:o.id,assigned:'Staff A',status:o.stage==='refilling'?'Preparing':'Out for Delivery'}))} onUpdate={updateAvailability} onNotifications={()=>show('notifications')}/>
+    <div className="mgmt-header-end"><ManagementHeaderActions name="Staff A" entries={availability} orders={mine.map(o=>({id:o.id,assigned:'Staff A',status:o.stage==='refilling'?'Preparing':'Out for Delivery'}))} onUpdate={updateAvailability} onNotifications={()=>setNotificationOpen(v=>!v)}/>
+     {notificationOpen&&<div className="staffapp-notification-popover" role="dialog" aria-label="Recent Staff Notifications">
+      <div className="staffapp-popover-heading"><strong>Notifications {notificationUnread>0&&<span>{compactCount(notificationUnread)}</span>}</strong><button aria-label="Close notifications" onClick={()=>setNotificationOpen(false)}><FiX/></button></div>
+      <div className="staffapp-popover-items">
+       {notifications.length?notifications.slice(0,5).map(n=><div key={n.id} className={'staffapp-popover-item '+(n.read?'is-read':'is-unread')}>
+        <FiBell aria-hidden="true"/><div><strong>{n.message}</strong><small>{n.time}</small></div>
+        <button type="button" aria-label={'Mark notification as read: '+n.message} onClick={()=>markNotificationsRead([n.id])}>{n.read?<FiCheck/>:<FiCheckCircle/>}</button>
+       </div>):<p className="staffapp-muted">No recent activity in this browser.</p>}
+      </div>
+      <div className="staffapp-popover-footer"><button onClick={()=>openNotificationPage('list')}><FiList/> See all</button><button onClick={()=>markNotificationsRead(notifications.map(n=>n.id))} disabled={!notificationUnread}><FiCheckSquare/> Mark all read</button><button onClick={()=>openNotificationPage('configure')}><FiSettings/> Configure</button></div>
+     </div>}
      <button className="mgmt-header-logout" onClick={onLogout} aria-label="Log out of business workspace" title="Log out of business workspace"><FiLogOut aria-hidden="true"/><span>Log Out</span></button>
     </div>
    </div></header>
@@ -281,7 +313,7 @@ export default function StaffOperations({onLogout}){
        <strong>Slot {i+1}</strong><select aria-label={'Product for slot '+(i+1)} value={item.id} onChange={e=>setShortcut(i,'id',e.target.value)}>{DEMO_PRODUCTS.map(p=><option key={p.id} value={p.id}>{p.label} — {p.shape} ({formatMoney(DEMO_PRICES[p.id])})</option>)}</select>
        <input aria-label={'Short label '+(i+1)} maxLength={20} value={item.label} onChange={e=>setShortcut(i,'label',e.target.value)} placeholder="Short button label"/>
        <label>Default qty <input type="number" min="1" max="20" value={item.quantity} onChange={e=>setShortcut(i,'quantity',Math.max(1,Math.min(20,Number(e.target.value)||1)))}/></label>
-       <button className="staffapp-remove-slot" onClick={()=>setSettings(prev=>({...prev,shortcuts:prev.shortcuts.filter((_,j)=>j!==i)}))}>Remove</button>
+       <button type="button" className="staffapp-remove-slot" aria-label={'Remove quick tap slot '+(i+1)} onClick={()=>setSettings(prev=>({...prev,shortcuts:prev.shortcuts.filter((_,j)=>j!==i)}))}>Remove</button>
       </div>)}
       {settings.shortcuts.length<4&&<button className="staffapp-secondary" onClick={()=>setSettings(prev=>({...prev,shortcuts:[...prev.shortcuts,{id:DEMO_PRODUCTS[0].id,label:DEMO_PRODUCTS[0].label,quantity:1}]}))}><FiPlus/> Add Slot</button>}
      </section>
