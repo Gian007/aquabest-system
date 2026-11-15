@@ -82,3 +82,15 @@
 .business-auth-brand img{width:clamp(132px,12vw,183px);height:auto;max-height:68px;object-fit:contain;filter:brightness(0) invert(1)}
 .business-auth-mobile-brand img{width:138px;max-height:56px;height:auto;object-fit:contain}
 @media(max-width:480px){.business-auth-mobile-brand img{width:125px}}
+
+
+/* Prevent iOS Safari input-focus auto zoom without disabling pinch-to-zoom. */
+.business-auth .business-auth-input input{
+ font-size:16px;
+}
+@media(max-width:900px){
+ .business-auth .business-auth-input input{
+  font-size:16px;
+  min-height:52px;
+ }
+}
