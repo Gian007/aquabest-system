@@ -11,16 +11,30 @@ export default function BusinessLogin({ onLogin }) {
   const [recovering, setRecovering] = useState(false);
   const [error, setError] = useState('');
   const [showDemoAccounts, setShowDemoAccounts] = useState(false);
+  const [submitting,setSubmitting] = useState(false);
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
+    if(submitting)return;
     setError('');
-    if (!username.trim() || !password) {
-      setError('Enter your username and password to continue.');
+    const identity=username.trim();
+    if (!identity || !password) {
+      setError('Enter your email (or demo username) and password.');
       return;
     }
-    if (!onLogin(username, password)) {
-      setError('Incorrect username or password. Check your details and try again.');
+    // Backend-ready format check, NOT server-side identity verification.
+    if(identity.includes('@')&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity)){
+      setError('Enter a valid email address.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const accepted=await onLogin(identity,password);
+      if(!accepted)setError('Invalid credentials. Check your details and try again.');
+    }catch{
+      setError('Could not sign in. Please try again.');
+    }finally{
+      setSubmitting(false);
     }
   };
 
@@ -68,9 +82,9 @@ export default function BusinessLogin({ onLogin }) {
                   <p>Enter your employee credentials to continue.</p>
                 </div>
                 <form noValidate onSubmit={submit}>
-                  <label htmlFor="business-username">Username</label>
+                  <label htmlFor="business-username">Email address or demo username</label>
                   <div className="business-auth-input">
-                    <input id="business-username" type="text" autoComplete="username" placeholder="Enter your username" value={username} onChange={e => { setUsername(e.target.value); setError(''); }} required />
+                    <input id="business-username" type="text" inputMode="email" autoComplete="username" placeholder="Email or demo username" value={username} onChange={e => { setUsername(e.target.value); setError(''); }} required />
                   </div>
                   <div className="business-auth-password-label">
                     <label htmlFor="business-password">Password</label>
@@ -81,13 +95,13 @@ export default function BusinessLogin({ onLogin }) {
                     <button type="button" className="business-auth-eye" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(v => !v)}>{showPassword ? 'Hide' : 'Show'}</button>
                   </div>
                   {error && <p className="business-auth-error" role="alert">{error}</p>}
-                  <button className="business-auth-button" type="submit">Sign in</button>
+                  <button className="business-auth-button" type="submit" disabled={submitting}>{submitting?'Checking…':'Sign in'}</button>
                 </form>
               </>
             )}
             <div className="business-auth-demo">
               <strong>Temporary demo login</strong>
-              <p>Frontend preview only. These accounts do not authenticate with the real backend or protect business data.</p>
+              <p>Email/password verification is not connected yet. Existing demo usernames are still available for testing; the server will verify real employee email and password later.</p>
               {!recovering && (
                 <>
                   <button type="button" className="business-auth-demo-toggle" aria-expanded={showDemoAccounts} onClick={() => setShowDemoAccounts(v => !v)}>
