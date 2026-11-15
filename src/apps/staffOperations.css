@@ -799,3 +799,60 @@
 
 .staffapp .staffapp-header-alerts{position:relative;display:flex;align-items:center}
 .staffapp .staffapp-header-unread{position:absolute;right:-5px;top:-7px;display:grid;place-items:center;min-width:18px;height:18px;padding:1px 4px;background:#d93c3c;color:white;border:2px solid white;border-radius:999px;font-size:10px;font-weight:850;line-height:1;font-variant-numeric:tabular-nums;pointer-events:none}
+
+
+/* Staff-only trip workflow. Does not modify Owner, Manager or shared navigation. */
+.staffapp .staffapp-trip-workspace{display:grid;gap:16px;min-width:0;padding-bottom:10px}
+.staffapp .staffapp-trip-switch{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #dfe8f3;background:#fff;border-radius:12px 12px 0 0}
+.staffapp .staffapp-trip-switch button{border:0;border-bottom:3px solid transparent;background:transparent;color:#657894;min-height:48px;font-weight:750;font-size:13px}
+.staffapp .staffapp-trip-switch button.active{border-color:#244ea3;color:#244ea3}
+.staffapp .staffapp-trip-panel,.staffapp .staffapp-dispatch-panel,.staffapp .staffapp-task-remaining{border:1px solid #dae6f2;background:#fff;border-radius:17px;padding:16px;display:grid;gap:12px;min-width:0}
+.staffapp .staffapp-trip-panel{border-left:4px solid #8bc9a3;background:#f7fcf9}
+.staffapp .staffapp-trip-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.staffapp .staffapp-trip-head>span{display:inline-flex;align-items:center;gap:7px;color:#285a85;font-size:11px;font-weight:850;letter-spacing:.2px}
+.staffapp .staffapp-trip-head strong{color:#244ea3;background:#e7f0fd;border-radius:99px;padding:6px 10px;font-size:12px}
+.staffapp .staffapp-trip-meter{background:#e3edf8;height:8px;border-radius:99px;overflow:hidden}
+.staffapp .staffapp-trip-meter>span{background:#42a77d;display:block;height:100%;border-radius:99px}
+.staffapp .staffapp-trip-panel>p,.staffapp .staffapp-dispatch-panel>p{color:#61758d;font-size:12px;line-height:1.5;margin:0}
+.staffapp .staffapp-trip-offline{display:flex;align-items:center;gap:7px;padding:9px 12px;background:#fff4df;border-radius:10px}
+.staffapp .staffapp-trip-stop{display:grid;grid-template-columns:1fr;gap:10px;background:white;border:1px solid #d8e8df;border-radius:12px;padding:12px;min-width:0}
+.staffapp .staffapp-trip-stop>div{display:grid;gap:5px;min-width:0}
+.staffapp .staffapp-trip-stop strong{font-size:14px;color:#1b2f63;overflow-wrap:anywhere}
+.staffapp .staffapp-trip-stop small{display:flex;align-items:center;gap:4px;color:#667b94;font-size:11px;overflow-wrap:anywhere}
+.staffapp .staffapp-trip-stop>button{width:100%;min-height:43px;justify-content:center}
+.staffapp .staffapp-trip-actions{display:flex;gap:9px}
+.staffapp .staffapp-trip-actions button{flex:1;min-height:44px;justify-content:center}
+.staffapp .staffapp-dispatch-tools{display:flex;align-items:center;gap:13px}
+.staffapp .staffapp-dispatch-tools button{background:transparent;color:#244ea3;border:0;font-size:12px;font-weight:750;padding:7px 0}
+.staffapp .staffapp-dispatch-item{display:flex;align-items:center;gap:10px;border:1px solid #e0eaf5;border-radius:11px;min-height:56px;padding:10px 12px;background:#f9fbfe}
+.staffapp .staffapp-dispatch-item input{width:21px;height:21px;flex-shrink:0;accent-color:#244ea3}
+.staffapp .staffapp-dispatch-item span{display:grid;gap:4px;min-width:0}
+.staffapp .staffapp-dispatch-item strong{color:#1b2f63;font-size:13px;overflow-wrap:anywhere}
+.staffapp .staffapp-dispatch-item small{color:#637a96;font-size:11px;overflow-wrap:anywhere}
+.staffapp .staffapp-dispatch-submit{min-height:46px;width:100%;justify-content:center}
+.staffapp .staffapp-dispatch-submit:disabled,.staffapp .staffapp-trip-actions button:disabled{opacity:.55;cursor:not-allowed}
+.staffapp .staffapp-task-remaining h2{display:flex;justify-content:space-between;align-items:center;margin:0;font-size:16px;color:#1b2f63}
+.staffapp .staffapp-task-remaining h2 small{font-size:12px;color:#697e99}
+.staffapp .staffapp-task-mini{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:11px 8px 11px 12px;border-left:3px solid #a0c4ef;border-top:1px solid #e6edf5;min-width:0}
+.staffapp .staffapp-task-mini.staffapp-type-collection{border-left-color:#e5bc79}
+.staffapp .staffapp-task-mini.staffapp-type-delivery{border-left-color:#a0d7b4}
+.staffapp .staffapp-task-mini>div:first-child{display:grid;gap:5px;flex:1;min-width:0}
+.staffapp .staffapp-task-mini strong{font-size:13px;color:#1b2f63;overflow-wrap:anywhere}
+.staffapp .staffapp-task-mini small{font-size:11px;color:#657c96;line-height:1.35}
+.staffapp .staffapp-mini-type{font-size:10px;color:#285e9c;font-weight:850}
+.staffapp .staffapp-task-mini>div:last-child{display:grid;gap:6px;flex:0 0 115px}
+.staffapp .staffapp-task-mini button{font-size:11px;min-height:37px;padding:7px;justify-content:center}
+.staffapp .staffapp-trip-history{border:1px solid #dce7f5;background:#f7faff;border-radius:10px;padding:11px;text-align:left;display:flex;align-items:center;gap:8px;color:#244ea3;font-weight:700;font-size:12px}
+.staffapp .staffapp-trip-summary-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
+.staffapp .staffapp-trip-summary-stats>div{display:grid;gap:4px;text-align:center;padding:13px 5px;background:#f0f5fc;border-radius:12px}
+.staffapp .staffapp-trip-summary-stats b{font-size:24px;color:#244ea3}
+.staffapp .staffapp-trip-summary-stats small{font-size:11px;color:#667c95}
+.staffapp .staffapp-proof-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.staffapp .staffapp-proof-choices button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:49px;padding:9px;font-size:12px}
+.staffapp .staffapp-proof-viewer{width:100%;max-height:55dvh;object-fit:contain;border-radius:12px;border:1px solid #dce6f2}
+@media(max-width:390px){
+ .staffapp .staffapp-trip-panel,.staffapp .staffapp-dispatch-panel,.staffapp .staffapp-task-remaining{padding:12px}
+ .staffapp .staffapp-task-mini>div:last-child{flex-basis:95px}
+ .staffapp .staffapp-proof-choices button{font-size:11px;padding:6px}
+ .staffapp .staffapp-trip-actions{flex-wrap:wrap}
+}
