@@ -104,6 +104,28 @@ export default function StaffOperations({onLogout}){
  const cameraRef=useRef(null);
  const galleryRef=useRef(null);
  const touchStart=useRef(null);
+ const [bottomNavVisible,setBottomNavVisible]=useState(true);
+ const lastScrollY=useRef(0);
+ useEffect(()=>{
+  lastScrollY.current=Math.max(0,window.scrollY||document.documentElement.scrollTop||0);
+  let frame=0;
+  const onScroll=()=>{
+   if(frame)return;
+   frame=window.requestAnimationFrame(()=>{
+    frame=0;
+    const y=Math.max(0,window.scrollY||document.documentElement.scrollTop||0);
+    const delta=y-lastScrollY.current;
+    if(y<=85){setBottomNavVisible(true);}
+    else if(delta>9){setBottomNavVisible(false);}
+    else if(delta< -7){setBottomNavVisible(true);}
+    lastScrollY.current=y;
+   });
+  };
+  window.addEventListener('scroll',onScroll,{passive:true});
+  return ()=>{window.removeEventListener('scroll',onScroll);if(frame)window.cancelAnimationFrame(frame);};
+ },[]);
+ useEffect(()=>{setBottomNavVisible(true);lastScrollY.current=Math.max(0,window.scrollY||0);},[page]);
+ useEffect(()=>{if(detail||advancedOpen||collectionForm||proofPreview||notificationOpen)setBottomNavVisible(true);},[detail,advancedOpen,collectionForm,proofPreview,notificationOpen]);
  useEffect(()=>{try{localStorage.setItem(STORE_KEY,JSON.stringify(orders));}catch{setNotice('Browser storage is unavailable; changes may not persist.');}},[orders]);
  useEffect(()=>{try{localStorage.setItem(TRIPS_KEY,JSON.stringify(trips));}catch{setNotice('Trip history could not be saved in this browser.');}},[trips]);
  useEffect(()=>{const connected=()=>setOnline(navigator.onLine!==false);window.addEventListener('online',connected);window.addEventListener('offline',connected);return ()=>{window.removeEventListener('online',connected);window.removeEventListener('offline',connected);};},[]);
@@ -393,7 +415,7 @@ export default function StaffOperations({onLogout}){
      </aside>}
    <p className="staffapp-disclaimer">Frontend prototype only. Saved changes stay in this browser; they do not update GitHub, Supabase or other employees' phones. Demo account is not secure production authentication.</p>
   </main>
-  <nav className="staffapp-bottom" aria-label="Staff navigation">{[['home','Home',FiHome],['queue','Queues',FiDroplet],['tasks','My Tasks',FiClipboard],['pos','POS',FiShoppingCart],['more','More',FiMenu]].map(([id,label,Icon])=><button key={id} className={page===id||(id==='more'&&['settings','history','notifications'].includes(page))?'active':''} onClick={()=>show(id)}><span className="staffapp-nav-icon"><Icon/>{id==='tasks'&&mine.length>0&&<em>{compactCount(mine.length)}</em>}</span><small>{label}</small></button>)}</nav>
+  <nav className={'staffapp-bottom'+(bottomNavVisible?'':' staffapp-bottom-hidden')} aria-label="Staff navigation">{[['home','Home',FiHome],['queue','Queues',FiDroplet],['tasks','My Tasks',FiClipboard],['pos','POS',FiShoppingCart],['more','More',FiMenu]].map(([id,label,Icon])=><button key={id} className={page===id||(id==='more'&&['settings','history','notifications'].includes(page))?'active':''} onClick={()=>show(id)}><span className="staffapp-nav-icon"><Icon/>{id==='tasks'&&mine.length>0&&<em>{compactCount(mine.length)}</em>}</span><small>{label}</small></button>)}</nav>
   {advancedOpen&&<div className="staffapp-filter-backdrop" onClick={()=>setAdvancedOpen(false)}>
    <section className="staffapp-filter-sheet" role="dialog" aria-modal="true" aria-label="Advanced task filters" onClick={e=>e.stopPropagation()}>
     <div className="staffapp-filter-sheet-head"><h2>Filter {isTasks?'Tasks':'Queue'}</h2><button aria-label="Close filters" onClick={()=>setAdvancedOpen(false)}><FiX/></button></div>

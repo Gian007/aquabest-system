@@ -859,3 +859,19 @@
 
 .staffapp .staffapp-notification-open{display:inline-flex;align-items:center;gap:5px;justify-content:flex-start;width:max-content;max-width:100%;border:0;background:transparent;color:#244ea3;font-size:11px;font-weight:800;padding:6px 0}
 .staffapp .staffapp-popover-item .staffapp-notification-open{color:#244ea3}
+
+
+/* Mobile-app bottom navigation: scroll down to hide, scroll up to reveal. */
+.staffapp .staffapp-bottom{
+ transition:transform 220ms ease,opacity 180ms ease,visibility 220ms;
+ will-change:transform;
+}
+.staffapp .staffapp-bottom.staffapp-bottom-hidden{
+ transform:translate(-50%,calc(100% + 35px + env(safe-area-inset-bottom,0px)));
+ opacity:0;
+ visibility:hidden;
+ pointer-events:none;
+}
+@media(prefers-reduced-motion:reduce){
+ .staffapp .staffapp-bottom{transition:none;will-change:auto}
+}
