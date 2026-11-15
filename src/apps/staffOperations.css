@@ -1016,3 +1016,11 @@
   min-height:34px;
  }
 }
+
+
+/* Align shortcut removal with the quantity input rather than its label + input group. */
+.staffapp .staffapp-shortcut-row>.staffapp-remove-slot{
+ align-self:end;
+ height:41px;
+ min-height:41px;
+}
