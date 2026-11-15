@@ -104,7 +104,7 @@ export default function ManagerDeliveryVerification({managerOrders,onNotice}){
   if(!current)return;
   if(result==='action_required'&&(!issueType||!nextAction)){setError('Select an issue type and the next action. Notes are optional.');return;}
   if(result==='verified'){
-   if(current.stage==='failed'||currentSummary?.tone==='issue'||(transaction(current)==='Collection'&&currentSummary?.actual===null)){setError('This outcome has an unresolved failure or missing quantity. Record an issue instead.');return;}
+   if(current.stage==='failed'||current.issueReason||currentSummary?.tone==='issue'||(transaction(current)==='Collection'&&currentSummary?.actual===null)){setError('This outcome has a Staff-reported issue, unsuccessful visit, quantity mismatch or missing collection count. Record Action Required instead.');return;}
    if(current.podRecorded&&!proof){setError('Staff reported a photo, but it cannot be viewed in this browser. Request proof instead.');return;}
    if(currentReview?.result==='action_required'){setError('An open issue needs to be resolved before it can be verified.');return;}
   }
