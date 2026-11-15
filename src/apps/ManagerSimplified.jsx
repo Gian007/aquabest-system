@@ -11,10 +11,10 @@ const readList=key=>{try{const v=JSON.parse(localStorage.getItem(key)||'[]');ret
 const writeList=(key,data)=>{try{localStorage.setItem(key,JSON.stringify(data));return true;}catch{return false;}};
 const dateLabel=()=>new Date().toLocaleString('en-PH');
 const quantity=o=>Number(o.quantity)||((o.items||[]).reduce((n,x)=>n+(Number(x.quantity)||0),0));
-const STATUS={collection:'Pending Collection',collectionClaimed:'Collecting',collectionTransit:'Returning to Station',pending:'Pending Refill',refilling:'Refilling',ready:'Ready for Delivery',pickup:'Ready for Pickup',delivery:'Delivery Claimed',out:'Out for Delivery',delivered:'Delivered',picked:'Picked Up',failed:'Needs Attention'};
-const group=stage=>['collection','collectionClaimed','collectionTransit'].includes(stage)?'Collection':['pending','refilling'].includes(stage)?'Refill':['ready','delivery','out'].includes(stage)?'Delivery':stage==='pickup'?'Pickup':['delivered','picked'].includes(stage)?'Completed':'Issues';
+const STATUS={waiting:'Awaiting Confirmation',collection:'Pending Collection',collectionClaimed:'Collecting',collectionTransit:'Returning to Station',pending:'Pending Refill',refilling:'Refilling',ready:'Ready for Delivery',pickup:'Ready for Pickup',delivery:'Delivery Claimed',out:'Out for Delivery',delivered:'Delivered',picked:'Picked Up',failed:'Needs Attention'};
+const group=stage=>stage==='waiting'?'Waiting':['collection','collectionClaimed','collectionTransit'].includes(stage)?'Collection':['pending','refilling'].includes(stage)?'Refill':['ready','delivery','out'].includes(stage)?'Delivery':stage==='pickup'?'Pickup':['delivered','picked'].includes(stage)?'Completed':'Issues';
 const isFinished=o=>['delivered','picked'].includes(o.stage);
-const fromManager=o=>({...o,sourceWorkspace:'manager',quantity:quantity(o),stage:({'Pending Confirmation':'pending',Confirmed:'pending',Preparing:'refilling',Ready:'ready','Out for Delivery':'out',Delivered:'delivered',Completed:'picked',Cancelled:'failed'})[o.status]||'pending'});
+const fromManager=o=>({...o,sourceWorkspace:'manager',quantity:quantity(o),stage:({'Pending Confirmation':'waiting',Confirmed:'pending',Preparing:'refilling',Ready:'ready','Out for Delivery':'out',Delivered:'delivered',Completed:'picked',Cancelled:'failed'})[o.status]||'pending'});
 const dateNum=val=>{const n=Date.parse(val||'');return Number.isFinite(n)?n:0;};
 const Metric=({label,value,Icon})=><div className="manager-control-metric"><div className="manager-control-metric-top"><span>{label}</span><Icon/></div><strong>{value}</strong></div>;
 export default function ManagerSimplified({page,go,orders,availability,onOpenOrder,onFinishManagerRefill,onClaimManagerRefill,onNotice}){
@@ -42,7 +42,7 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
  const selectedTask=queue.find(o=>o.id===staffTask);
  const pending=queue.filter(o=>!isFinished(o)&&o.stage!=='failed');
  const issues=queue.filter(o=>o.stage==='failed'||o.issueReason||o.issue);
- const categories=['All','Collection','Refill','Delivery','Pickup','Completed','Issues'];
+ const categories=['All','Waiting','Collection','Refill','Delivery','Pickup','Completed','Issues'];
  const filtered=queue.filter(o=>(filter==='All'||group(o.stage)===filter)&&[o.id,o.customer,o.address,o.customerReference,o.claimedBy,o.refilledBy,o.deliveredBy,o.source].join(' ').toLowerCase().includes(query.toLowerCase()));
  const assigned=o=>o.claimedBy||o.deliveredBy||o.collectedBy||o.refilledBy||o.assigned||'Not claimed';
  const openOrder=o=>{if(o.sourceWorkspace==='manager')onOpenOrder(o);else setStaffTask(o.id);};
