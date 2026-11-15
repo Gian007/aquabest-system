@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { FiMinus, FiPlus, FiSave } from 'react-icons/fi';
 import { bottleOptions } from './Component_Customer/orderData.js';
 import { DEMO_PRICES, DEMO_PRODUCTS, formatMoney } from '../data/managerDemo.js';
@@ -6,10 +7,23 @@ import { DEMO_PRICES, DEMO_PRODUCTS, formatMoney } from '../data/managerDemo.js'
 // Staff transactions are routed to the isolated local demo queue, not to Supabase.
 const Field=({label,children})=><div className="mgmt-field"><label>{label}</label>{children}</div>;
 const Section=({title})=><div className="mgmt-section-title"><h2>{title}</h2></div>;
+// Editable center value without changing the existing minus/plus control design.
+function QuantityEditor({value,onSet,label}){
+ const [draft,setDraft]=useState(String(value??0));
+ useEffect(()=>{setDraft(String(value??0));},[value]);
+ const edit=(raw)=>{
+  if(!/^\\d{0,2}$/.test(raw))return;
+  setDraft(raw);
+  if(raw!=='')onSet(Math.min(99,Number(raw)));
+ };
+ const finish=()=>{const number=draft===''?0:Math.min(99,Number(draft));setDraft(String(number));onSet(number);};
+ return <input className="staffapp-qty-edit" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} aria-label={'Quantity for '+label} value={draft} onChange={e=>edit(e.target.value)} onBlur={finish}/>;
+}
 export const initialStaffSale=()=>({source:'Walk-in',customer:'',ownership:'own',arrangement:'purchase',service:'Walk-in',phone:'',address:'',quantities:{round5:0,slim25:0,slim5:0},paymentMethod:'Cash',paymentStatus:'Unpaid',reference:'',notes:''});
 export default function StaffPOS({sale,onChange,onSave,onClear}){
  const change=(key,value)=>onChange(prev=>({...prev,[key]:value}));
  const quantity=(id,delta)=>onChange(prev=>({...prev,quantities:{...prev.quantities,[id]:Math.max(0,Math.min(99,(prev.quantities[id]||0)+delta))}}));
+ const setQuantity=(id,value)=>onChange(prev=>({...prev,quantities:{...prev.quantities,[id]:Math.max(0,Math.min(99,Number(value)||0))}}));
  const qty=Object.values(sale.quantities).reduce((a,b)=>a+b,0);
  const total=Object.entries(sale.quantities).reduce((sum,[id,q])=>sum+q*(DEMO_PRICES[id]||0),0);
  return <div className="staffapp-pos">
@@ -26,7 +40,7 @@ export default function StaffPOS({sale,onChange,onSave,onClear}){
    {sale.ownership==='store'&&<Field label="Container Arrangement"><select value={sale.arrangement} onChange={e=>change('arrangement',e.target.value)}><option value="purchase">Purchase container</option><option value="returnable">Returnable / borrowed (policy pending)</option></select></Field>}
   </div>
   <div className="mgmt-card" style={{marginTop:12}}><Section title="2. Select Sizes & Quantities"/><p className="mgmt-sub">Same available products and demo prices as AquaBest Manager POS.</p>
-   {bottleOptions.map(p=><div className="mgmt-product" key={p.id}><img src={p.image} alt={p.name+' '+p.shape}/><div className="mgmt-product-info"><strong>{p.name}</strong><small>{p.shape} • {formatMoney(DEMO_PRICES[p.id])} demo</small></div><div className="mgmt-qty"><button type="button" onClick={()=>quantity(p.id,-1)} disabled={!sale.quantities[p.id]} aria-label={'Remove '+p.name}><FiMinus/></button><span>{sale.quantities[p.id]}</span><button type="button" onClick={()=>quantity(p.id,1)} aria-label={'Add '+p.name}><FiPlus/></button></div></div>)}
+   {bottleOptions.map(p=><div className="mgmt-product" key={p.id}><img src={p.image} alt={p.name+' '+p.shape}/><div className="mgmt-product-info"><strong>{p.name}</strong><small>{p.shape} • {formatMoney(DEMO_PRICES[p.id])} demo</small></div><div className="mgmt-qty"><button type="button" onClick={()=>quantity(p.id,-1)} disabled={!sale.quantities[p.id]} aria-label={'Remove '+p.name}><FiMinus/></button><QuantityEditor value={sale.quantities[p.id]} label={p.name} onSet={value=>setQuantity(p.id,value)}/><button type="button" onClick={()=>quantity(p.id,1)} aria-label={'Add '+p.name}><FiPlus/></button></div></div>)}
   </div>
   <div className="mgmt-card" style={{marginTop:12}}><Section title="3. Payment"/><div className="mgmt-formgrid">
    <Field label="Payment Method"><select value={sale.paymentMethod} onChange={e=>change('paymentMethod',e.target.value)}>{['Cash','GCash','Bank Transfer'].map(x=><option key={x}>{x}</option>)}</select></Field>
