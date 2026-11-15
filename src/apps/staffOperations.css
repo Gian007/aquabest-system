@@ -875,3 +875,141 @@
 @media(prefers-reduced-motion:reduce){
  .staffapp .staffapp-bottom{transition:none;will-change:auto}
 }
+
+
+/* Staff POS high-contrast surfaces: scoped strictly to POS, not other Staff views. */
+.staffapp.staffapp-pos-page{
+ --pos-canvas:#e9eef5;
+ --pos-border:#d0d9e6;
+ --pos-input-border:#94a3b8;
+ --pos-ink:#0f172a;
+ --pos-helper:#475569;
+ --pos-navy:#0b2c6b;
+ background:var(--pos-canvas);
+}
+.staffapp-pos-page .staffapp-pos .mgmt-card{
+ background:#fff;
+ border:1px solid var(--pos-border);
+ box-shadow:0 1px 3px rgba(15,23,42,.08);
+ border-radius:16px;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-section-title h2{
+ color:var(--pos-navy);
+ font-weight:800;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-field label{
+ color:var(--pos-ink);
+ font-size:12px;
+ font-weight:750;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-field input,
+.staffapp-pos-page .staffapp-pos .mgmt-field select,
+.staffapp-pos-page .staffapp-pos .mgmt-field textarea{
+ appearance:auto;
+ background:#fff;
+ color:var(--pos-ink);
+ border:1.5px solid var(--pos-input-border);
+ border-radius:11px;
+ min-height:46px;
+ font-size:14px;
+ line-height:1.4;
+ box-shadow:0 1px 2px rgba(15,23,42,.035);
+ transition:border-color .15s ease,box-shadow .15s ease;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-field input::placeholder,
+.staffapp-pos-page .staffapp-pos .mgmt-field textarea::placeholder{
+ color:#64748b;
+ opacity:1;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-field input:focus-visible,
+.staffapp-pos-page .staffapp-pos .mgmt-field select:focus-visible,
+.staffapp-pos-page .staffapp-pos .mgmt-field textarea:focus-visible{
+ outline:2px solid #1d4ed8;
+ outline-offset:1px;
+ border-color:#1d4ed8;
+ box-shadow:0 0 0 3px rgba(29,78,216,.12);
+}
+.staffapp-pos-page .staffapp-pos .mgmt-sub,
+.staffapp-pos-page .staffapp-pos .mgmt-demo{
+ color:var(--pos-helper);
+ line-height:1.55;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-product{
+ background:#fff;
+ border:1px solid var(--pos-border);
+ box-shadow:0 1px 3px rgba(15,23,42,.045);
+}
+.staffapp-pos-page .staffapp-pos .mgmt-product-info strong{
+ color:var(--pos-ink);
+ font-weight:800;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-product-info small{
+ color:var(--pos-helper);
+}
+.staffapp-pos-page .staffapp-pos .mgmt-qty button{
+ border:1.5px solid #a9b7c9;
+ background:#e2e8f0;
+ color:var(--pos-navy);
+ min-width:37px;
+ min-height:37px;
+ font-size:16px;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-qty button:focus-visible{
+ outline:2px solid #1d4ed8;
+ outline-offset:2px;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-qty button:disabled{
+ opacity:.45;
+ cursor:not-allowed;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-qty span{
+ color:var(--pos-ink);
+ font-weight:800;
+ font-variant-numeric:tabular-nums;
+}
+.staffapp-pos-page .staffapp-pos .mgmt-summary{
+ background:#fff;
+ border:1px solid var(--pos-border);
+ border-radius:16px;
+ box-shadow:0 1px 3px rgba(15,23,42,.08);
+ color:var(--pos-ink);
+}
+.staffapp-pos-page .staffapp-pos .mgmt-summary>strong,
+.staffapp-pos-page .staffapp-pos .mgmt-summary .total strong{
+ color:var(--pos-navy);
+}
+.staffapp-pos-page .staffapp-pos .mgmt-summary .total{
+ border-top:1px solid #cbd5e1;
+}
+.staffapp-pos-page .staffapp-pos-actions .mgmt-btn.secondary{
+ background:#fff;
+ border:1.5px solid #94a3b8;
+ color:var(--pos-navy);
+ box-shadow:0 1px 3px rgba(15,23,42,.05);
+}
+.staffapp-pos-page .staffapp-pos-actions .mgmt-btn.secondary:focus-visible,
+.staffapp-pos-page .staffapp-pos-submit:focus-visible{
+ outline:2px solid #1d4ed8;
+ outline-offset:2px;
+}
+.staffapp-pos-page .staffapp-pos-submit:not(:disabled){
+ background:var(--pos-navy);
+ color:#fff;
+ box-shadow:0 2px 5px rgba(15,23,42,.13);
+}
+.staffapp-pos-page .staffapp-pos-submit:disabled{
+ background:#e2e8f0;
+ color:#475569;
+ border:1px solid #94a3b8;
+ opacity:1;
+}
+.staffapp-pos-page .staffapp-bottom{
+ border-color:#cbd5e1;
+ box-shadow:0 3px 13px rgba(15,23,42,.14);
+}
+@media(max-width:370px){
+ .staffapp-pos-page .staffapp-pos .mgmt-qty button{
+  min-width:32px;
+  min-height:34px;
+ }
+}
