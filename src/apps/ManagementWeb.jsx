@@ -210,9 +210,11 @@ export default function ManagementWeb({role='manager',onLogout}){
      <div className="mgmt-notice">Date tabs and chart are visual demo controls. Verified sales reports will require real payment dates and database queries.</div>{section}
     </>}
     {!isOwner&&!isStaff&&!isDelivery&&page==='staff'&&<>
-     <Heading kicker="Operations team" title="Staff Assignments" subtitle="Shared work queue, not a separate system for each role."/>
+     <Heading kicker="Team coordination" title="Staff Monitoring" subtitle="Employees rotate between collection, refill and delivery depending on the workload."/>
+     <div className="mgmt-notice">Staff may claim open tasks from their Queues. Manager assignment is for coordination and exceptions, not approval of every order.</div>
      <TeamAvailability entries={availability} orders={orders}/>
-     {['Manager','Staff A · Refiller','Staff B · POS / Refill','Driver A · Delivery','Driver B · Delivery'].map(s=><div className="mgmt-card mgmt-order" key={s}><div className="mgmt-order-head"><strong>{s}</strong><FiUsers color="#244ea3"/></div><p>Role and task assignments are sample data, pending client confirmation.</p></div>)}{section}
+     {Object.keys(availability).filter(name=>name!=='Owner'&&name!=='Manager').map(name=><div className="mgmt-card mgmt-order" key={name}><div className="mgmt-order-head"><strong>{name}</strong><FiUsers color="#244ea3"/></div><p>Flexible operations staff · {availabilityFor(name,availability,orders).label}</p><p>{orders.filter(o=>o.assigned===name&&!['Completed','Cancelled'].includes(o.status)).length} unfinished demo assignments</p><button className="mgmt-btn secondary" onClick={()=>go('queue')}>View Operations Queue <FiArrowRight/></button></div>)}
+     <div className="mgmt-notice">Scheduling is handled by the Manager in the real business. Employee shift planning needs verified records and remains a future backend integration.</div>{section}
     </>}
     {isStaff&&page==='activity'&&<>
      <Heading kicker="My work history" title="My Activity" subtitle="Your refill status and inventory changes for this demo session."/>
