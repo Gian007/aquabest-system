@@ -100,7 +100,9 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
   {page==='dashboard'&&<>
    <div className="manager-control-title"><span>MANAGER WORKSPACE</span><h1>Station Overview</h1><p>Today's workload, team activity and issues at a glance.</p></div>
    <div className="manager-control-kpis"><Metric label="Pending Orders" value={pending.length} Icon={FiClipboard}/><Metric label="In Progress" value={queue.filter(o=>['collectionClaimed','collectionTransit','refilling','delivery','out'].includes(o.stage)).length} Icon={FiDroplet}/><Metric label="Out for Delivery" value={queue.filter(o=>o.stage==='out').length} Icon={FiTruck}/><Metric label="Issues to Review" value={issues.length} Icon={FiAlertCircle}/></div>
-   <div className="manager-control-actions"><button onClick={()=>go('queue')}><FiClipboard/> Operations Queue <FiArrowRight/></button><button onClick={()=>go('staff')}><FiUsers/> Staff Monitoring <FiArrowRight/></button><button onClick={()=>go('collections')}><FiTruck/> Trips & Pickups <FiArrowRight/></button><button onClick={()=>go('remittance')}><FiActivity/> Cash Remittance <FiArrowRight/></button></div>
+   <div className="manager-control-actions"><button onClick={()=>go('queue')}><FiClipboard/> Operations Queue <FiArrowRight/></button><button onClick={()=>go('staff')}><FiUsers/> Staff Monitoring <FiArrowRight/></button><button onClick={()=>go('collections')}><FiTruck/> Trips & Pickups <FiArrowRight/></button><button onClick={()=>go('verification')}><FiCheckCircle/> Delivery Verification <FiArrowRight/></button></div>
+   <div className="manager-control-sectionhead"><h2>Delivery Checks</h2><button onClick={()=>go('verification')}>Review results <FiArrowRight/></button></div>
+   <p className="manager-control-help">Check delivered orders, missing gallons and unsuccessful visits. Cash remittance stays in More.</p>
    <div className="manager-control-sectionhead"><h2>Work in Progress</h2><button onClick={()=>go('queue')}>View All <FiArrowRight/></button></div>
    {cards(pending.slice(0,3),'No active tasks in the current demo.')}
    {issues.length>0&&<><h2>Needs Attention</h2>{cards(issues.slice(0,2),'')}</>}
