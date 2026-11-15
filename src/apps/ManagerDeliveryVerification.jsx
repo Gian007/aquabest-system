@@ -47,7 +47,16 @@ function summary(o){
 const labelFor=status=>status==='verified'?'Verified':status==='action_required'?'Action Required':status==='resolved'?'Resolved':'Pending Review';
 export default function ManagerDeliveryVerification({managerOrders,onNotice}){
  const [staffOrders,setStaffOrders]=useState(()=>read(STAFF_DEMO_KEYS.orders,[]));
- const [reviews,setReviews]=useState(()=>read(KEY,{}));
+ const [reviews,setReviews]=useState(()=>{
+  const saved=read(KEY,{});
+  // Preserve existing demo reviews made before the structured review redesign.
+  return Object.fromEntries(Object.entries(saved).map(([id,value])=>{
+   if(!value||typeof value!=='object')return [id,{result:'pending'}];
+   if(value.result==='followup')return [id,{...value,result:'action_required',issueType:value.issueType||'Other',nextAction:value.nextAction||'Investigate quantity',note:value.note||value.reason||''}];
+   if(value.result==='reviewed')return [id,{...value,result:'verified'}];
+   return [id,value];
+  }));
+ });
  const [category,setCategory]=useState('All');
  const [search,setSearch]=useState('');
  const [selected,setSelected]=useState('');
