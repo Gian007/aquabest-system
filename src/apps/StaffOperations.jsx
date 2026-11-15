@@ -400,8 +400,8 @@ export default function StaffOperations({onLogout,staffSession}){
      <section className="staffapp-panel"><h2>Manage Quick-Tap Items</h2><p>Up to four slots. Choose from the original POS catalog. Prices follow the existing demo catalog and cannot be edited independently here.</p>
       {settings.shortcuts.map((item,i)=><div className="staffapp-shortcut-row" key={i}>
        <strong>Slot {i+1}</strong><select aria-label={'Product for slot '+(i+1)} value={item.id} onChange={e=>setShortcut(i,'id',e.target.value)}>{DEMO_PRODUCTS.map(p=><option key={p.id} value={p.id}>{p.label} — {p.shape} ({formatMoney(DEMO_PRICES[p.id])})</option>)}</select>
-       <input aria-label={'Short label '+(i+1)} maxLength={20} value={item.label} onChange={e=>setShortcut(i,'label',e.target.value)} placeholder="Short button label"/>
-       <label>Default qty <input type="number" min="1" max="20" value={item.quantity} onChange={e=>setShortcut(i,'quantity',Math.max(1,Math.min(20,Number(e.target.value)||1)))}/></label>
+       <label className="staffapp-shortcut-field">Button label<input aria-label={'Button label for slot '+(i+1)} maxLength={20} value={item.label} onChange={e=>setShortcut(i,'label',e.target.value)} placeholder="Short button label"/></label>
+       <label className="staffapp-shortcut-field">Default qty<input aria-label={'Default quantity for slot '+(i+1)} type="number" min="1" max="20" value={item.quantity} onChange={e=>setShortcut(i,'quantity',Math.max(1,Math.min(20,Number(e.target.value)||1)))}/></label>
        <button type="button" className="staffapp-remove-slot" aria-label={'Remove quick tap slot '+(i+1)} onClick={()=>setSettings(prev=>({...prev,shortcuts:prev.shortcuts.filter((_,j)=>j!==i)}))}>Remove</button>
       </div>)}
       {settings.shortcuts.length<4&&<button className="staffapp-secondary" onClick={()=>setSettings(prev=>({...prev,shortcuts:[...prev.shortcuts,{id:DEMO_PRODUCTS[0].id,label:DEMO_PRODUCTS[0].label,quantity:1}]}))}><FiPlus/> Add Slot</button>}
