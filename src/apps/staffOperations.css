@@ -921,13 +921,16 @@
  color:#64748b;
  opacity:1;
 }
+/* iOS-style focus: a quiet, single outline instead of a bright double-blue halo. */
+.staffapp-pos-page .staffapp-pos .mgmt-field input:focus,
+.staffapp-pos-page .staffapp-pos .mgmt-field select:focus,
+.staffapp-pos-page .staffapp-pos .mgmt-field textarea:focus,
 .staffapp-pos-page .staffapp-pos .mgmt-field input:focus-visible,
 .staffapp-pos-page .staffapp-pos .mgmt-field select:focus-visible,
 .staffapp-pos-page .staffapp-pos .mgmt-field textarea:focus-visible{
- outline:2px solid #1d4ed8;
- outline-offset:1px;
- border-color:#1d4ed8;
- box-shadow:0 0 0 3px rgba(29,78,216,.12);
+ outline:none;
+ border-color:#64748b;
+ box-shadow:0 0 0 1px rgba(100,116,139,.22),0 1px 3px rgba(15,23,42,.06);
 }
 .staffapp-pos-page .staffapp-pos .mgmt-sub,
 .staffapp-pos-page .staffapp-pos .mgmt-demo{
