@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FiActivity, FiAlertCircle, FiArrowRight, FiCheckCircle, FiClipboard, FiDroplet, FiPackage, FiSearch, FiTruck, FiUsers } from 'react-icons/fi';
+import { FiActivity, FiAlertCircle, FiArrowRight, FiCheckCircle, FiClipboard, FiDroplet, FiPackage, FiSearch, FiTruck, FiUsers, FiChevronDown, FiCheck, FiFilter, FiX } from 'react-icons/fi';
 import { formatMoney, orderSummary } from '../data/managerDemo.js';
 import { STAFF_DEMO_KEYS } from '../services/staffDemoAdapter.js';
 import './managerControl.css';
@@ -24,6 +24,10 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
  const [confirmRefill,setConfirmRefill]=useState('');
  const [query,setQuery]=useState('');
  const [filter,setFilter]=useState('All');
+ const [queueCategoryOpen,setQueueCategoryOpen]=useState(false);
+ const [queueFilterOpen,setQueueFilterOpen]=useState(false);
+ const [queueStatus,setQueueStatus]=useState('all');
+ const [queueSort,setQueueSort]=useState('oldest');
  const [person,setPerson]=useState('');
  const [history,setHistory]=useState(()=>readList('aquabest-manager-refill-activity-v2'));
  const refresh=()=>{
@@ -43,7 +47,25 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
  const pending=queue.filter(o=>!isFinished(o)&&o.stage!=='failed');
  const issues=queue.filter(o=>o.stage==='failed'||o.issueReason||o.issue);
  const categories=['All','Waiting','Collection','Refill','Delivery','Pickup','Completed','Issues'];
- const filtered=queue.filter(o=>(filter==='All'||group(o.stage)===filter)&&[o.id,o.customer,o.address,o.customerReference,o.claimedBy,o.refilledBy,o.deliveredBy,o.source].join(' ').toLowerCase().includes(query.toLowerCase()));
+ const filtered=queue.filter(o=>(filter==='All'||group(o.stage)===filter)&&
+   (queueStatus==='all'||(queueStatus==='available'&&['waiting','collection','pending','ready','pickup'].includes(o.stage)&&!o.claimedBy)||(queueStatus==='inprogress'&&['collectionClaimed','collectionTransit','refilling','delivery','out'].includes(o.stage))||(queueStatus==='finished'&&isFinished(o)))&&
+   [o.id,o.customer,o.address,o.customerReference,o.claimedBy,o.refilledBy,o.deliveredBy,o.source].join(' ').toLowerCase().includes(query.toLowerCase()))
+  .sort((a,b)=>{const x=Date.parse(a.createdAtISO||a.date||a.createdAt||'')||0,y=Date.parse(b.createdAtISO||b.date||b.createdAt||'')||0;return queueSort==='newest'?y-x:x-y;});
+ const queueCategories=[
+  {id:'All',label:'All',Icon:FiClipboard},
+  {id:'Collection',label:'Collect',Icon:FiPackage},
+  {id:'Refill',label:'Refill',Icon:FiDroplet},
+  {id:'Delivery',label:'Delivery',Icon:FiTruck},
+  {id:'Pickup',label:'Pickup',Icon:FiCheckCircle},
+  {id:'Waiting',label:'Awaiting Confirmation',Icon:FiClipboard},
+  {id:'Completed',label:'Completed',Icon:FiCheckCircle},
+  {id:'Issues',label:'Issues',Icon:FiAlertCircle}
+ ];
+ const categoryCount=id=>id==='All'?queue.length:queue.filter(o=>group(o.stage)===id).length;
+ const chosenCategory=queueCategories.find(x=>x.id===filter)||queueCategories[0];
+ const openQueueCategory=()=>{setQueueCategoryOpen(v=>!v);setQueueFilterOpen(false);};
+ const openQueueFilter=()=>{setQueueFilterOpen(v=>!v);setQueueCategoryOpen(false);};
+ const paymentBadge=o=>o.paymentStatus==='Paid'?'Paid · '+(o.service==='Pickup'?'Pickup':o.address||'Delivery'):(o.paymentMethod==='GCash'?'GCash pending':'COD')+' · '+(o.service==='Pickup'?'Pickup':o.address||'Delivery');
  const assigned=o=>o.claimedBy||o.deliveredBy||o.collectedBy||o.refilledBy||o.assigned||'Not claimed';
  const openOrder=o=>{if(o.sourceWorkspace==='manager')onOpenOrder(o);else setStaffTask(o.id);};
  const claimRefill=o=>{
@@ -87,11 +109,11 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
  const pickupExpected=pickups.reduce((n,o)=>n+quantity(o),0);
  const pickupActual=pickups.reduce((n,o)=>n+(o.collectedQty==null?0:Number(o.collectedQty)||0),0);
  const trips=staffTrips.map(t=>({...t,orders:queue.filter(o=>o.tripId===t.id||(Array.isArray(t.orderIds)&&t.orderIds.includes(o.id)))}));
- const cards=(list,empty)=><div className="manager-simple-cards staffapp manager-staff-queue">{list.length?list.map(o=><article className={'staffapp-order manager-staff-order manager-simple-'+group(o.stage).toLowerCase()} key={o.id}>
-  <div className="staffapp-compact-row staffapp-compact-head"><div className="staffapp-compact-identity"><strong>{o.id} <span className="staffapp-id-divider">·</span> {o.customer}</strong></div><span className="staffapp-payment-badge">{o.paymentStatus||'Cash / COD'}</span></div>
+ const cards=(list,empty)=><div className="manager-simple-cards staffapp manager-staff-queue">{list.length?list.map(o=><article className={'staffapp-order manager-staff-order staffapp-type-'+(group(o.stage)==='Collection'?'collection':group(o.stage)==='Refill'?'refill':group(o.stage)==='Pickup'?'pickup':'delivery')+' manager-simple-'+group(o.stage).toLowerCase()} key={o.id}>
+  <div className="staffapp-compact-row staffapp-compact-head"><div className="staffapp-compact-identity"><strong>{o.id} <span className="staffapp-id-divider">·</span> {o.customer}</strong></div><span className="staffapp-payment-badge" title={paymentBadge(o)}>{paymentBadge(o)}</span></div>
   <div className="staffapp-compact-row staffapp-compact-meta"><span>{o.items?orderSummary(o.items):quantity(o)+' gallons'} · {o.address||o.customerReference||o.service||'Walk-in'}</span><span>{o.createdAt||o.date||'—'}</span></div>
-  <div className="manager-staff-state"><span className="manager-control-tag">{STATUS[o.stage]||o.stage}</span><small>{assigned(o)}</small></div>
-  <div className="staffapp-compact-row staffapp-compact-actions"><button className="staffapp-secondary" onClick={()=>openOrder(o)}>Details <FiArrowRight/></button>
+  <div className="manager-staff-state"><small>{STATUS[o.stage]||o.stage} · {assigned(o)}</small></div>
+  <div className="staffapp-compact-row staffapp-compact-actions"><button className="staffapp-secondary" onClick={()=>openOrder(o)}>Details <FiChevronDown/></button>
    {o.stage==='pending'&&!o.claimedBy&&<button className="staffapp-primary" onClick={()=>claimRefill(o)}>Claim Refill</button>}
    {o.stage==='refilling'&&o.claimedBy==='Manager'&&<button className="staffapp-primary" onClick={()=>setConfirmRefill(o.id)}>Complete Refill</button>}
   </div>
@@ -108,13 +130,27 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
    {issues.length>0&&<><h2>Needs Attention</h2>{cards(issues.slice(0,2),'')}</>}
    <p className="manager-control-help">This is a browser demo, not live cross-device monitoring. {fromStaff?'Showing Staff records saved in this browser.':'Showing Manager sample orders; no saved Staff queue in this browser.'}</p>
   </>}
-  {page==='queue'&&<>
-   <div className="manager-control-title"><span>OPERATIONS</span><h1>Operations Queue</h1><p>Same compact task cards as Staff. Manager can claim and complete Refills only, never Collection or Delivery.</p></div>
-   <div className="manager-control-search"><FiSearch/><input value={query} aria-label="Search orders" placeholder="Search customer, unit, order…" onChange={e=>setQuery(e.target.value)}/></div>
-   <div className="manager-control-filter">{categories.map(cat=><button key={cat} className={filter===cat?'active':''} onClick={()=>setFilter(cat)}>{cat} ({cat==='All'?queue.length:queue.filter(o=>group(o.stage)===cat).length})</button>)}</div>
-   {cards(filtered,'No orders in this category.')}
-   <p className="manager-control-help">Manager may claim only Pending Refill. Only Manager-claimed refills can be completed by Manager. Collection and Delivery remain view-only. No cross-device claim locking yet.</p>
-  </>}
+  {page==='queue'&&<section className="manager-queue-page staffapp">
+   <div className="staffapp-title manager-queue-title"><div><h1>Operations Queue</h1><p>Refill, delivery & customer pickup</p></div><span className="staffapp-demo">Demo · This device only</span></div>
+   <div className="staffapp-filter-controls">
+    <div className="staffapp-category-wrap">
+     <button type="button" className="staffapp-category-trigger" aria-expanded={queueCategoryOpen} aria-haspopup="listbox" onClick={openQueueCategory}>
+      <chosenCategory.Icon aria-hidden="true"/><span className="staffapp-category-name">{chosenCategory.label} ({categoryCount(chosenCategory.id)})</span><FiChevronDown className="staffapp-category-chevron" aria-hidden="true"/>
+      {queueCategories.filter(c=>c.id!==filter&&c.id!=='All'&&categoryCount(c.id)>0).length>0&&<span className="staffapp-category-alert" aria-label="Tasks in other categories">{queueCategories.filter(c=>c.id!==filter&&c.id!=='All'&&categoryCount(c.id)>0).length}</span>}
+     </button>
+     {queueCategoryOpen&&<div className="staffapp-category-menu" role="listbox" aria-label="Select work category"><p className="staffapp-menu-hint">Choose a category to view its orders.</p>{queueCategories.map(c=><button type="button" role="option" aria-selected={filter===c.id} key={c.id} onClick={()=>{setFilter(c.id);setQueueCategoryOpen(false);setQuery('');setQueueStatus('all')}}><c.Icon aria-hidden="true"/><span>{c.label}</span><span className="staffapp-category-option-count">{categoryCount(c.id)}</span>{filter===c.id&&<FiCheck aria-label="Selected"/>}</button>)}</div>}
+    </div>
+    <button type="button" className="staffapp-filter-trigger" aria-expanded={queueFilterOpen} onClick={openQueueFilter}><FiFilter aria-hidden="true"/> Filter{(queueStatus!=='all'||queueSort!=='oldest')&&<span className="manager-queue-filter-dot" aria-label="Filters active"/>}</button>
+   </div>
+   {queueFilterOpen&&<div className="manager-queue-filter-panel"><div className="manager-queue-filter-heading"><strong>Filter & Sort</strong><button type="button" aria-label="Close filters" onClick={()=>setQueueFilterOpen(false)}><FiX/></button></div>
+    <label>Status<select value={queueStatus} onChange={e=>setQueueStatus(e.target.value)}><option value="all">All statuses</option><option value="available">Available / Unclaimed</option><option value="inprogress">In progress</option><option value="finished">Completed</option></select></label>
+    <label>Order<select value={queueSort} onChange={e=>setQueueSort(e.target.value)}><option value="oldest">Oldest first</option><option value="newest">Newest first</option></select></label>
+    <div className="manager-queue-filter-actions"><button onClick={()=>{setQueueStatus('all');setQueueSort('oldest')}}>Reset</button><button onClick={()=>setQueueFilterOpen(false)}>Apply</button></div>
+   </div>}
+   <label className="staffapp-search"><FiSearch/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search order, customer or address" aria-label="Search orders"/></label>
+   <div className="manager-queue-results">{cards(filtered,'No matching orders. Try another queue or search.')}</div>
+   <p className="manager-control-help manager-queue-note">Manager can only claim Pending Refill and complete their own refill tasks. Collection and Delivery remain view-only. Changes are saved on this browser, not other employees' devices.</p>
+  </section>}
   {page==='collections'&&<>
    <div className="manager-control-title"><span>DELIVERY OPERATIONS</span><h1>Trips & Pickups</h1><p>Staff records each customer stop. Manager reviews the trip and collection results—no separate manual batch counting.</p></div>
    <div className="manager-control-kpis"><Metric label="Pickup Orders" value={pickups.length} Icon={FiClipboard}/><Metric label="Expected Gallons" value={pickupExpected} Icon={FiPackage}/><Metric label="Collected Recorded" value={pickupActual} Icon={FiCheckCircle}/><Metric label="Trips Recorded" value={trips.length} Icon={FiTruck}/></div>

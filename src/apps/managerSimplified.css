@@ -51,3 +51,36 @@
 .manager-staff-queue .staffapp-compact-actions button{min-height:42px;white-space:normal;font-size:12px}
 .manager-staff-queue .staffapp-compact-meta span{min-width:0;overflow-wrap:anywhere}
 @media(max-width:390px){.manager-staff-queue .staffapp-compact-actions button{flex:1 1 auto}}
+
+
+/* Exact Staff Queue control/layout language for the Manager Queue, scoped to this page. */
+.manager-queue-page.staffapp{background:transparent;min-height:0;color:#12315e;width:100%;min-width:0;display:block;font-family:Inter,system-ui,sans-serif}
+.manager-queue-page .manager-queue-title{margin:0 0 17px;align-items:flex-start}
+.manager-queue-page .manager-queue-title h1{font-size:clamp(22px,4vw,29px);line-height:1.2;font-weight:800;margin:0 0 5px;color:#12315e;letter-spacing:0}
+.manager-queue-page .manager-queue-title p{font-size:13px;color:#677b99;margin:0}
+.manager-queue-page .staffapp-demo{flex:0 0 auto;max-width:120px;text-align:center}
+.manager-queue-page .staffapp-filter-controls{position:relative;z-index:4;margin-bottom:12px}
+.manager-queue-page .staffapp-category-menu{width:min(320px,calc(100vw - 52px))}
+.manager-queue-page .staffapp-category-menu .staffapp-menu-hint{margin:6px 9px 9px;color:#64748b;font-size:11px}
+.manager-queue-page .staffapp-search{margin:0 0 15px}
+.manager-queue-page .staffapp-search input{min-height:48px;font-size:16px}
+.manager-queue-page .manager-queue-results{position:relative;z-index:1}
+.manager-queue-page .manager-simple-cards{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.manager-queue-page .manager-staff-order{display:grid;gap:13px;padding:14px;min-width:0;box-shadow:0 2px 8px #12315e09}
+.manager-queue-page .staffapp-compact-meta{gap:8px 12px}
+.manager-queue-page .staffapp-compact-actions{justify-content:space-between}
+.manager-queue-page .staffapp-compact-actions .staffapp-primary{margin-left:auto}
+.manager-queue-page .manager-staff-state{padding:0;margin:-3px 0;font-size:11px}
+.manager-queue-page .manager-staff-state small{color:#667788}
+.manager-queue-page .staffapp-payment-badge{max-width:54%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.manager-queue-page .manager-queue-note{margin:16px 2px 0;color:#667788;line-height:1.55}
+.manager-queue-page .manager-queue-filter-dot{width:8px;height:8px;border-radius:50%;background:#e24d48;position:absolute;right:7px;top:7px}
+.manager-queue-filter-panel{position:relative;z-index:3;display:grid;gap:12px;background:white;border:1px solid #cbdcf0;box-shadow:0 4px 20px #14366e14;border-radius:13px;margin:-2px 0 14px;padding:14px}
+.manager-queue-filter-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px;color:#1b2f63}
+.manager-queue-filter-heading button{border:0;background:transparent;color:#617b9b;padding:6px;display:grid;place-items:center}
+.manager-queue-filter-panel>label{display:grid;gap:6px;font-size:12px;font-weight:750;color:#4e6683}
+.manager-queue-filter-panel select{width:100%;min-width:0;border:1px solid #d0dded;border-radius:10px;min-height:44px;background:#fff;padding:9px 12px;color:#1b2f63;font-size:16px}
+.manager-queue-filter-actions{display:flex;gap:8px}
+.manager-queue-filter-actions button{flex:1;min-height:42px;border-radius:10px;font-size:12px;font-weight:800;border:1px solid #bacdea;background:#fff;color:#244ea3}
+.manager-queue-filter-actions button:last-child{border-color:#244ea3;background:#244ea3;color:#fff}
+@media(max-width:390px){.manager-queue-page .staffapp-compact-identity strong{font-size:12px}.manager-queue-page .staffapp-compact-actions button{font-size:11px}.manager-queue-page .manager-queue-title .staffapp-demo{max-width:110px}.manager-queue-page .staffapp-category-trigger{gap:5px}}
