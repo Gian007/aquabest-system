@@ -8,22 +8,19 @@ import StaffTripWorkspace from './StaffTripWorkspace.jsx';
 import { saveLocalProof, getLocalProof } from './staffProofStorage.js';
 import { bottleOptions } from './Component_Customer/orderData.js';
 import { DEMO_PRICES, DEMO_PRODUCTS, formatMoney } from '../data/managerDemo.js';
+import { STAFF_DEMO_KEYS, loadStaffDemo, saveStaffDemo } from '../services/staffDemoAdapter.js';
 import './managementWeb.css';
 import './staffOperations.css';
 
 // Isolated, browser-local demo adapter. Supabase and production business data are untouched.
 // To share edits across phones later, replace only this adapter with an authorized API.
-const STORE_KEY='aquabest-staff-operations-demo-v1';
-const SETTINGS_KEY='aquabest-staff-dashboard-settings-v1';
-const NOTIFICATIONS_KEY='aquabest-staff-notifications-demo-v1';
-const NOTIFICATION_PREFS_KEY='aquabest-staff-notification-prefs-v1';
-const TRIPS_KEY='aquabest-staff-trips-demo-v1';
-const readTrips=()=>{try{const v=JSON.parse(localStorage.getItem(TRIPS_KEY)||'[]');return Array.isArray(v)?v:[];}catch{return [];}};
+const {orders:STORE_KEY, settings:SETTINGS_KEY, notifications:NOTIFICATIONS_KEY,notificationPrefs:NOTIFICATION_PREFS_KEY,trips:TRIPS_KEY}=STAFF_DEMO_KEYS;
+const readTrips=()=>{const v=loadStaffDemo(TRIPS_KEY,[]);return Array.isArray(v)?v:[];};
 const notificationTypes=[{id:'orders',label:'New orders and queue changes'},{id:'collection',label:'Collection updates'},{id:'refill',label:'Refill updates'},{id:'delivery',label:'Delivery and pickup updates'}];
 const notificationType=message=>/collect|container.*station/i.test(message)?'collection':/refill/i.test(message)?'refill':/deliver|pickup|remittance|trip/i.test(message)?'delivery':'orders';
-const readNotificationPrefs=()=>{try{return {...{orders:true,collection:true,refill:true,delivery:true},...JSON.parse(localStorage.getItem(NOTIFICATION_PREFS_KEY)||'{}')};}catch{return {orders:true,collection:true,refill:true,delivery:true};}};
+const readNotificationPrefs=()=>{try{return {...{orders:true,collection:true,refill:true,delivery:true},...loadStaffDemo(NOTIFICATION_PREFS_KEY,{})};}catch{return {orders:true,collection:true,refill:true,delivery:true};}};
 const compactCount=n=>n>99?'99+':String(n);
-const readNotifications=()=>{try{const n=JSON.parse(localStorage.getItem(NOTIFICATIONS_KEY)||'[]');return Array.isArray(n)?n:[];}catch{return [];}};
+const readNotifications=()=>{const n=loadStaffDemo(NOTIFICATIONS_KEY,[]);return Array.isArray(n)?n:[];};
 const widgetCatalog=[
  {id:'active',label:'Active Task Pin'},
  {id:'quick',label:'Quick Walk-in POS'},
@@ -37,7 +34,7 @@ const defaultSettings={
  shortcuts:[{id:'round5',label:'Round Refill',quantity:1},{id:'slim5',label:'Slim Refill',quantity:1},{id:'slim25',label:'2.5 Gal Slim',quantity:1},{id:'round5',label:'Round ×2',quantity:2}]
 };
 const readSettings=()=>{try{
- const found=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'null');
+ const found=loadStaffDemo(SETTINGS_KEY,null);
  if(!found)return defaultSettings;
  return {...defaultSettings,...found,widgets:[...(Array.isArray(found.widgets)?found.widgets.filter(v=>widgetCatalog.some(w=>w.id===v.id)):[]),...defaultSettings.widgets.filter(v=>!found.widgets?.some(w=>w.id===v.id))],shortcuts:Array.isArray(found.shortcuts)?found.shortcuts.filter(v=>DEMO_PRODUCTS.some(p=>p.id===v.id)).slice(0,4):defaultSettings.shortcuts};
 }catch{return defaultSettings;}};
@@ -59,10 +56,11 @@ const seed=[
  {id:'AB-1028',customer:'Peter Reyes',phone:'',source:'Walk-in',quantity:2,service:'Pickup',address:'',notes:'Customer pickup.',amount:80,stage:'pickup',claimedBy:null,createdAt:'10:23 AM'},
  {id:'AB-1029',customer:'Lea Mendoza',phone:'0919 555 2301',source:'Messenger',quantity:2,service:'Delivery',address:'Brgy. Commonwealth',notes:'Collect and return same 2 Round gallons.',amount:80,stage:'collection',claimedBy:null,collectionRequired:true,createdAt:'10:25 AM'}
 ];
-const read=()=>{try{const value=JSON.parse(localStorage.getItem(STORE_KEY)||'null');return Array.isArray(value)?value:seed;}catch{return seed;}};
+const read=()=>{const value=loadStaffDemo(STORE_KEY,seed);return Array.isArray(value)?value:seed;};
 const labels={collection:'Pending Collection',collectionClaimed:'Collection Claimed',collectionTransit:'Returning to Station',pending:'Pending Refill',refilling:'Refill Claimed',ready:'Ready for Delivery',pickup:'Ready for Pickup',delivery:'Delivery Claimed',out:'Out for Delivery',delivered:'Delivered',picked:'Picked Up',failed:'Delivery Issue'};
 const now=()=>new Date().toLocaleString('en-PH');
-export default function StaffOperations({onLogout}){
+export default function StaffOperations({onLogout,staffSession}){
+ const currentStaffId=staffSession?.username||'staff'; // demo id; replace with server-issued user id
  const [orders,setOrders]=useState(read);
  const [trips,setTrips]=useState(readTrips);
  const [online,setOnline]=useState(()=>typeof navigator==='undefined'||navigator.onLine!==false);
@@ -126,12 +124,12 @@ export default function StaffOperations({onLogout}){
  },[]);
  useEffect(()=>{setBottomNavVisible(true);lastScrollY.current=Math.max(0,window.scrollY||0);},[page]);
  useEffect(()=>{if(detail||advancedOpen||collectionForm||proofPreview||notificationOpen)setBottomNavVisible(true);},[detail,advancedOpen,collectionForm,proofPreview,notificationOpen]);
- useEffect(()=>{try{localStorage.setItem(STORE_KEY,JSON.stringify(orders));}catch{setNotice('Browser storage is unavailable; changes may not persist.');}},[orders]);
- useEffect(()=>{try{localStorage.setItem(TRIPS_KEY,JSON.stringify(trips));}catch{setNotice('Trip history could not be saved in this browser.');}},[trips]);
+ useEffect(()=>{if(!saveStaffDemo(STORE_KEY,orders))setNotice('Browser storage is unavailable; changes may not persist.');},[orders]);
+ useEffect(()=>{if(!saveStaffDemo(TRIPS_KEY,trips))setNotice('Trip history could not be saved in this browser.');},[trips]);
  useEffect(()=>{const connected=()=>setOnline(navigator.onLine!==false);window.addEventListener('online',connected);window.addEventListener('offline',connected);return ()=>{window.removeEventListener('online',connected);window.removeEventListener('offline',connected);};},[]);
  useEffect(()=>()=>{if(proofPreview)URL.revokeObjectURL(proofPreview);},[proofPreview]);
- useEffect(()=>{try{localStorage.setItem(NOTIFICATIONS_KEY,JSON.stringify(notifications));}catch{/* demo only */}},[notifications]);
- useEffect(()=>{try{localStorage.setItem(NOTIFICATION_PREFS_KEY,JSON.stringify(notificationPrefs));}catch{/* demo only */}},[notificationPrefs]);
+ useEffect(()=>{saveStaffDemo(NOTIFICATIONS_KEY,notifications);},[notifications]);
+ useEffect(()=>{saveStaffDemo(NOTIFICATION_PREFS_KEY,notificationPrefs);},[notificationPrefs]);
  useEffect(()=>{if(!notificationOpen)return;const close=e=>{if(e.key==='Escape')setNotificationOpen(false)};document.addEventListener('keydown',close);return ()=>document.removeEventListener('keydown',close)},[notificationOpen]);
  useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(null),6500);return ()=>clearTimeout(timer);},[toast]);
  const notify=(message)=>{const type=notificationType(message);const event={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),message,type,read:false,time:new Date().toLocaleString('en-PH')};setNotifications(prev=>[event,...prev].slice(0,60));if(notificationPrefs[type]!==false)setToast(event);};
@@ -141,7 +139,7 @@ export default function StaffOperations({onLogout}){
  const openNotificationPage=(view='list')=>{setNotificationView(view);show('notifications');};
 
 
- useEffect(()=>{try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch{/* Local demo preferences only */}},[settings]);
+ useEffect(()=>{saveStaffDemo(SETTINGS_KEY,settings);},[settings]);
  useEffect(()=>{const id=setInterval(()=>setClock(Date.now()),60000);return ()=>clearInterval(id);},[]);
  const setWidget=(id,enabled)=>setSettings(prev=>({...prev,widgets:prev.widgets.map(w=>w.id===id?{...w,enabled}:w)}));
  const moveWidget=(id,delta)=>setSettings(prev=>{const list=[...prev.widgets],i=list.findIndex(w=>w.id===id),j=i+delta;if(i<0||j<0||j>=list.length)return prev;[list[i],list[j]]=[list[j],list[i]];return {...prev,widgets:list};});
@@ -161,8 +159,8 @@ export default function StaffOperations({onLogout}){
  setSale(initialStaffSale());show('queue');setTab(collectionRequired?'collection':'refill');setNotice(id+' saved to '+(collectionRequired?'Collection':'Refill')+' Queue (this browser only).');notify(id+' is ready for '+(collectionRequired?'collection':'refill')+'.');
  };
 
- const completedStaff=orders.filter(o=>(o.deliveredBy==='staff'||o.tripId||o.releasedBy==='staff')&&['delivered','picked','failed'].includes(o.stage));
- const mine=orders.filter(o=>o.claimedBy==='staff'&&['collectionClaimed','collectionTransit','refilling','delivery','out'].includes(o.stage));
+ const completedStaff=orders.filter(o=>(o.deliveredBy===currentStaffId||o.tripId||o.releasedBy===currentStaffId)&&['delivered','picked','failed'].includes(o.stage));
+ const mine=orders.filter(o=>o.claimedBy===currentStaffId&&['collectionClaimed','collectionTransit','refilling','delivery','out'].includes(o.stage));
  const collection=orders.filter(o=>o.stage==='collection');
  const pending=orders.filter(o=>o.stage==='pending');
  const ready=orders.filter(o=>o.stage==='ready');
@@ -171,15 +169,15 @@ export default function StaffOperations({onLogout}){
  const categoryOf=o=>['collection','collectionClaimed','collectionTransit'].includes(o.stage)?'collection':o.stage==='pending'||o.stage==='refilling'?'refill':o.stage==='pickup'||o.stage==='picked'?'pickup':'delivery';
  const show=(p)=>{setNotificationOpen(false);setCategoryOpen(false);setAdvancedOpen(false);setStageFilter('all');if(p==='queue'&&page!=='queue')setTab('all');if(p==='tasks'&&page!=='tasks')setTaskFilter('all');setSearch('');setPage(p);setDetail(null);setNotice('');setSelected([]);setSelectedCollection([]);window.scrollTo({top:0,behavior:'smooth'});};
  const update=(ids,change,message)=>{setOrders(prev=>prev.map(o=>ids.includes(o.id)?{...o,...change,updatedAt:now()}:o));setSelected([]);setDetail(null);if(message){setNotice(message);notify(message);}};
- const claimCollections=()=>{const valid=collection.filter(o=>selectedCollection.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'collectionClaimed',claimedBy:'staff',collectedBy:'staff',collectionClaimedAt:now()},valid.length+' collection task(s) added to My Tasks.');setSelectedCollection([]);};
+ const claimCollections=()=>{const valid=collection.filter(o=>selectedCollection.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'collectionClaimed',claimedBy:currentStaffId,collectedBy:currentStaffId,collectionClaimedAt:now()},valid.length+' collection task(s) added to My Tasks.');setSelectedCollection([]);};
  const openCollection=(o,mode)=>{setCollectionError('');setCollectionForm({id:o.id,mode});setCollectionQty(String(mode==='site'?o.quantity:o.collectedQty??o.quantity));setCollectionCondition(o.containerCondition||'Good');};
  const confirmCollection=()=>{const o=orders.find(x=>x.id===collectionForm?.id);if(!o)return;const qty=Number(collectionQty);if(!Number.isInteger(qty)||qty!==getOrderQuantity(o)){setCollectionError('The collected quantity must match the order. If bottles are missing or damaged, contact the manager before proceeding.');return;}if(collectionForm.mode==='site')update([o.id],{stage:'collectionTransit',collectedQty:qty,containerCondition:collectionCondition,collectedAt:now()},'Empty containers collected. Return them to station.');else if(qty!==Number(o.collectedQty)){setCollectionError('Station received quantity must match the collected quantity. Record an issue with the manager.');return;}else update([o.id],{stage:'pending',claimedBy:null,receivedAtStation:now(),stationReceivedQty:qty,containerCondition:collectionCondition},'Customer-owned containers received. Refill Queue updated.');setCollectionForm(null);setCollectionError('');};
- const claimRefill=(id)=>update([id],{stage:'refilling',claimedBy:'staff',refillClaimedAt:now()},'Refill task added to My Tasks.');
- const completeRefill=(id)=>{const o=orders.find(v=>v.id===id);if(!o)return;update([id],{stage:o.service==='Pickup'?'pickup':'ready',claimedBy:null,refilledBy:'staff',refillCompletedAt:now(),refillCompletedAtISO:new Date().toISOString()},'Refill completed. Order moved to '+(o.service==='Pickup'?'Pickup':'Delivery')+' queue.');};
- const claimDelivery=()=>{const valid=ready.filter(o=>selected.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},valid.length+' delivery order(s) added to My Tasks.');show('tasks');};
- const completePickup=(id)=>{if(window.confirm('Confirm that the customer received this order?'))update([id],{stage:'picked',releasedBy:'staff',releasedAt:now()},'Pickup confirmed.');};
+ const claimRefill=(id)=>update([id],{stage:'refilling',claimedBy:currentStaffId,refillClaimedAt:now()},'Refill task added to My Tasks.');
+ const completeRefill=(id)=>{const o=orders.find(v=>v.id===id);if(!o)return;update([id],{stage:o.service==='Pickup'?'pickup':'ready',claimedBy:null,refilledBy:currentStaffId,refillCompletedAt:now(),refillCompletedAtISO:new Date().toISOString()},'Refill completed. Order moved to '+(o.service==='Pickup'?'Pickup':'Delivery')+' queue.');};
+ const claimDelivery=()=>{const valid=ready.filter(o=>selected.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'delivery',claimedBy:currentStaffId,deliveryClaimedAt:now()},valid.length+' delivery order(s) added to My Tasks.');show('tasks');};
+ const completePickup=(id)=>{if(window.confirm('Confirm that the customer received this order?'))update([id],{stage:'picked',releasedBy:currentStaffId,releasedAt:now()},'Pickup confirmed.');};
  const dispatchDeliveries=(ids)=>{
-  const valid=orders.filter(o=>ids.includes(o.id)&&o.stage==='delivery'&&o.claimedBy==='staff').map(o=>o.id);
+  const valid=orders.filter(o=>ids.includes(o.id)&&o.stage==='delivery'&&o.claimedBy===currentStaffId).map(o=>o.id);
   if(!valid.length)return;
   const active=trips.find(t=>t.status==='active'),tripId=active?.id||'TRIP-'+Date.now();
   if(active)setTrips(prev=>prev.map(t=>t.id===tripId?{...t,orderIds:[...new Set([...t.orderIds,...valid])]}:t));
@@ -210,7 +208,7 @@ export default function StaffOperations({onLogout}){
   setProofSaving(true);setProofError('');
   try{
    await saveLocalProof(cameraOrder,photo);
-   update([cameraOrder],{stage:'delivered',deliveredBy:'staff',deliveredAt:now(),cashCollected:parsed,podRecorded:true,proofStorage:'indexeddb',proofSavedAt:new Date().toISOString(),remarks,remittance:'Pending manager verification'},'Delivery saved on this device, including photo and cash. No server sync exists.');
+   update([cameraOrder],{stage:'delivered',deliveredBy:currentStaffId,deliveredAt:now(),cashCollected:parsed,podRecorded:true,proofStorage:'indexeddb',proofSavedAt:new Date().toISOString(),remarks,remittance:'Pending manager verification'},'Delivery saved on this device, including photo and cash. No server sync exists.');
    setCameraOrder(null);setPhoto(null);
   }catch(err){setProofError(err?.message||'Could not save proof locally. Delivery was NOT marked completed.');}
   finally{setProofSaving(false);}
@@ -303,7 +301,7 @@ export default function StaffOperations({onLogout}){
          <span className="staffapp-next-heading"><strong>{o.id} · {o.customer}</strong><span className={'staffapp-next-type staffapp-next-type-'+categoryOf(o)}>{o.stage==='collection'?'Collect':o.stage==='pending'?'Refill':'Delivery'}</span></span>
          <small>{orderItems(o)} · {elapsed(o,clock).label}</small>
         </div>
-        <button type="button" aria-label={'Claim '+(o.stage==='collection'?'collection':o.stage==='pending'?'refill':'delivery')+' for '+o.id} onClick={()=>o.stage==='collection'?update([o.id],{stage:'collectionClaimed',claimedBy:'staff',collectedBy:'staff',collectionClaimedAt:now()},'Collection added to My Tasks.'):o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>{o.stage==='collection'?'Claim Collect':o.stage==='pending'?'Claim Refill':'Claim Delivery'}</button>
+        <button type="button" aria-label={'Claim '+(o.stage==='collection'?'collection':o.stage==='pending'?'refill':'delivery')+' for '+o.id} onClick={()=>o.stage==='collection'?update([o.id],{stage:'collectionClaimed',claimedBy:currentStaffId,collectedBy:currentStaffId,collectionClaimedAt:now()},'Collection added to My Tasks.'):o.stage==='pending'?claimRefill(o.id):update([o.id],{stage:'delivery',claimedBy:currentStaffId,deliveryClaimedAt:now()},'Delivery added to My Tasks.')}>{o.stage==='collection'?'Claim Collect':o.stage==='pending'?'Claim Refill':'Claim Delivery'}</button>
        </div>)}
        {![...collection,...pending,...ready].length&&<p className="mgmt-sub">No unclaimed refill or delivery orders.</p>}
       </section>
