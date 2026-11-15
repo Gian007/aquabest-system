@@ -3,6 +3,7 @@ import { FiActivity, FiAlertCircle, FiArrowRight, FiCheckCircle, FiClipboard, Fi
 import { formatMoney, orderSummary } from '../data/managerDemo.js';
 import { STAFF_DEMO_KEYS } from '../services/staffDemoAdapter.js';
 import './managerControl.css';
+import './staffOperations.css';
 import './managerSimplified.css';
 
 // Frontend-only preview. Staff data can be shared in the SAME browser, not across phones.
@@ -16,7 +17,7 @@ const isFinished=o=>['delivered','picked'].includes(o.stage);
 const fromManager=o=>({...o,sourceWorkspace:'manager',quantity:quantity(o),stage:({'Pending Confirmation':'pending',Confirmed:'pending',Preparing:'refilling',Ready:'ready','Out for Delivery':'out',Delivered:'delivered',Completed:'picked',Cancelled:'failed'})[o.status]||'pending'});
 const dateNum=val=>{const n=Date.parse(val||'');return Number.isFinite(n)?n:0;};
 const Metric=({label,value,Icon})=><div className="manager-control-metric"><div className="manager-control-metric-top"><span>{label}</span><Icon/></div><strong>{value}</strong></div>;
-export default function ManagerSimplified({page,go,orders,availability,onOpenOrder,onFinishManagerRefill,onNotice}){
+export default function ManagerSimplified({page,go,orders,availability,onOpenOrder,onFinishManagerRefill,onClaimManagerRefill,onNotice}){
  const [staffOrders,setStaffOrders]=useState(()=>readList(STAFF_DEMO_KEYS.orders));
  const [staffTrips,setStaffTrips]=useState(()=>readList(STAFF_DEMO_KEYS.trips));
  const [staffTask,setStaffTask]=useState('');
@@ -45,9 +46,20 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
  const filtered=queue.filter(o=>(filter==='All'||group(o.stage)===filter)&&[o.id,o.customer,o.address,o.customerReference,o.claimedBy,o.refilledBy,o.deliveredBy,o.source].join(' ').toLowerCase().includes(query.toLowerCase()));
  const assigned=o=>o.claimedBy||o.deliveredBy||o.collectedBy||o.refilledBy||o.assigned||'Not claimed';
  const openOrder=o=>{if(o.sourceWorkspace==='manager')onOpenOrder(o);else setStaffTask(o.id);};
+ const claimRefill=o=>{
+  if(o.stage!=='pending'||o.claimedBy)return;
+  if(o.sourceWorkspace==='manager'){onClaimManagerRefill(o.id);onNotice('Manager claimed refill in Manager demo orders.');return;}
+  const now=dateLabel();
+  const refreshed=readList(STAFF_DEMO_KEYS.orders);
+  const current=refreshed.find(x=>x.id===o.id);
+  if(!current||current.stage!=='pending'||current.claimedBy){onNotice('This refill was already claimed or changed. Refresh the queue.');refresh();return;}
+  const next=refreshed.map(x=>x.id===o.id?{...x,stage:'refilling',claimedBy:'Manager',refillClaimedAt:now,updatedAt:now}:x);
+  if(!writeList(STAFF_DEMO_KEYS.orders,next)){onNotice('Unable to save claim on this browser.');return;}
+  setStaffOrders(next);onNotice('Refill claimed by Manager on this browser only.');
+ };
  const finishRefill=()=>{
   const o=queue.find(x=>x.id===confirmRefill);
-  if(!o||!['pending','refilling'].includes(o.stage))return;
+  if(!o||o.stage!=='refilling'||o.claimedBy!=='Manager')return;
   if(o.sourceWorkspace==='manager'){onFinishManagerRefill(o.id);}
   else{
    const updated=staffOrders.map(x=>x.id===o.id?{...x,stage:x.service==='Pickup'?'pickup':'ready',claimedBy:null,refilledBy:'Manager',refillCompletedAt:dateLabel(),refillCompletedAtISO:new Date().toISOString(),updatedAt:dateLabel()}:x);
@@ -75,10 +87,14 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
  const pickupExpected=pickups.reduce((n,o)=>n+quantity(o),0);
  const pickupActual=pickups.reduce((n,o)=>n+(o.collectedQty==null?0:Number(o.collectedQty)||0),0);
  const trips=staffTrips.map(t=>({...t,orders:queue.filter(o=>o.tripId===t.id||(Array.isArray(t.orderIds)&&t.orderIds.includes(o.id)))}));
- const cards=(list,empty)=><div className="manager-simple-cards">{list.length?list.map(o=><article className={'manager-simple-order manager-simple-'+group(o.stage).toLowerCase()} key={o.id}>
-  <div className="manager-control-order-head"><strong>{o.id} · {o.customer}</strong><span className={'manager-control-tag '+(isFinished(o)?'ok':o.stage==='failed'?'danger':'')}>{STATUS[o.stage]||o.stage}</span></div>
-  <div className="manager-simple-meta"><span>{o.items?orderSummary(o.items):quantity(o)+' gallons'} · {o.address||o.customerReference||o.service||'Walk-in'}</span><span>{o.createdAt||o.date||'—'}</span></div>
-  <div className="manager-simple-actions"><small>{assigned(o)}</small><button className="manager-control-secondary" onClick={()=>openOrder(o)}>Details <FiArrowRight/></button>{['pending','refilling'].includes(o.stage)&&<button className="manager-control-primary" onClick={()=>setConfirmRefill(o.id)}>Complete Refill</button>}</div>
+ const cards=(list,empty)=><div className="manager-simple-cards staffapp manager-staff-queue">{list.length?list.map(o=><article className={'staffapp-order manager-staff-order manager-simple-'+group(o.stage).toLowerCase()} key={o.id}>
+  <div className="staffapp-compact-row staffapp-compact-head"><div className="staffapp-compact-identity"><strong>{o.id} <span className="staffapp-id-divider">·</span> {o.customer}</strong></div><span className="staffapp-payment-badge">{o.paymentStatus||'Cash / COD'}</span></div>
+  <div className="staffapp-compact-row staffapp-compact-meta"><span>{o.items?orderSummary(o.items):quantity(o)+' gallons'} · {o.address||o.customerReference||o.service||'Walk-in'}</span><span>{o.createdAt||o.date||'—'}</span></div>
+  <div className="manager-staff-state"><span className="manager-control-tag">{STATUS[o.stage]||o.stage}</span><small>{assigned(o)}</small></div>
+  <div className="staffapp-compact-row staffapp-compact-actions"><button className="staffapp-secondary" onClick={()=>openOrder(o)}>Details <FiArrowRight/></button>
+   {o.stage==='pending'&&!o.claimedBy&&<button className="staffapp-primary" onClick={()=>claimRefill(o)}>Claim Refill</button>}
+   {o.stage==='refilling'&&o.claimedBy==='Manager'&&<button className="staffapp-primary" onClick={()=>setConfirmRefill(o.id)}>Complete Refill</button>}
+  </div>
  </article>):<p className="manager-control-empty">{empty}</p>}</div>;
  return <div className="manager-control manager-simple">
   {page==='dashboard'&&<>
@@ -91,11 +107,11 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
    <p className="manager-control-help">This is a browser demo, not live cross-device monitoring. {fromStaff?'Showing Staff records saved in this browser.':'Showing Manager sample orders; no saved Staff queue in this browser.'}</p>
   </>}
   {page==='queue'&&<>
-   <div className="manager-control-title"><span>OPERATIONS</span><h1>Operations Queue</h1><p>Same task categories as Staff, but no Claim button. Manager can also help finish refills.</p></div>
+   <div className="manager-control-title"><span>OPERATIONS</span><h1>Operations Queue</h1><p>Same compact task cards as Staff. Manager can claim and complete Refills only, never Collection or Delivery.</p></div>
    <div className="manager-control-search"><FiSearch/><input value={query} aria-label="Search orders" placeholder="Search customer, unit, order…" onChange={e=>setQuery(e.target.value)}/></div>
    <div className="manager-control-filter">{categories.map(cat=><button key={cat} className={filter===cat?'active':''} onClick={()=>setFilter(cat)}>{cat} ({cat==='All'?queue.length:queue.filter(o=>group(o.stage)===cat).length})</button>)}</div>
    {cards(filtered,'No orders in this category.')}
-   <p className="manager-control-help">Manager cannot claim tasks. Refill completion is saved only to local demo records; other devices do not receive it.</p>
+   <p className="manager-control-help">Manager may claim only Pending Refill. Only Manager-claimed refills can be completed by Manager. Collection and Delivery remain view-only. No cross-device claim locking yet.</p>
   </>}
   {page==='collections'&&<>
    <div className="manager-control-title"><span>DELIVERY OPERATIONS</span><h1>Trips & Pickups</h1><p>Staff records each customer stop. Manager reviews the trip and collection results—no separate manual batch counting.</p></div>
@@ -119,7 +135,7 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
   {(selectedTask||confirmRefill)&&<div className="manager-simple-overlay" onClick={()=>{setStaffTask('');setConfirmRefill('')}} role="presentation"><section className="manager-simple-sheet" role="dialog" aria-modal="true" aria-label={confirmRefill?'Confirm refill completion':'Task details'} onClick={e=>e.stopPropagation()}>
    <div className="manager-control-order-head"><h2>{confirmRefill?'Complete This Refill?':'Task Details'}</h2><button className="manager-control-secondary" onClick={()=>{setStaffTask('');setConfirmRefill('')}}>Close</button></div>
    {confirmRefill?<>
-    <p>Confirm that all gallons for <strong>{queue.find(x=>x.id===confirmRefill)?.customer}</strong> are physically refilled and sealed. This updates the order stage and records <strong>Manager</strong> as the person who finished it.</p>
+    <p>Confirm that all gallons for <strong>{queue.find(x=>x.id===confirmRefill)?.customer}</strong> are physically refilled and sealed. This updates the order stage and records <strong>Manager</strong> as the refiller. Only Manager-claimed refills can be completed.</p>
     <p className="manager-control-help">This is a local demo update, not a server-authorized action.</p>
     <button className="manager-control-primary" onClick={finishRefill}>Confirm Refill Completed</button>
    </>:selectedTask&&<><p><strong>{selectedTask.id} · {selectedTask.customer}</strong></p><p>Status: {STATUS[selectedTask.stage]||selectedTask.stage}</p><p>Quantity: {quantity(selectedTask)} gallons</p><p>Assigned/Claimed: {assigned(selectedTask)}</p><p>{selectedTask.address||selectedTask.notes||'No additional details recorded.'}</p></>}
