@@ -27,7 +27,7 @@ function App() {
   };
   if (!businessViews.includes(view)) return <CustomerWeb />;
   return session
-    ? (session.role === 'staff' ? <StaffOperations onLogout={signOut} /> : <ManagementWeb key={session.role + ':' + session.username} role={session.role} onLogout={signOut} />)
+    ? (session.role === 'staff' ? <StaffOperations staffSession={session} onLogout={signOut} /> : <ManagementWeb key={session.role + ':' + session.username} role={session.role} onLogout={signOut} />)
     : <BusinessLogin onLogin={signIn} />;
 }
 createRoot(document.getElementById('root')).render(<StrictMode><App /></StrictMode>);
