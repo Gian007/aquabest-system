@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FiCamera, FiCheckCircle, FiClipboard, FiMapPin, FiPackage, FiTruck, FiWifiOff } from 'react-icons/fi';
+import { FiCamera, FiClipboard, FiMapPin, FiTruck, FiWifiOff } from 'react-icons/fi';
 import { formatMoney } from '../data/managerDemo.js';
 
 const labelFor=o=>o.stage==='collectionClaimed'||o.stage==='collectionTransit'?'Collect':o.stage==='refilling'?'Refill':'Delivery';
 const stageLabel=o=>o.stage==='out'?'Out for Delivery':o.stage==='delivery'?'Claimed — Ready to dispatch':o.stage==='collectionTransit'?'Return bottles to station':o.stage==='refilling'?'Refilling':'Ready to collect';
-export default function StaffTripWorkspace({assigned,completed,trips,online,onDispatch,onComplete,onAction,onDetails,onCloseTrip}){
+export default function StaffTripWorkspace({assigned,visibleAssigned,completed,trips,online,onDispatch,onComplete,onAction,onDetails,onCloseTrip,onIssue}){
  const [selected,setSelected]=useState([]);
  const [tab,setTab]=useState('active');
  const [tripDetails,setTripDetails]=useState(null);
@@ -14,9 +14,9 @@ export default function StaffTripWorkspace({assigned,completed,trips,online,onDi
  const delivered=tripOrders.filter(o=>o.stage==='delivered');
  const waiting=tripOrders.filter(o=>o.stage==='out');
  const failed=tripOrders.filter(o=>o.stage==='failed');
- const selectedValid=assigned.filter(o=>o.stage==='delivery'&&selected.includes(o.id));
- const available=assigned.filter(o=>o.stage==='delivery');
- const otherTasks=assigned.filter(o=>o.stage!=='out');
+ const selectedValid=available.filter(o=>selected.includes(o.id));
+ const available=visibleAssigned.filter(o=>o.stage==='delivery');
+ const otherTasks=visibleAssigned.filter(o=>o.stage!=='out');
  const completedOrders=completed.filter(o=>o.stage==='delivered'||o.stage==='picked');
  const visibleTrips=useMemo(()=>trips.slice().reverse(),[trips]);
  useEffect(()=>{setSelected(prev=>prev.filter(id=>available.some(o=>o.id===id)));},[assigned]);
@@ -33,7 +33,7 @@ export default function StaffTripWorkspace({assigned,completed,trips,online,onDi
      {!online&&<p className="staffapp-trip-offline"><FiWifiOff/> No network detected. This web demo saves delivery data on this device only; offline does not mean off duty.</p>}
      {waiting.map(o=><article className="staffapp-trip-stop" key={o.id}>
        <div><strong>{o.customer}</strong><small>{o.id} · {o.quantity||o.items?.reduce((n,i)=>n+i.quantity,0)} containers</small>{o.address&&<small><FiMapPin/> {o.address}</small>}</div>
-       <button className="staffapp-primary" onClick={()=>onComplete(o.id)}><FiCamera/> Confirm Delivered</button>
+       <button className="staffapp-primary" onClick={()=>onComplete(o.id)}><FiCamera/> Confirm Delivered</button><button className="staffapp-secondary" onClick={()=>onIssue(o.id)}>Report Issue</button>
      </article>)}
      <div className="staffapp-trip-actions"><button className="staffapp-secondary" onClick={()=>setTripDetails(activeTrip.id)}>Trip summary</button><button className="staffapp-primary" disabled={waiting.length>0||tripOrders.length===0} onClick={()=>onCloseTrip(activeTrip.id)}>Finish Trip</button></div>
     </section>}
