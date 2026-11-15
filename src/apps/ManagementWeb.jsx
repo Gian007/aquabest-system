@@ -21,7 +21,7 @@ import './managementWeb.css';
 
 const modules=[
  ['dashboard','Dashboard',FiHome],['pos','POS',FiMonitor],['queue','Operations Queue',FiClipboard],['orders','Orders',FiClipboard],
- ['collections','Trips & Pickups',FiTruck],['verification','Delivery Verification',FiCheckCircle],['remittance','Cash Remittance',FiDollarSign],
+ ['collections','Trips & Pickups',FiTruck],['verification','Order Verification',FiCheckCircle],['remittance','Cash Remittance',FiDollarSign],
  ['refill','Refill Tasks',FiDroplet],['delivery','Delivery',FiTruck],
  ['inventory','Inventory',FiPackage],['payments','Payments',FiCreditCard],
  ['reports','Sales Reports',FiBarChart2],['staff','Staff Tasks',FiUsers]
@@ -236,7 +236,7 @@ export default function ManagementWeb({role='manager',onLogout}){
       <button onClick={logout}><FiLogOut/><strong>Log Out</strong><small>Exit staff preview</small></button>
      </div>{section}
     </>}
-    {!isOwner&&!isStaff&&!isDelivery&&page==='more'&&<><Heading kicker="Manager access" title="More Modules" subtitle="Open another operational workspace."/><div className="mgmt-more">{modules.filter(([id])=>!['dashboard','pos','queue'].includes(id)).map(([id,label,Icon])=><button key={id} onClick={()=>go(id)}><Icon/><strong>{label}</strong><small>{({verification:'Review delivery results and evidence',queue:'All tasks and order stages',collections:'Trips, stops and collected gallons',remittance:'Cash submission checks',refill:'Preparation and refill queue',delivery:'Assignments and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and unpaid orders',reports:'Sales trends and breakdown',staff:'Personnel tasks'})[id]}</small></button>)}<button onClick={logout}><FiLogOut/><strong>Log Out</strong><small>Exit the demo workspace</small></button></div>{section}</>}
+    {!isOwner&&!isStaff&&!isDelivery&&page==='more'&&<><Heading kicker="Manager access" title="More Modules" subtitle="Open another operational workspace."/><div className="mgmt-more">{modules.filter(([id])=>!['dashboard','pos','queue'].includes(id)).map(([id,label,Icon])=><button key={id} onClick={()=>go(id)}><Icon/><strong>{label}</strong><small>{({verification:'Review outcomes, quantities and issues',queue:'All tasks and order stages',collections:'Trips, stops and collected gallons',remittance:'Cash submission checks',refill:'Preparation and refill queue',delivery:'Assignments and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and unpaid orders',reports:'Sales trends and breakdown',staff:'Personnel tasks'})[id]}</small></button>)}<button onClick={logout}><FiLogOut/><strong>Log Out</strong><small>Exit the demo workspace</small></button></div>{section}</>}
    </main>
   </div>
   <nav className="mgmt-bottom" aria-label="Primary management navigation">{(isOwner?[['dashboard','Home',FiHome],['reports','Reports',FiBarChart2],['employees','Employees',FiUsers],['more','More',FiMenu]]:isDelivery?[['dashboard','Home',FiHome],['deliveries','Deliveries',FiTruck],['collections','Collections',FiCreditCard],['more','More',FiMenu]]:isStaff?[['dashboard','Home',FiHome],['refill','Refill',FiDroplet],['orders','Orders',FiClipboard],['more','More',FiMenu]]:[['dashboard','Home',FiHome],['pos','POS',FiMonitor],['queue','Queue',FiClipboard],['more','More',FiMenu]]).map(([id,label,Icon])=><button key={id} className={page===id||(id==='more'&&!['dashboard','pos','queue','orders','refill','deliveries',...(isOwner?['reports','employees']:[])].includes(page))?'active':''} onClick={()=>go(id)}><Icon/>{label}</button>)}</nav>
