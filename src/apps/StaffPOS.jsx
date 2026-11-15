@@ -12,12 +12,12 @@ function QuantityEditor({value,onSet,label}){
  const [draft,setDraft]=useState(String(value??0));
  useEffect(()=>{setDraft(String(value??0));},[value]);
  const edit=(raw)=>{
-  if(!/^\\d{0,2}$/.test(raw))return;
+  if(!/^[0-9]{0,2}$/.test(raw))return;
   setDraft(raw);
   if(raw!=='')onSet(Math.min(99,Number(raw)));
  };
  const finish=()=>{const number=draft===''?0:Math.min(99,Number(draft));setDraft(String(number));onSet(number);};
- return <input className="staffapp-qty-edit" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} aria-label={'Quantity for '+label} value={draft} onChange={e=>edit(e.target.value)} onBlur={finish}/>;
+ return <input className="staffapp-qty-edit" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} aria-label={'Quantity for '+label} value={draft} onFocus={e=>e.target.select()} onChange={e=>edit(e.target.value)} onBlur={finish}/>;
 }
 export const initialStaffSale=()=>({source:'Walk-in',customer:'',ownership:'own',arrangement:'purchase',service:'Walk-in',phone:'',address:'',quantities:{round5:0,slim25:0,slim5:0},paymentMethod:'Cash',paymentStatus:'Unpaid',reference:'',notes:''});
 export default function StaffPOS({sale,onChange,onSave,onClear}){

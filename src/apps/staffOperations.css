@@ -1081,3 +1081,37 @@
   max-width:30px;
  }
 }
+
+
+/* Matching field headings keep Quick-Tap button label and quantity aligned on phones. */
+.staffapp .staffapp-shortcut-row>.staffapp-shortcut-field{
+ display:grid;
+ grid-template-rows:17px 44px;
+ align-content:end;
+ gap:5px;
+ align-self:end;
+ min-width:0;
+ max-width:none;
+ margin:0;
+ font-size:12px;
+ line-height:17px;
+ color:#64748b;
+}
+.staffapp .staffapp-shortcut-row>.staffapp-shortcut-field input{
+ display:block;
+ box-sizing:border-box;
+ width:100%;
+ min-width:0;
+ min-height:44px;
+ height:44px;
+ margin:0;
+ font-size:16px;
+ line-height:normal;
+}
+@media(max-width:650px){
+ .staffapp .staffapp-shortcut-row>.staffapp-shortcut-field{
+  grid-column:auto;
+  width:100%;
+ }
+ .staffapp .staffapp-shortcut-row>.staffapp-shortcut-field input{width:100%;}
+}
