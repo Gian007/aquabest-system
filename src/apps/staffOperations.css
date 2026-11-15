@@ -856,3 +856,6 @@
  .staffapp .staffapp-proof-choices button{font-size:11px;padding:6px}
  .staffapp .staffapp-trip-actions{flex-wrap:wrap}
 }
+
+.staffapp .staffapp-notification-open{display:inline-flex;align-items:center;gap:5px;justify-content:flex-start;width:max-content;max-width:100%;border:0;background:transparent;color:#244ea3;font-size:11px;font-weight:800;padding:6px 0}
+.staffapp .staffapp-popover-item .staffapp-notification-open{color:#244ea3}
