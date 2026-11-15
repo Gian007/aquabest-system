@@ -257,7 +257,7 @@ export default function StaffOperations({onLogout}){
  const openAdvanced=()=>{setDraftSort(sortOrder);setDraftStage(stageFilter);setCategoryOpen(false);setAdvancedOpen(true);};
  const applyAdvanced=()=>{setSortOrder(draftSort);setStageFilter(draftStage);setAdvancedOpen(false);};
 
- return <div className="staffapp">
+ return <div className={'staffapp'+(page==='pos'?' staffapp-pos-page':'')}>
   <header className="mgmt-header staffapp-shared-header"><div className="mgmt-header-inner">
     <button className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>show('home')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong>Staff Operations</strong></span></button>
     <div className="mgmt-header-end"><div className="staffapp-header-alerts"><ManagementHeaderActions name="Staff A" entries={availability} orders={mine.map(o=>({id:o.id,assigned:'Staff A',status:o.stage==='refilling'?'Preparing':'Out for Delivery'}))} onUpdate={updateAvailability} onNotifications={()=>setNotificationOpen(v=>!v)}/>{notificationUnread>0&&<span className="staffapp-header-unread" aria-label={notificationUnread+' unread notifications'}>{compactCount(notificationUnread)}</span>}</div>
