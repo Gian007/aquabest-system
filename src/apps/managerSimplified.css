@@ -37,3 +37,17 @@
 .manager-simple .manager-control-filter button{min-height:40px}
 @media(min-width:760px){.manager-simple-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.manager-simple-overlay{align-items:center}.manager-simple-sheet{border-radius:18px}}
 @media(max-width:390px){.manager-simple-actions{gap:6px}.manager-simple-actions button{font-size:11px}.manager-simple-order .manager-control-order-head{flex-wrap:wrap}}
+
+
+/* Reuse the Staff compact order visual hierarchy, with Manager permission controls. */
+.manager-simple-cards.manager-staff-queue{background:transparent;min-height:0;padding:0}
+.manager-staff-queue .manager-staff-order{min-width:0;border-left-width:4px}
+.manager-staff-queue .staffapp-compact-row{min-width:0}
+.manager-staff-queue .staffapp-compact-identity{min-width:0}
+.manager-staff-queue .staffapp-compact-identity strong{overflow-wrap:anywhere}
+.manager-staff-state{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:7px 0}
+.manager-staff-state small{color:#667788;font-size:11px}
+.manager-staff-queue .staffapp-compact-actions{justify-content:flex-start;flex-wrap:wrap;gap:8px}
+.manager-staff-queue .staffapp-compact-actions button{min-height:42px;white-space:normal;font-size:12px}
+.manager-staff-queue .staffapp-compact-meta span{min-width:0;overflow-wrap:anywhere}
+@media(max-width:390px){.manager-staff-queue .staffapp-compact-actions button{flex:1 1 auto}}
