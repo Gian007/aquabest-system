@@ -19,7 +19,8 @@ export default function StaffTripWorkspace({assigned,visibleAssigned,completed,t
  const otherTasks=visibleAssigned.filter(o=>o.stage!=='out');
  const completedOrders=completed.filter(o=>o.stage==='delivered'||o.stage==='picked');
  const visibleTrips=useMemo(()=>trips.slice().reverse(),[trips]);
- useEffect(()=>{setSelected(prev=>prev.filter(id=>available.some(o=>o.id===id)));},[assigned]);
+ const availableKeys=available.map(o=>o.id).join('|');
+ useEffect(()=>{setSelected(prev=>{const next=prev.filter(id=>availableKeys.split('|').includes(id));return next.length===prev.length?prev:next;});},[availableKeys]);
  return <div className="staffapp-trip-workspace">
   <div className="staffapp-trip-switch" role="group" aria-label="Task status">
    <button className={tab==='active'?'active':''} onClick={()=>setTab('active')}>Active ({assigned.length})</button>
@@ -29,7 +30,7 @@ export default function StaffTripWorkspace({assigned,visibleAssigned,completed,t
    {activeTrip&&<section className="staffapp-trip-panel">
      <div className="staffapp-trip-head"><span><FiTruck/> ACTIVE DELIVERY TRIP</span><strong>{delivered.length}/{tripOrders.length} delivered</strong></div>
      <div className="staffapp-trip-meter"><span style={{width:(tripOrders.length?Math.round(100*delivered.length/tripOrders.length):0)+'%'}}/></div>
-     <p>{waiting.length} remaining · {failed.length} issues · {online?'Connected':'No network detected'}</p>
+     <p>{waiting.length} remaining · {failed.length} issues · {online?'Network available':'No network detected'}</p>
      {!online&&<p className="staffapp-trip-offline"><FiWifiOff/> No network detected. This web demo saves delivery data on this device only; offline does not mean off duty.</p>}
      {waiting.map(o=><article className="staffapp-trip-stop" key={o.id}>
        <div><strong>{o.customer}</strong><small>{o.id} · {o.quantity||o.items?.reduce((n,i)=>n+i.quantity,0)} containers</small>{o.address&&<small><FiMapPin/> {o.address}</small>}</div>
