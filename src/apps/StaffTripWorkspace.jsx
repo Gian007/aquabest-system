@@ -14,8 +14,8 @@ export default function StaffTripWorkspace({assigned,visibleAssigned,completed,t
  const delivered=tripOrders.filter(o=>o.stage==='delivered');
  const waiting=tripOrders.filter(o=>o.stage==='out');
  const failed=tripOrders.filter(o=>o.stage==='failed');
- const selectedValid=available.filter(o=>selected.includes(o.id));
  const available=visibleAssigned.filter(o=>o.stage==='delivery');
+ const selectedValid=available.filter(o=>selected.includes(o.id));
  const otherTasks=visibleAssigned.filter(o=>o.stage!=='out');
  const completedOrders=completed.filter(o=>o.stage==='delivered'||o.stage==='picked');
  const visibleTrips=useMemo(()=>trips.slice().reverse(),[trips]);
