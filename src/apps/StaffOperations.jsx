@@ -208,8 +208,6 @@ export default function StaffOperations({onLogout}){
  const todayKey=new Date(clock).toLocaleDateString('en-CA');
  const gallonsToday=orders.filter(o=>o.refillCompletedAtISO&&new Date(o.refillCompletedAtISO).toLocaleDateString('en-CA')===todayKey).reduce((sum,o)=>sum+getOrderQuantity(o),0);
  const dailyTarget=Math.max(1,Number(settings.dailyTarget)||40);
- const taskCurrent=page==='tasks'?(filtered.find(o=>['out','collectionTransit'].includes(o.stage))||filtered[0]):null;
- const upcomingTasks=page==='tasks'?filtered.filter(o=>o.id!==taskCurrent?.id):[];
  const taskAction=(o)=>o.stage==='collectionClaimed'?<button className="staffapp-primary" onClick={()=>openCollection(o,'site')}>Confirm Collection</button>
  :o.stage==='collectionTransit'?<button className="staffapp-primary" onClick={()=>openCollection(o,'station')}>Received at Station</button>
  :o.stage==='refilling'?<button className="staffapp-primary" onClick={()=>completeRefill(o.id)}>Complete Refill</button>
@@ -315,23 +313,7 @@ export default function StaffOperations({onLogout}){
       <button type="button" className="staffapp-filter-trigger" aria-expanded={advancedOpen} onClick={openAdvanced}><FiFilter aria-hidden="true"/> Filter{(stageFilter!=='all'||sortOrder!=='oldest')&&<span className="staffapp-filter-active-dot" aria-label="Filters active"/>}</button>
      </div>}
     <label className="staffapp-search"><FiSearch/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search order, customer or address" aria-label="Search orders"/></label>
-    {page==='tasks'&&<div className="staffapp-personal-tasks">
-      <div className="staffapp-task-workload"><span>Your current workload</span><strong>{filtered.length} {filtered.length===1?'task':'tasks'}</strong></div>
-      {taskCurrent?<section className={'staffapp-current-task staffapp-type-'+categoryOf(taskCurrent)}>
-       <div className="staffapp-current-task-header"><span><FiClipboard/> CURRENT TASK</span><span className={'staffapp-next-type staffapp-next-type-'+categoryOf(taskCurrent)}>{activeTypeLabel(taskCurrent)}</span></div>
-       <h2>{taskCurrent.customer}</h2>
-       <p className="staffapp-current-task-sub">{taskCurrent.id} · {labels[taskCurrent.stage]}</p>
-       <p className="staffapp-current-task-quantity">{orderItems(taskCurrent)}</p>
-       {taskCurrent.address&&<p className="staffapp-current-task-address"><FiMapPin/> {taskCurrent.address}</p>}
-       <div className="staffapp-current-task-buttons"><button className="staffapp-secondary" onClick={()=>setDetail(taskCurrent.id)}>Details <FiChevronDown/></button>{taskAction(taskCurrent)}</div>
-      </section>:<div className="staffapp-empty staffapp-task-empty"><FiCheckCircle/><strong>No tasks in this view</strong><p>Choose another category or claim work from Queues.</p><button className="staffapp-secondary" onClick={()=>show('queue')}>Open Queues</button></div>}
-      {upcomingTasks.length>0&&<section className="staffapp-up-next"><div className="staffapp-up-next-heading"><h2>Up Next</h2><span>{upcomingTasks.length} remaining</span></div>
-       {upcomingTasks.map(o=><div key={o.id} className={'staffapp-up-next-row staffapp-type-'+categoryOf(o)}>
-        <div className="staffapp-up-next-info"><strong>{o.customer}</strong><span>{o.id} · {orderItems(o)}</span><span className={'staffapp-next-type staffapp-next-type-'+categoryOf(o)}>{activeTypeLabel(o)} · {labels[o.stage]}</span></div>
-        <div className="staffapp-up-next-actions"><button className="staffapp-secondary" onClick={()=>setDetail(o.id)}>Details</button>{taskAction(o)}</div>
-       </div>)}
-      </section>}
-     </div>}
+    {page==='tasks'&&<StaffTripWorkspace assigned={mine} visibleAssigned={filtered} completed={completedStaff} trips={trips} online={online} onDispatch={dispatchDeliveries} onComplete={startProof} onAction={taskAction} onDetails={setDetail} onCloseTrip={closeTrip} onIssue={reportDeliveryIssue}/>}
      {page!=='tasks'&&<div className="staffapp-list">{filtered.length===0&&<div className="staffapp-empty"><FiCheckCircle/><strong>No matching orders</strong><p>Try another queue or search.</p></div>}
     {filtered.map(o=><article className={"staffapp-order staffapp-type-"+categoryOf(o)} key={o.id}
       onTouchStart={page==='queue'&&((tab==='delivery'&&o.stage==='ready')||(tab==='collection'&&o.stage==='collection')||(tab==='all'&&['ready','collection'].includes(o.stage)))?e=>{touchStart.current={x:e.touches[0].clientX,y:e.touches[0].clientY,id:o.id};}:undefined}
@@ -446,7 +428,19 @@ export default function StaffOperations({onLogout}){
    {detailOrder.address&&<div className="staffapp-sheet-info"><FiMapPin/> {detailOrder.address}</div>}
    {detailOrder.notes&&<div className="staffapp-sheet-info">Notes: {detailOrder.notes}</div>}
    <div className="staffapp-sheet-row"><b>Payment (demo)</b><span>COD • ₱{detailOrder.amount}</span></div>
-   {cameraOrder&&<div className="staffapp-proof"><h3>Proof of Delivery</h3><p>Take a picture of the delivered containers. Avoid faces and private details.</p><input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={e=>{const f=e.target.files?.[0];setPhoto(f||null)}} aria-label="Take delivery photo"/>{photo&&<span className="staffapp-photo-ok"><FiCheck/> Photo selected: {photo.name}</span>}<label>COD cash collected (₱)<input type="number" min="0" step="0.01" value={cash} onChange={e=>setCash(e.target.value)} placeholder="Enter actual cash"/></label><label>Remarks (optional)<textarea value={remarks} onChange={e=>setRemarks(e.target.value)} placeholder="Delivery notes"/></label><p className="staffapp-disclaimer">Demo only: photo is required for this confirmation but image bytes are not uploaded or retained. Do not use this as production proof.</p><button className="staffapp-primary" onClick={saveDelivery} disabled={!photo}>Submit Delivery</button></div>}
+   {cameraOrder&&<div className="staffapp-proof"><h3>Proof of Delivery</h3><p>Choose camera or gallery. One photo required per customer. Avoid faces and private details.</p>
+     <div className="staffapp-proof-choices"><button type="button" className="staffapp-secondary" onClick={()=>cameraRef.current?.click()}><FiCamera/> Take Photo</button><button type="button" className="staffapp-secondary" onClick={()=>galleryRef.current?.click()}><FiPackage/> Choose from Gallery</button></div>
+     <input ref={cameraRef} hidden type="file" accept="image/*" capture="environment" onChange={e=>{setProofError('');setPhoto(e.target.files?.[0]||null);e.target.value='';}} aria-label="Capture proof with camera"/>
+     <input ref={galleryRef} hidden type="file" accept="image/*" onChange={e=>{setProofError('');setPhoto(e.target.files?.[0]||null);e.target.value='';}} aria-label="Select proof from gallery"/>
+     {photo&&<span className="staffapp-photo-ok"><FiCheck/> Selected: {photo.name} · {(photo.size/1024/1024).toFixed(1)} MB</span>}
+     <label>COD cash collected (₱)<input type="number" min="0" step="0.01" value={cash} onChange={e=>setCash(e.target.value)} placeholder="Enter actual cash"/></label>
+     <label>Remarks (optional)<textarea value={remarks} onChange={e=>setRemarks(e.target.value)} placeholder="Delivery notes"/></label>
+     {proofError&&<p className="staffapp-collection-error" role="alert">{proofError}</p>}
+     <p className="staffapp-disclaimer">Web demo: photo saved in this browser's IndexedDB (max 8 MB). It is not uploaded to the server or saved to the phone gallery. Clearing browser data may erase it; offline page launch is not guaranteed.</p>
+     <button className="staffapp-primary" onClick={saveDelivery} disabled={!photo||proofSaving}>{proofSaving?'Saving on device…':'Confirm Delivered'}</button>
+    </div>}
+   {detailOrder.stage==='delivered'&&detailOrder.proofStorage==='indexeddb'&&<button className="staffapp-secondary" onClick={()=>viewLocalProof(detailOrder.id)}>View locally saved photo</button>}
   </section></div>}
+  {proofPreview&&<div className="staffapp-overlay" onClick={()=>setProofPreview(null)}><section className="staffapp-sheet" role="dialog" aria-modal="true" aria-label="Local delivery photo" onClick={e=>e.stopPropagation()}><div className="staffapp-sheet-head"><h2>Local Proof Photo</h2><button aria-label="Close photo" onClick={()=>setProofPreview(null)}><FiX/></button></div><img className="staffapp-proof-viewer" src={proofPreview} alt="Delivery proof stored on this device"/><p className="staffapp-muted">Stored on this browser only until a future server is connected.</p></section></div>}
  </div>;
 }
