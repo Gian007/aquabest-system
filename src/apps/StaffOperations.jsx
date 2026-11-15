@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FiActivity, FiArrowLeft, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiClipboard, FiDroplet, FiHome, FiLogOut, FiMapPin, FiPhone, FiSearch, FiShoppingCart, FiTruck, FiX, FiSettings, FiMenu, FiArrowUp, FiArrowDown, FiPlus, FiPackage, FiArrowRight, FiTarget, FiFilter, FiTrash2, FiList, FiSliders, FiEye, FiCheckSquare } from 'react-icons/fi';
+import { FiActivity, FiBell, FiCamera, FiCheck, FiCheckCircle, FiChevronDown, FiClipboard, FiDroplet, FiHome, FiLogOut, FiMapPin, FiSearch, FiShoppingCart, FiTruck, FiX, FiSettings, FiMenu, FiArrowUp, FiArrowDown, FiPlus, FiPackage, FiArrowRight, FiTarget, FiFilter, FiTrash2, FiList, FiCheckSquare } from 'react-icons/fi';
 import logo from '../assets/AquaBest logo.png';
 import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import { useEmployeeAvailability } from './EmployeeAvailability.jsx';
