@@ -4,6 +4,8 @@ import logo from '../assets/AquaBest logo.png';
 import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import { useEmployeeAvailability } from './EmployeeAvailability.jsx';
 import StaffPOS, { initialStaffSale } from './StaffPOS.jsx';
+import StaffTripWorkspace from './StaffTripWorkspace.jsx';
+import { saveLocalProof, getLocalProof } from './staffProofStorage.js';
 import { bottleOptions } from './Component_Customer/orderData.js';
 import { DEMO_PRICES, DEMO_PRODUCTS, formatMoney } from '../data/managerDemo.js';
 import './managementWeb.css';
@@ -15,6 +17,8 @@ const STORE_KEY='aquabest-staff-operations-demo-v1';
 const SETTINGS_KEY='aquabest-staff-dashboard-settings-v1';
 const NOTIFICATIONS_KEY='aquabest-staff-notifications-demo-v1';
 const NOTIFICATION_PREFS_KEY='aquabest-staff-notification-prefs-v1';
+const TRIPS_KEY='aquabest-staff-trips-demo-v1';
+const readTrips=()=>{try{const v=JSON.parse(localStorage.getItem(TRIPS_KEY)||'[]');return Array.isArray(v)?v:[];}catch{return [];}};
 const notificationTypes=[{id:'orders',label:'New orders and queue changes'},{id:'collection',label:'Collection updates'},{id:'refill',label:'Refill updates'},{id:'delivery',label:'Delivery and pickup updates'}];
 const notificationType=message=>/collect|container.*station/i.test(message)?'collection':/refill/i.test(message)?'refill':/deliver|pickup|remittance/i.test(message)?'delivery':'orders';
 const readNotificationPrefs=()=>{try{return {...{orders:true,collection:true,refill:true,delivery:true},...JSON.parse(localStorage.getItem(NOTIFICATION_PREFS_KEY)||'{}')};}catch{return {orders:true,collection:true,refill:true,delivery:true};}};
@@ -60,6 +64,8 @@ const labels={collection:'Pending Collection',collectionClaimed:'Collection Clai
 const now=()=>new Date().toLocaleString('en-PH');
 export default function StaffOperations({onLogout}){
  const [orders,setOrders]=useState(read);
+ const [trips,setTrips]=useState(readTrips);
+ const [online,setOnline]=useState(()=>typeof navigator==='undefined'||navigator.onLine!==false);
  const [notifications,setNotifications]=useState(readNotifications);
  const [notificationPrefs,setNotificationPrefs]=useState(readNotificationPrefs);
  const [notificationOpen,setNotificationOpen]=useState(false);
@@ -90,11 +96,18 @@ export default function StaffOperations({onLogout}){
  const [notice,setNotice]=useState('');
  const [cash,setCash]=useState('');
  const [photo,setPhoto]=useState(null);
+ const [proofSaving,setProofSaving]=useState(false);
+ const [proofPreview,setProofPreview]=useState(null);
+ const [proofError,setProofError]=useState('');
  const [remarks,setRemarks]=useState('');
  const [cameraOrder,setCameraOrder]=useState(null);
- const fileRef=useRef(null);
+ const cameraRef=useRef(null);
+ const galleryRef=useRef(null);
  const touchStart=useRef(null);
  useEffect(()=>{try{localStorage.setItem(STORE_KEY,JSON.stringify(orders));}catch{setNotice('Browser storage is unavailable; changes may not persist.');}},[orders]);
+ useEffect(()=>{try{localStorage.setItem(TRIPS_KEY,JSON.stringify(trips));}catch{setNotice('Trip history could not be saved in this browser.');}},[trips]);
+ useEffect(()=>{const connected=()=>setOnline(navigator.onLine!==false);window.addEventListener('online',connected);window.addEventListener('offline',connected);return ()=>{window.removeEventListener('online',connected);window.removeEventListener('offline',connected);};},[]);
+ useEffect(()=>()=>{if(proofPreview)URL.revokeObjectURL(proofPreview);},[proofPreview]);
  useEffect(()=>{try{localStorage.setItem(NOTIFICATIONS_KEY,JSON.stringify(notifications));}catch{/* demo only */}},[notifications]);
  useEffect(()=>{try{localStorage.setItem(NOTIFICATION_PREFS_KEY,JSON.stringify(notificationPrefs));}catch{/* demo only */}},[notificationPrefs]);
  useEffect(()=>{if(!notificationOpen)return;const close=e=>{if(e.key==='Escape')setNotificationOpen(false)};document.addEventListener('keydown',close);return ()=>document.removeEventListener('keydown',close)},[notificationOpen]);
@@ -126,6 +139,7 @@ export default function StaffOperations({onLogout}){
  setSale(initialStaffSale());show('queue');setTab(collectionRequired?'collection':'refill');setNotice(id+' saved to '+(collectionRequired?'Collection':'Refill')+' Queue (this browser only).');notify(id+' is ready for '+(collectionRequired?'collection':'refill')+'.');
  };
 
+ const completedStaff=orders.filter(o=>(o.deliveredBy==='staff'||o.tripId||o.releasedBy==='staff')&&['delivered','picked','failed'].includes(o.stage));
  const mine=orders.filter(o=>o.claimedBy==='staff'&&['collectionClaimed','collectionTransit','refilling','delivery','out'].includes(o.stage));
  const collection=orders.filter(o=>o.stage==='collection');
  const pending=orders.filter(o=>o.stage==='pending');
@@ -142,9 +156,47 @@ export default function StaffOperations({onLogout}){
  const completeRefill=(id)=>{const o=orders.find(v=>v.id===id);if(!o)return;update([id],{stage:o.service==='Pickup'?'pickup':'ready',claimedBy:null,refilledBy:'staff',refillCompletedAt:now(),refillCompletedAtISO:new Date().toISOString()},'Refill completed. Order moved to '+(o.service==='Pickup'?'Pickup':'Delivery')+' queue.');};
  const claimDelivery=()=>{const valid=ready.filter(o=>selected.includes(o.id)).map(o=>o.id);if(!valid.length)return;update(valid,{stage:'delivery',claimedBy:'staff',deliveryClaimedAt:now()},valid.length+' delivery order(s) added to My Tasks.');show('tasks');};
  const completePickup=(id)=>{if(window.confirm('Confirm that the customer received this order?'))update([id],{stage:'picked',releasedBy:'staff',releasedAt:now()},'Pickup confirmed.');};
- const startDelivery=(id)=>update([id],{stage:'out',dispatchedAt:now()},'Order marked Out for Delivery.');
- const startProof=(id)=>{setCameraOrder(id);setCash('');setRemarks('');setPhoto(null);setDetail(id);};
- const saveDelivery=()=>{if(!cameraOrder||!photo){setNotice('A delivery photo is required before completion.');return;}const parsed=Number(cash);if(!cash.trim()||!Number.isFinite(parsed)||parsed<0){setNotice('Enter the actual COD cash collected (0 if none).');return;}update([cameraOrder],{stage:'delivered',deliveredBy:'staff',deliveredAt:now(),cashCollected:parsed,podRecorded:true,remittance:'Pending manager verification'},'Delivery recorded. Cash remittance still requires manager verification.');setCameraOrder(null);setPhoto(null);};
+ const dispatchDeliveries=(ids)=>{
+  const valid=orders.filter(o=>ids.includes(o.id)&&o.stage==='delivery'&&o.claimedBy==='staff').map(o=>o.id);
+  if(!valid.length)return;
+  const active=trips.find(t=>t.status==='active'),tripId=active?.id||'TRIP-'+Date.now();
+  if(active)setTrips(prev=>prev.map(t=>t.id===tripId?{...t,orderIds:[...new Set([...t.orderIds,...valid])]}:t));
+  else setTrips(prev=>[...prev,{id:tripId,orderIds:valid,startedAt:new Date().toISOString(),status:'active'}]);
+  setOrders(prev=>prev.map(o=>valid.includes(o.id)?{...o,stage:'out',tripId,dispatchedAt:now(),updatedAt:now()}:o));
+  notify('Delivery trip started: '+valid.length+' orders Out for Delivery. Confirm each customer separately.');
+  setNotice(valid.length+' deliveries dispatched together. Confirm each handover separately.');
+ };
+ const startDelivery=id=>dispatchDeliveries([id]);
+ const reportDeliveryIssue=id=>{
+  const reason=window.prompt('What happened with this delivery? Required; this does not mark it delivered.');
+  if(reason===null)return;
+  if(!reason.trim()){setNotice('Please enter an issue reason.');return;}
+  update([id],{stage:'failed',issueReason:reason.trim(),failedAt:now()},'Delivery issue recorded for '+id+'. Review before ending trip.');
+ };
+ const closeTrip=id=>{
+  const trip=trips.find(t=>t.id===id);
+  if(!trip||trip.orderIds.some(orderId=>orders.some(o=>o.id===orderId&&o.stage==='out'))){setNotice('Finish each delivery or record an issue before ending the trip.');return;}
+  setTrips(prev=>prev.map(t=>t.id===id?{...t,status:'closed',endedAt:new Date().toISOString()}:t));
+  notify('Trip finished. Review COD remittance and locally stored photo proofs in My Tasks.');
+ };
+ const startProof=id=>{setCameraOrder(id);setCash('');setRemarks('');setPhoto(null);setProofError('');setDetail(id);};
+ const saveDelivery=async()=>{
+  if(proofSaving)return;
+  if(!cameraOrder||!photo){setProofError('Choose a delivery photo before completion.');return;}
+  const parsed=Number(cash);
+  if(!cash.trim()||!Number.isFinite(parsed)||parsed<0){setProofError('Enter actual COD cash collected (0 if none).');return;}
+  setProofSaving(true);setProofError('');
+  try{
+   await saveLocalProof(cameraOrder,photo);
+   update([cameraOrder],{stage:'delivered',deliveredBy:'staff',deliveredAt:now(),cashCollected:parsed,podRecorded:true,proofStorage:'indexeddb',proofSavedAt:new Date().toISOString(),remarks,remittance:'Pending manager verification'},'Delivery saved on this device, including photo and cash. No server sync exists.');
+   setCameraOrder(null);setPhoto(null);
+  }catch(err){setProofError(err?.message||'Could not save proof locally. Delivery was NOT marked completed.');}
+  finally{setProofSaving(false);}
+ };
+ const viewLocalProof=async id=>{
+  try{const record=await getLocalProof(id);if(!record?.file){setNotice('No photo found on this device for this order.');return;}setProofPreview(URL.createObjectURL(record.file));}
+  catch(err){setNotice(err?.message||'Could not open local proof.');}
+ };
  const detailOrder=orders.find(o=>o.id===detail);
  const list=page==='tasks'?mine.filter(o=>taskFilter==='all'||(taskFilter==='collection'?['collectionClaimed','collectionTransit'].includes(o.stage):taskFilter==='refill'?o.stage==='refilling':['delivery','out'].includes(o.stage))):page==='history'?orders.filter(o=>['delivered','picked','failed'].includes(o.stage)):page==='queue'?(tab==='all'?[...collection,...pending,...ready,...pickup]:tab==='collection'?collection:tab==='refill'?pending:tab==='delivery'?ready:pickup):[];
  const stageGroup=o=>['collectionClaimed','refilling','delivery'].includes(o.stage)?'claimed':['collectionTransit','out'].includes(o.stage)?'progress':'waiting';
