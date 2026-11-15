@@ -20,7 +20,7 @@ const NOTIFICATION_PREFS_KEY='aquabest-staff-notification-prefs-v1';
 const TRIPS_KEY='aquabest-staff-trips-demo-v1';
 const readTrips=()=>{try{const v=JSON.parse(localStorage.getItem(TRIPS_KEY)||'[]');return Array.isArray(v)?v:[];}catch{return [];}};
 const notificationTypes=[{id:'orders',label:'New orders and queue changes'},{id:'collection',label:'Collection updates'},{id:'refill',label:'Refill updates'},{id:'delivery',label:'Delivery and pickup updates'}];
-const notificationType=message=>/collect|container.*station/i.test(message)?'collection':/refill/i.test(message)?'refill':/deliver|pickup|remittance/i.test(message)?'delivery':'orders';
+const notificationType=message=>/collect|container.*station/i.test(message)?'collection':/refill/i.test(message)?'refill':/deliver|pickup|remittance|trip/i.test(message)?'delivery':'orders';
 const readNotificationPrefs=()=>{try{return {...{orders:true,collection:true,refill:true,delivery:true},...JSON.parse(localStorage.getItem(NOTIFICATION_PREFS_KEY)||'{}')};}catch{return {orders:true,collection:true,refill:true,delivery:true};}};
 const compactCount=n=>n>99?'99+':String(n);
 const readNotifications=()=>{try{const n=JSON.parse(localStorage.getItem(NOTIFICATIONS_KEY)||'[]');return Array.isArray(n)?n:[];}catch{return [];}};
@@ -243,7 +243,7 @@ export default function StaffOperations({onLogout}){
       <div className="staffapp-popover-heading"><strong>Notifications {notificationUnread>0&&<span>{compactCount(notificationUnread)}</span>}</strong><button aria-label="Close notifications" onClick={()=>setNotificationOpen(false)}><FiX/></button></div>
       <div className="staffapp-popover-items">
        {notifications.length?notifications.slice(0,5).map(n=><div key={n.id} className={'staffapp-popover-item '+(n.read?'is-read':'is-unread')}>
-        <FiBell aria-hidden="true"/><div><strong>{n.message}</strong><small>{n.time}</small></div>
+        <FiBell aria-hidden="true"/><div><strong>{n.message}</strong><small>{n.time}</small>{n.type==='delivery'&&<button type="button" className="staffapp-notification-open" onClick={()=>show('tasks')}>Open My Tasks <FiArrowRight/></button>}</div>
         <button type="button" aria-label={'Mark notification as read: '+n.message} onClick={()=>markNotificationsRead([n.id])}>{n.read?<FiCheck/>:<FiCheckCircle/>}</button>
        </div>):<p className="staffapp-muted">No recent activity in this browser.</p>}
       </div>
@@ -356,7 +356,7 @@ export default function StaffOperations({onLogout}){
       {notificationView==='list'?<>
        <div className="staffapp-notification-actions"><button onClick={()=>markNotificationsRead(notifications.map(n=>n.id))} disabled={!notificationUnread}><FiCheckSquare/> Mark all read</button><button onClick={()=>setNotifications([])} disabled={!notifications.length}><FiTrash2/> Clear all</button></div>
        {notifications.length?notifications.map(n=><div key={n.id} className={'staffapp-notification-entry '+(n.read?'is-read':'is-unread')}>
-        <span className="staffapp-notification-entry-icon"><FiBell/></span><div className="staffapp-notification-entry-body"><strong>{n.message}</strong><small>{n.time}</small></div>
+        <span className="staffapp-notification-entry-icon"><FiBell/></span><div className="staffapp-notification-entry-body"><strong>{n.message}</strong><small>{n.time}</small>{n.type==='delivery'&&<button type="button" className="staffapp-notification-open" onClick={()=>show('tasks')}>Open My Tasks <FiArrowRight/></button>}</div>
         <div className="staffapp-notification-entry-actions"><button onClick={()=>markNotificationsRead([n.id])} disabled={n.read} aria-label={'Mark as read: '+n.message}><FiCheck/></button><button onClick={()=>deleteNotification(n.id)} aria-label={'Delete: '+n.message}><FiX/></button></div>
        </div>):<p className="staffapp-muted">No recent notifications in this browser.</p>}</>
       :<><p className="staffapp-muted">Choose which events create in-app popups. Events are still saved in List. Email and phone notifications are not connected to this demo.</p>
