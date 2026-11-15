@@ -3,6 +3,7 @@ import { FiAlertTriangle, FiCheckCircle, FiCamera, FiSearch, FiX, FiTruck, FiPac
 import { STAFF_DEMO_KEYS } from '../services/staffDemoAdapter.js';
 import { getLocalProof } from './staffProofStorage.js';
 import { formatMoney } from '../data/managerDemo.js';
+import { MANAGER_VERIFICATION_SCENARIOS } from '../data/managerVerificationScenarios.js';
 import './managerControl.css';
 import './managerSimplified.css';
 import './managerReview.css';
@@ -76,17 +77,23 @@ export default function ManagerDeliveryVerification({managerOrders,onNotice}){
  },[]);
  useEffect(()=>()=>{if(proof)URL.revokeObjectURL(proof);},[proof]);
  const fromStaff=staffOrders.length>0;
- const records=useMemo(()=>fromStaff?staffOrders.filter(o=>['delivered','picked','failed'].includes(o.stage)||o.collectedAt||o.issueReason):
-  managerOrders.map(o=>({...o,quantity:qty(o),stage:o.status==='Delivered'?'delivered':o.status==='Completed'?'picked':null})).filter(o=>o.stage==='delivered'||o.stage==='picked'),[fromStaff,staffOrders,managerOrders]);
+ const records=useMemo(()=>{
+  const existing=fromStaff?staffOrders.filter(o=>['delivered','picked','failed'].includes(o.stage)||o.collectedAt||o.issueReason):
+   managerOrders.map(o=>({...o,quantity:qty(o),stage:o.status==='Delivered'?'delivered':o.status==='Completed'?'picked':null})).filter(o=>o.stage==='delivered'||o.stage==='picked');
+  // Never overwrite real/local demo records; showcase IDs use a separate DEMO-V namespace.
+  const existingIds=new Set(existing.map(o=>o.id));
+  return [...existing,...MANAGER_VERIFICATION_SCENARIOS.filter(o=>!existingIds.has(o.id))];
+ },[fromStaff,staffOrders,managerOrders]);
  const current=records.find(o=>o.id===selected);
  const currentSummary=current?summary(current):null;
  const currentReview=current?reviews[current.id]:null;
  const statusFor=o=>reviews[o.id]?.result||'pending';
  const counts={pending:records.filter(o=>statusFor(o)==='pending').length,action_required:records.filter(o=>statusFor(o)==='action_required').length,verified:records.filter(o=>statusFor(o)==='verified').length,resolved:records.filter(o=>statusFor(o)==='resolved').length};
- const filtered=records.filter(o=>(category==='All'||category===transaction(o)||(category==='Issues'&&(summary(o).tone==='issue'||o.issueReason||statusFor(o)==='action_required')))&&[o.id,o.customer,o.address,o.customerReference,o.deliveredBy,o.collectedBy,o.releasedBy].join(' ').toLowerCase().includes(search.toLowerCase()));
+ const filtered=records.filter(o=>(category==='All'||category===transaction(o)||(category==='Issues'&&(summary(o).tone==='issue'||o.issueReason||statusFor(o)==='action_required')))&&[o.id,o.customer,o.address,o.customerReference,o.deliveredBy,o.collectedBy,o.releasedBy,o.claimedBy,o.scenarioLabel].join(' ').toLowerCase().includes(search.toLowerCase()));
  const open=async o=>{
   setSelected(o.id);setIssueType(reviews[o.id]?.issueType||'');setNextAction(reviews[o.id]?.nextAction||'');setNote(reviews[o.id]?.note||'');setError('');
   setLoading(true);setProofMessage('');setProof(old=>{if(old)URL.revokeObjectURL(old);return '';});
+  if(o.isDemoScenario){setProofMessage('Synthetic training scenario: no actual photo evidence was created.');setLoading(false);return;}
   if(!fromStaff){setProofMessage('No Staff photo evidence exists for this Manager sample record.');setLoading(false);return;}
   try{const record=await getLocalProof(o.id);if(record?.file)setProof(URL.createObjectURL(record.file));else setProofMessage('No photo is stored for this order on this browser.');}
   catch{setProofMessage('Could not read local photo evidence.');}
@@ -97,7 +104,7 @@ export default function ManagerDeliveryVerification({managerOrders,onNotice}){
   if(!current)return;
   if(result==='action_required'&&(!issueType||!nextAction)){setError('Select an issue type and the next action. Notes are optional.');return;}
   if(result==='verified'){
-   if(current.stage==='failed'||currentSummary?.tone==='issue'||(transaction(current)==='Collection'&&currentSummary?.actual===null)){setError('This outcome has an unresolved failure or missing quantity. Record an issue instead.');return;}
+   if(current.stage==='failed'||current.issueReason||currentSummary?.tone==='issue'||(transaction(current)==='Collection'&&currentSummary?.actual===null)){setError('This outcome has a Staff-reported issue, unsuccessful visit, quantity mismatch or missing collection count. Record Action Required instead.');return;}
    if(current.podRecorded&&!proof){setError('Staff reported a photo, but it cannot be viewed in this browser. Request proof instead.');return;}
    if(currentReview?.result==='action_required'){setError('An open issue needs to be resolved before it can be verified.');return;}
   }
@@ -117,9 +124,10 @@ export default function ManagerDeliveryVerification({managerOrders,onNotice}){
   </div>
   <label className="manager-control-search"><FiSearch/><input aria-label="Search review orders" placeholder="Search order, customer or unit" value={search} onChange={e=>setSearch(e.target.value)}/></label>
   <div className="manager-review-tabs" role="group" aria-label="Transaction type">{['All','Delivery','Collection','Pickup','Issues'].map(t=><button type="button" key={t} className={category===t?'active':''} onClick={()=>setCategory(t)}>{t}</button>)}</div>
-  <p className="manager-control-help">{fromStaff?'Reviewing Staff outcomes saved on this browser.':'Showing Manager sample orders. No Staff records found in this browser.'} Not synced across devices.</p>
+  <p className="manager-control-help">10 fictional scenarios from Staff A, Staff B and Staff C are included for testing. {fromStaff?'Your existing Staff browser records are also shown.':'Manager sample orders are also shown.'} Nothing is synced across devices.</p>
   {filtered.length?filtered.map(o=>{const info=summary(o);const review=reviews[o.id];return <article className="manager-control-panel manager-review-card" key={o.id}>
-   <div className="manager-control-order-head"><strong>{o.id} · {o.customer}</strong><span className={'manager-control-tag '+(review?.result==='verified'||review?.result==='resolved'?'ok':review?.result==='action_required'?'danger':'')}>{labelFor(statusFor(o))}</span></div>
+   <div className="manager-control-order-head"><strong>{o.id} · {o.customer}{o.isDemoScenario&&<em className="manager-review-sample">Demo</em>}</strong><span className={'manager-control-tag '+(review?.result==='verified'||review?.result==='resolved'?'ok':review?.result==='action_required'?'danger':'')}>{labelFor(statusFor(o))}</span></div>
+   {o.isDemoScenario&&<p className="manager-review-scenario">{o.scenarioLabel}</p>}
    <p className="manager-control-help">{transaction(o)} · {o.address||o.customerReference||'Location not recorded'} · {o.deliveredBy||o.collectedBy||o.releasedBy||'Staff not recorded'}</p>
    <div className={'manager-review-summary '+info.tone}><strong>{info.tone==='issue'?<FiAlertTriangle/>:info.tone==='good'?<FiCheckCircle/>:null}{info.title}</strong><small>{info.detail}</small></div>
    {info.actualLabel&&<div className="manager-control-compare"><div><span>Expected</span><strong>{info.expected}</strong></div><div><span>{info.actualLabel}</span><strong>{info.actual??'Not reported'}</strong></div><div><span>Difference</span><strong>{info.difference===null?'Not known':Math.abs(info.difference)}</strong></div></div>}
@@ -130,6 +138,7 @@ export default function ManagerDeliveryVerification({managerOrders,onNotice}){
   <p className="manager-control-help">A dash or unreported quantity is not a missing gallon. Actual operations, Manager review, and cash remittance are separate.</p>
   {current&&<div className="manager-simple-overlay" role="presentation" onClick={close}><section className="manager-simple-sheet manager-review-sheet" role="dialog" aria-modal="true" aria-label="Review order" onClick={e=>e.stopPropagation()}>
    <div className="manager-control-order-head"><h2>Review {current.id}</h2><button className="manager-control-secondary" onClick={close}><FiX/> Close</button></div>
+   {current.isDemoScenario&&<p className="manager-review-scenario">Example: {current.scenarioLabel} · Fictional data only</p>}
    <p><strong>{current.customer}</strong> · {current.address||current.customerReference||'Location not recorded'}</p>
    <p>{transaction(current)} · {outcome(current)} · Staff: {current.deliveredBy||current.collectedBy||current.releasedBy||'Not recorded'}</p>
    <p>Reported time: {current.deliveredAt||current.collectedAt||current.releasedAt||current.failedAt||'Not recorded'}</p>

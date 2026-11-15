@@ -38,3 +38,8 @@
 .manager-review-sheet .manager-control-field select,.manager-review-sheet .manager-control-field textarea{font-size:16px}
 .manager-review-sheet .manager-control-compare span{font-size:10px}
 @media(max-width:370px){.manager-review-actions{grid-template-columns:1fr}.manager-review-card .manager-control-order-head{flex-wrap:wrap}}
+
+
+/* Explicit distinction between fictitious training records and browser-created orders. */
+.manager-review-sample{display:inline-block;margin-left:7px;vertical-align:middle;font-size:10px;font-style:normal;font-weight:800;letter-spacing:.15px;color:#386795;background:#eaf4ff;border:1px solid #c9dff4;padding:3px 7px;border-radius:999px}
+.manager-review-scenario{margin:0;padding:8px 10px;border-radius:9px;background:#f0f6fc;border:1px solid #e0ecf7;color:#496480;font-size:11px;line-height:1.45}
