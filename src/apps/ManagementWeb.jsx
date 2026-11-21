@@ -13,7 +13,7 @@ import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import ManagementNotifications from './ManagementNotifications.jsx';
 import DeliveryOperations, { INITIAL_DELIVERY_TRIPS } from './DeliveryOperations.jsx';
 import OwnerOperations from './OwnerOperations.jsx';
-import ExpenseReport from './ExpenseReport.jsx';
+import SalesReports from './SalesReports.jsx';
 import ManagerControl from './ManagerControl.jsx';
 import ManagerSimplified from './ManagerSimplified.jsx';
 import ManagerDeliveryVerification from './ManagerDeliveryVerification.jsx';
@@ -61,7 +61,6 @@ export default function ManagementWeb({role='manager',onLogout}){
  const [assigned,setAssigned]=useState('Unassigned');
  const [nextStatus,setNextStatus]=useState('');
  const [notification,setNotification]=useState('');
- const [reportPeriod,setReportPeriod]=useState('Today');
  const [newStock,setNewStock]=useState({id:'round5',type:'IN',quantity:1,reason:''});
  const [stockOpen,setStockOpen]=useState(false);
  const go=(p)=>{if(isDelivery&&!['dashboard','deliveries','bottles','collections','history','more','notifications'].includes(p))return;if(isStaff&&!['dashboard','refill','orders','inventory','activity','more','notifications'].includes(p))return;setPage(p);setSelected(null);window.scrollTo(0,0)};
@@ -206,15 +205,7 @@ export default function ManagementWeb({role='manager',onLogout}){
      <div className="mgmt-stats"><Stat label="Paid Total" value={formatMoney(revenue)} Icon={FiDollarSign}/><Stat label="Outstanding" value={formatMoney(unpaid)} Icon={FiClock}/></div>
      {orders.map(o=><div className="mgmt-card mgmt-order" key={o.id}><div className="mgmt-order-head"><strong>{o.id} · {o.customer}</strong><Pill>{o.paymentStatus}</Pill></div><p>{o.source} • {formatMoney(o.amount)}</p>{o.paymentStatus!=='Paid'&&<button className="mgmt-btn secondary" onClick={()=>openOrder(o)}>Review Payment <FiCreditCard/></button>}</div>)}{section}
     </>}
-    {!isOwner&&!isStaff&&!isDelivery&&page==='reports'&&<>
-     <Heading kicker="Business insights" title="Sales Reports" subtitle="Demo summaries calculated from current sample transactions."/>
-     <div className="mgmt-controls">{['Today','This Week','This Month'].map(x=><button key={x} className={reportPeriod===x?'active':''} onClick={()=>setReportPeriod(x)}>{x}</button>)}</div>
-     <div className="mgmt-stats"><Stat label="Collected (Sample)" value={formatMoney(revenue)} Icon={FiDollarSign}/><Stat label="Paid Transactions" value={payments.length} Icon={FiCheckCircle}/><Stat label="Unpaid Balance" value={formatMoney(unpaid)} Icon={FiClock}/><Stat label="Total Orders" value={orders.length} Icon={FiClipboard}/></div>
-     <Section title="Sample Sales Trend"/><div className="mgmt-card"><div className="mgmt-chart">{[55,74,40,89,62,100,81].map((height,i)=><div key={i}><b style={{height:height+'%'}}/><small>{['M','T','W','T','F','S','S'][i]}</small></div>)}</div></div>
-     <Section title="Sales by Source"/><div className="mgmt-card">{['Walk-in','Online','Messenger','Phone'].map(source=><div className="mgmt-row" key={source}><span className="mgmt-sub">{source}</span><strong>{formatMoney(payments.filter(o=>o.source===source).reduce((a,o)=>a+o.amount,0))}</strong></div>)}</div>
-     <ExpenseReport expenses={expenses} setExpenses={setExpenses} onEvent={setNotification}/>
-     <div className="mgmt-notice">Date tabs and chart are visual demo controls. Verified sales reports will require real payment dates and database queries.</div>{section}
-    </>}
+    {!isOwner&&!isStaff&&!isDelivery&&page==='reports'&&<SalesReports orders={orders} expenses={expenses} setExpenses={setExpenses} onNotice={setNotification}/>}
     {false&&isManager&&page==='staff'&&<>
      <Heading kicker="Team coordination" title="Staff Monitoring" subtitle="Employees rotate between collection, refill and delivery depending on the workload."/>
      <div className="mgmt-notice">Staff may claim open tasks from their Queues. Manager assignment is for coordination and exceptions, not approval of every order.</div>
@@ -236,7 +227,7 @@ export default function ManagementWeb({role='manager',onLogout}){
       <button onClick={logout}><FiLogOut/><strong>Log Out</strong><small>Exit staff preview</small></button>
      </div>{section}
     </>}
-    {!isOwner&&!isStaff&&!isDelivery&&page==='more'&&<><Heading kicker="Manager access" title="More Modules" subtitle="Open another operational workspace."/><div className="mgmt-more">{modules.filter(([id])=>!['dashboard','pos','queue'].includes(id)).map(([id,label,Icon])=><button key={id} onClick={()=>go(id)}><Icon/><strong>{label}</strong><small>{({verification:'Review outcomes, quantities and issues',queue:'All tasks and order stages',collections:'Trips, stops and collected gallons',remittance:'Cash submission checks',refill:'Preparation and refill queue',delivery:'Assignments and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and unpaid orders',reports:'Sales trends and breakdown',staff:'Personnel tasks'})[id]}</small></button>)}<button onClick={logout}><FiLogOut/><strong>Log Out</strong><small>Exit the demo workspace</small></button></div>{section}</>}
+    {!isOwner&&!isStaff&&!isDelivery&&page==='more'&&<><Heading kicker="Manager access" title="More Modules" subtitle="Open another operational workspace."/><div className="mgmt-more">{modules.filter(([id])=>!['dashboard','pos','queue','refill','delivery'].includes(id)).map(([id,label,Icon])=><button key={id} onClick={()=>go(id)}><Icon/><strong>{label}</strong><small>{({verification:'Review outcomes, quantities and issues',queue:'All tasks and order stages',collections:'Trips, stops and collected gallons',remittance:'Cash submission checks',refill:'Preparation and refill queue',delivery:'Assignments and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and unpaid orders',reports:'Sales trends and breakdown',staff:'Personnel tasks'})[id]}</small></button>)}<button onClick={logout}><FiLogOut/><strong>Log Out</strong><small>Exit the demo workspace</small></button></div>{section}</>}
    </main>
   </div>
   <nav className="mgmt-bottom" aria-label="Primary management navigation">{(isOwner?[['dashboard','Home',FiHome],['reports','Reports',FiBarChart2],['employees','Employees',FiUsers],['more','More',FiMenu]]:isDelivery?[['dashboard','Home',FiHome],['deliveries','Deliveries',FiTruck],['collections','Collections',FiCreditCard],['more','More',FiMenu]]:isStaff?[['dashboard','Home',FiHome],['refill','Refill',FiDroplet],['orders','Orders',FiClipboard],['more','More',FiMenu]]:[['dashboard','Home',FiHome],['pos','POS',FiMonitor],['queue','Queue',FiClipboard],['more','More',FiMenu]]).map(([id,label,Icon])=><button key={id} className={page===id||(id==='more'&&!['dashboard','pos','queue','orders','refill','deliveries',...(isOwner?['reports','employees']:[])].includes(page))?'active':''} onClick={()=>go(id)}><Icon/>{label}</button>)}</nav>

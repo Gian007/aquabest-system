@@ -3,7 +3,7 @@ import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave
 import {formatMoney} from '../data/managerDemo.js';
 import EmployeeDirectory from './EmployeeDirectory.jsx';
 import ProductCatalog from './ProductCatalog.jsx';
-import ExpenseReport from './ExpenseReport.jsx';
+import SalesReports from './SalesReports.jsx';
 
 // Only Owner-specific pages. POS, Orders, Delivery, Inventory and Payments reuse Manager pages.
 function Title({eyebrow,title,description}){return <div className="mgmt-heading"><div className="overline">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div>}
@@ -14,7 +14,6 @@ export default function OwnerOperations({page,go,orders,stock,trips,availability
  const [draft,setDraft]=useState(settings);
  const [audit,setAudit]=useState([]);
  const [verification,setVerification]=useState([]);
- const [period,setPeriod]=useState('All Demo Data');
  const [approvals,setApprovals]=useState([]);
  const [auditFilter,setAuditFilter]=useState('All');
  const record=description=>{setAudit(old=>[{id:Date.now()+'-'+old.length,description,time:today()},...old]);onMessage(description+' (demo only)')};
@@ -42,15 +41,7 @@ export default function OwnerOperations({page,go,orders,stock,trips,availability
   <div className="mgmt-section-title"><h2>Recent Transactions</h2><button className="mgmt-link" onClick={()=>go('orders')}>View Orders</button></div>
   <div className="mgmt-card">{orders.slice(0,4).map(o=><div className="mgmt-row" key={o.id}><div><div className="mgmt-row-title">{o.id} · {o.customer}</div><div className="mgmt-sub">{o.source} · {o.paymentStatus}</div></div><strong>{formatMoney(o.amount)}</strong></div>)}</div>{demo}
  </>}
- {page==='reports'&&<>
-  <Title eyebrow="Business intelligence" title="Sales & Financial Reports" description="Separate billed sales, verified collection, unpaid orders and expenses."/>
-  <div className="mgmt-controls">{['All Demo Data','Today (Preview)','This Week (Preview)'].map(p=><button key={p} className={period===p?'active':''} onClick={()=>setPeriod(p)}>{p}</button>)}</div>
-  <div className="mgmt-stats"><Stat title="Gross Sales" value={formatMoney(sales)} Icon={FiBarChart2}/><Stat title="Verified Collected" value={formatMoney(collected)} Icon={FiDollarSign}/><Stat title="Outstanding" value={formatMoney(outstanding)} Icon={FiClock}/><Stat title="Expenses Recorded" value={formatMoney(expenseTotal)} Icon={FiCreditCard}/></div>
-  <div className="mgmt-card"><strong>Estimated Margin (Demo)</strong><p className="mgmt-sub">Verified collection minus recorded expenses, not actual net profit.</p><h2 style={{color:'#1b2f63',marginTop:10}}>{formatMoney(collected-expenseTotal)}</h2></div>
-  <div className="mgmt-section-title"><h2>Sales by Source</h2></div><div className="mgmt-card">{['Online','Walk-in','Messenger','Phone'].map(source=><div className="mgmt-row" key={source}><span className="mgmt-sub">{source}</span><strong>{formatMoney(orders.filter(o=>o.source===source).reduce((n,o)=>n+o.amount,0))}</strong></div>)}</div>
-  <ExpenseReport expenses={expenses} setExpenses={setExpenses} onEvent={record}/>
-  <div className="mgmt-notice">Date filter buttons are visual preview only until payment timestamps are stored in the database. Profit is not calculated from complete costs yet.</div>{demo}
- </>}
+ {page==='reports'&&<SalesReports orders={orders} expenses={expenses} setExpenses={setExpenses} onNotice={record}/>}
  {page==='employees'&&<EmployeeDirectory availability={availability} orders={orders} onEvent={record}/>}
   {page==='approvals'&&<>
   <Title eyebrow="Payment review" title="Payment Verification" description="Check submitted GCash/bank references and cash received from drivers."/>
