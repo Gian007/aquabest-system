@@ -8,12 +8,22 @@
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  padding-bottom: 24px;
+  padding-bottom: 30px;
 }
 
-/* Header */
-.sales-header {
+/* Header & Top Bar */
+.sales-header-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 4px;
+}
+
+.sales-header {
+  flex: 1;
+  min-width: 220px;
 }
 
 .sales-header .overline {
@@ -36,6 +46,89 @@
   font-size: 12px;
   margin: 0;
   line-height: 1.4;
+}
+
+/* Download Report Button & Dropdown */
+.sales-download-holder {
+  position: relative;
+  align-self: flex-start;
+}
+
+.sales-download-btn {
+  border: 0;
+  background: var(--a-primary, #244ea3);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 750;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  box-shadow: 0 2px 8px rgba(36, 78, 163, 0.22);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.sales-download-btn:hover:not(:disabled) {
+  background: #1b3d85;
+}
+
+.sales-download-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sales-download-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  background: white;
+  border: 1px solid var(--a-line, #d9e2ec);
+  border-radius: 14px;
+  padding: 6px;
+  min-width: 240px;
+  box-shadow: 0 12px 32px rgba(27, 47, 99, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sales-download-option {
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--a-navy, #1b2f63);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.sales-download-option:hover {
+  background: #edf4ff;
+}
+
+.sales-download-option strong {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--a-navy, #1b2f63);
+}
+
+.sales-download-option strong svg {
+  color: var(--a-primary, #244ea3);
+}
+
+.sales-download-option small {
+  font-size: 10px;
+  color: var(--a-muted, #667788);
 }
 
 /* Top Filters & Period Selector */
@@ -180,7 +273,7 @@
   background: white;
   border: 1px solid var(--a-line, #d9e2ec);
   border-radius: 16px;
-  padding: 14px 14px;
+  padding: 14px;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -394,6 +487,45 @@
 .sales-zoom-pill:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Honest Daily Hourly Info */
+.sales-daily-info {
+  background: #f4f8fe;
+  border: 1px solid #d3e1f2;
+  border-radius: 12px;
+  padding: 18px 14px;
+  text-align: center;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sales-daily-info h3 {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--a-navy, #1b2f63);
+  margin: 0;
+}
+
+.sales-daily-info p {
+  font-size: 11px;
+  color: var(--a-muted, #667788);
+  margin: 0;
+  max-width: 420px;
+}
+
+.sales-daily-badge {
+  background: white;
+  border: 1px solid #bad0ed;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--a-primary, #244ea3);
+  margin-top: 4px;
 }
 
 /* Chart Viewport & SVG */

@@ -1,4 +1,4 @@
-import {useMemo,useState} from 'react';
+import {useState} from 'react';
 import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle} from 'react-icons/fi';
 import {formatMoney} from '../data/managerDemo.js';
 import EmployeeDirectory from './EmployeeDirectory.jsx';
