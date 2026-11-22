@@ -983,19 +983,29 @@ export default function SalesReports({
         {expensesOpen && (
           <div className="sales-accordion-body" style={{ background: 'white' }}>
             <ExpenseReport
-              expenses={expenses}
+              expenses={periodExpenses}
               setExpenses={setExpenses}
               onEvent={onNotice}
+              defaultDate={anchorDate}
             />
           </div>
         )}
       </div>
 
+      {unknownPaymentOrdersCount > 0 && (
+        <div className="sales-notice-card" role="status">
+          <FiAlertCircle />
+          <div>
+            <strong>Payment status needs review:</strong> {unknownPaymentOrdersCount} active order(s), totaling {formatMoney(unknownPaymentBalance)}, have no explicit Paid or Unpaid status. They are excluded from Outstanding Balance until their status is recorded.
+          </div>
+        </div>
+      )}
+
       {/* 9. Financial Integrity Notice */}
       <div className="sales-notice-card">
         <FiInfo />
         <div>
-          <strong>AquaBest Financial Integrity Notice:</strong> All metrics, margins and charts are calculated in real time from current session orders and recorded station expenses. Production deployment requires persistent database timestamps and server-validated payments.
+          <strong>AquaBest Financial Integrity Notice:</strong> Report totals use the same period-filtered local records shown on this screen. Paid and Unpaid are recorded statuses, not server-verified payments. Production reporting requires persistent database timestamps, server-side payment validation, and synchronized expense records.
         </div>
       </div>
     </div>
