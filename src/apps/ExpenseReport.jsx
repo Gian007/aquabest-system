@@ -62,7 +62,7 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
       onEvent('Please select an expense date.');
       return;
     }
-    if (!form.paymentStatus) {
+    if (!form.paymentStatus && !editing) {
       onEvent('Please select whether this expense is Paid or Unpaid.');
       return;
     }
@@ -116,8 +116,20 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
           type="button"
           className="mgmt-link"
           onClick={() => {
+            const nextOpen = !open;
             setEditing(null);
-            setOpen(!open);
+            if (nextOpen) {
+              setForm({
+                category: 'Fuel',
+                description: '',
+                amount: '',
+                date: defaultDate || getTodayLocalStr(),
+                paymentStatus: '',
+                paymentMethod: '',
+                reference: ''
+              });
+            }
+            setOpen(nextOpen);
             setVoidConfirmId(null);
           }}
         >
@@ -276,11 +288,11 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
               </div>
 
               <div className="owner-row-actions">
-                <strong style={{ color: e.active ? '#1b2f63' : '#99a6b8', textDecoration: e.active ? 'none' : 'line-through' }}>
+                <strong style={{ color: e.active !== false ? '#1b2f63' : '#99a6b8', textDecoration: e.active !== false ? 'none' : 'line-through' }}>
                   {formatMoney(e.amount)}
                 </strong>
 
-                {e.active && (
+                {e.active !== false && (
                   <>
                     <button
                       type="button"
