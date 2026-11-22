@@ -9,7 +9,7 @@ import {
 import { formatMoney } from '../data/managerDemo.js';
 import { buildSalesReportData } from '../utils/buildSalesReportData.js';
 import ExpenseReport from './ExpenseReport.jsx';
-import { getTodayLocalDate, shiftAnchorDate, getPeriodRange, filterByDateRange } from '../utils/reportDateUtils.js';
+import { getTodayLocalDate, shiftAnchorDate } from '../utils/reportDateUtils.js';
 import { getPeriodLabel, getPeriodFilename, getWeekRange, formatDateLabel, parseLocalDate } from '../utils/dateUtils.js';
 import {
   generateFinancialSummaryPDF,
