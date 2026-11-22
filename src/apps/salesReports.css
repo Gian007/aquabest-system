@@ -826,3 +826,43 @@
     display: block !important;
   }
 }
+
+
+/* Small-screen report controls: stack instead of squeezing or clipping. */
+@media (max-width: 520px) {
+  .sales-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sales-header {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .sales-download-holder {
+    width: 100%;
+  }
+
+  .sales-download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sales-download-dropdown {
+    left: 0;
+    right: 0;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sales-date-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sales-range-nav,
+  .sales-pick-btn {
+    width: 100%;
+  }
+}

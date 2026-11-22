@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { FiPlus, FiEdit2, FiCheck, FiX, FiFileText, FiAlertCircle } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiCheck, FiX, FiFileText } from 'react-icons/fi';
 import { formatMoney } from '../data/managerDemo.js';
 import { getTodayLocalStr } from '../utils/dateUtils.js';
 
 const categories = ['Fuel', 'Electricity', 'Supplies', 'Maintenance', 'Wages', 'Other'];
 const paymentStatuses = ['Paid', 'Unpaid'];
-const paymentMethods = ['Cash', 'GCash', 'Bank Transfer', 'Other', 'Not Specified'];
+const paymentMethods = ['Cash', 'GCash', 'Bank Transfer', 'Other'];
 
-export default function ExpenseReport({ expenses = [], setExpenses, onEvent = () => {} }) {
+export default function ExpenseReport({ expenses = [], setExpenses, onEvent = () => {}, defaultDate }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [voidConfirmId, setVoidConfirmId] = useState(null);
@@ -16,15 +16,15 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
     category: 'Fuel',
     description: '',
     amount: '',
-    date: getTodayLocalStr(),
-    paymentStatus: 'Paid',
-    paymentMethod: 'Cash',
+    date: defaultDate || getTodayLocalStr(),
+    paymentStatus: '',
+    paymentMethod: '',
     reference: ''
   };
 
   const [form, setForm] = useState(initialForm);
 
-  const activeExpenses = expenses.filter(x => x.active);
+  const activeExpenses = expenses.filter(x => x.active !== false);
   const totalRecorded = activeExpenses.reduce((n, x) => n + (Number(x.amount) || 0), 0);
   const totalPaid = activeExpenses
     .filter(x => x.paymentStatus === 'Paid')
@@ -40,8 +40,8 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
       description: e.description || '',
       amount: String(e.amount || ''),
       date: e.date || getTodayLocalStr(),
-      paymentStatus: e.paymentStatus || 'Paid',
-      paymentMethod: e.paymentMethod || 'Cash',
+      paymentStatus: e.paymentStatus || '',
+      paymentMethod: e.paymentMethod || '',
       reference: e.reference || ''
     });
     setOpen(true);
@@ -62,8 +62,12 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
       onEvent('Please select an expense date.');
       return;
     }
-    if (!form.paymentStatus) {
+    if (!form.paymentStatus && !editing) {
       onEvent('Please select whether this expense is Paid or Unpaid.');
+      return;
+    }
+    if (form.paymentStatus === 'Paid' && !form.paymentMethod) {
+      onEvent('Select the payment method for an expense marked Paid.');
       return;
     }
 
@@ -89,9 +93,9 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
       category: 'Fuel',
       description: '',
       amount: '',
-      date: getTodayLocalStr(),
-      paymentStatus: 'Paid',
-      paymentMethod: 'Cash',
+      date: defaultDate || getTodayLocalStr(),
+      paymentStatus: '',
+      paymentMethod: '',
       reference: ''
     });
   };
@@ -112,8 +116,20 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
           type="button"
           className="mgmt-link"
           onClick={() => {
+            const nextOpen = !open;
             setEditing(null);
-            setOpen(!open);
+            if (nextOpen) {
+              setForm({
+                category: 'Fuel',
+                description: '',
+                amount: '',
+                date: defaultDate || getTodayLocalStr(),
+                paymentStatus: '',
+                paymentMethod: '',
+                reference: ''
+              });
+            }
+            setOpen(nextOpen);
             setVoidConfirmId(null);
           }}
         >
@@ -186,6 +202,7 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
                   onChange={e => change('paymentStatus', e.target.value)}
                   required
                 >
+                  <option value="">Select payment status</option>
                   {paymentStatuses.map(s => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -197,7 +214,9 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
                 <select
                   value={form.paymentMethod}
                   onChange={e => change('paymentMethod', e.target.value)}
+                  required={form.paymentStatus === 'Paid'}
                 >
+                  <option value="">Select payment method</option>
                   {paymentMethods.map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}
@@ -224,6 +243,15 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
                 onClick={() => {
                   setOpen(false);
                   setEditing(null);
+                  setForm({
+                    category: 'Fuel',
+                    description: '',
+                    amount: '',
+                    date: defaultDate || getTodayLocalStr(),
+                    paymentStatus: '',
+                    paymentMethod: '',
+                    reference: ''
+                  });
                 }}
               >
                 <FiX /> Cancel
@@ -243,10 +271,10 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
                   <span
                     style={{
                       fontWeight: 700,
-                      color: !e.active ? '#99a6b8' : e.paymentStatus === 'Paid' ? '#138358' : e.paymentStatus === 'Unpaid' ? '#c47d0b' : '#64748d'
+                      color: e.active === false ? '#99a6b8' : e.paymentStatus === 'Paid' ? '#138358' : e.paymentStatus === 'Unpaid' ? '#c47d0b' : '#64748d'
                     }}
                   >
-                    {!e.active
+                    {e.active === false
                       ? 'VOIDED'
                       : e.paymentStatus === 'Paid'
                       ? 'Paid'
@@ -260,11 +288,11 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
               </div>
 
               <div className="owner-row-actions">
-                <strong style={{ color: e.active ? '#1b2f63' : '#99a6b8', textDecoration: e.active ? 'none' : 'line-through' }}>
+                <strong style={{ color: e.active !== false ? '#1b2f63' : '#99a6b8', textDecoration: e.active !== false ? 'none' : 'line-through' }}>
                   {formatMoney(e.amount)}
                 </strong>
 
-                {e.active && (
+                {e.active !== false && (
                   <>
                     <button
                       type="button"

@@ -49,7 +49,12 @@ export function getPeriodRange(period, anchorDate, records = []) {
 
   if (period === 'Weekly') {
     start.setDate(start.getDate() - start.getDay());
-    end.setDate(start.getDate() + 6);
+    const weekEnd = new Date(start);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    return {
+      startDate: formatLocalDate(start),
+      endDate: formatLocalDate(weekEnd)
+    };
   }
 
   if (period === 'Monthly') {

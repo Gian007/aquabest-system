@@ -121,7 +121,7 @@ export async function generateFinancialSummaryPDF(data) {
   doc.text('REPORT STATUS:', 115, currentY + 5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(27, 47, 99);
-  doc.text('Verified Internal Session Fixtures', 145, currentY + 5);
+  doc.text('Demo / Local Session Records', 145, currentY + 5);
 
   currentY += 17;
 
@@ -168,18 +168,17 @@ export async function generateFinancialSummaryPDF(data) {
 
   currentY = doc.lastAutoTable.finalY + 7;
 
-  // SECTION B: Financial Deduction & Estimated Margin
+  // SECTION B: Collections After Paid Expenses
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(27, 47, 99);
-  doc.text('Section B — Cash Collections After Paid Expenses & Estimated Margin', 14, currentY);
+  doc.text('Section B — Collections After Paid Expenses', 14, currentY);
   currentY += 3;
 
   const deductionRows = [
     ['Verified Collections (Cash/Digital verified received)', formatCurrency(data.verifiedCollected)],
     ['Less: Paid Expenses (Explicitly verified station cash outflow)', `(${formatCurrency(data.paidExpenses)})`],
     ['Collections After Paid Expenses', formatCurrency(data.collectionsAfterPaidExpenses)],
-    ['Estimated Margin (Verified Collections less Total Active Expenses)', formatCurrency(data.estimatedMargin)]
   ];
 
   autoTable(doc, {
@@ -201,8 +200,8 @@ export async function generateFinancialSummaryPDF(data) {
   doc.setFontSize(7);
   doc.setTextColor(102, 119, 136);
   doc.text(
-    'Disclosure: "Collections After Paid Expenses" and "Estimated Margin" represent cash flow and operating estimates only. ' +
-    'They do not constitute verified net profit, as cost of goods sold (water filtration consumables, electricity per gallon, depreciation) are tracked separately.',
+    'Disclosure: "Collections After Paid Expenses" is recorded Paid collections less expenses explicitly marked Paid. ' +
+    'It is a cash-flow indicator only and does not constitute verified net profit.',
     14,
     currentY,
     { maxWidth: 182 }
@@ -374,7 +373,7 @@ export async function generateCompleteFinancialReportPDF(data) {
   doc.text('AUDIT CLASSIFICATION:', 115, y + 5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(27, 47, 99);
-  doc.text('Official Internal Operations Ledger', 150, y + 5);
+  doc.text('Demo / Local Session Report', 150, y + 5);
 
   y += 18;
 
@@ -393,7 +392,6 @@ export async function generateCompleteFinancialReportPDF(data) {
     ['Paid Expenses (Verified Cash Outflow)', formatCurrency(data.paidExpenses)],
     ['Unpaid Expenses (Pending Payables)', formatCurrency(data.unpaidExpenses)],
     ['Collections After Paid Expenses (Verified Inflow less Verified Outflow)', formatCurrency(data.collectionsAfterPaidExpenses)],
-    ['Estimated Operating Margin (Verified Inflow less All Active Expenses)', formatCurrency(data.estimatedMargin)]
   ];
 
   autoTable(doc, {
@@ -776,9 +774,8 @@ export async function generateCompleteFinancialReportPDF(data) {
   doc.setFontSize(7.5);
   doc.setTextColor(102, 119, 136);
   doc.text(
-    'This complete financial report has been prepared for operational audit and recordkeeping. ' +
-    'All figures reflect live session orders and confirmed expense postings.',
-    14,
+    'DEMO REPORT: Figures are based on local browser session orders and manually recorded payment statuses. ' +
+    'They are not independently verified by a production server.',
     y
   );
   y += 10;
