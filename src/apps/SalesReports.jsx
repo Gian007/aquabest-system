@@ -8,15 +8,8 @@ import {
 } from 'react-icons/fi';
 import { DEMO_PRODUCTS, formatMoney } from '../data/managerDemo.js';
 import ExpenseReport from './ExpenseReport.jsx';
-import {
-  getTodayLocalStr,
-  getWeekRange,
-  shiftPeriod,
-  isWithinPeriod,
-  getPeriodLabel,
-  getPeriodFilename,
-  formatDateLabel
-} from '../utils/dateUtils.js';
+import { getTodayLocalDate, shiftAnchorDate, getPeriodRange, filterByDateRange } from '../utils/reportDateUtils.js';
+import { getPeriodLabel, getPeriodFilename } from '../utils/dateUtils.js';
 import {
   generateFinancialSummaryPDF,
   generateCompleteFinancialReportPDF
@@ -47,13 +40,13 @@ export default function SalesReports({
   orders = [],
   expenses = [],
   setExpenses,
-  onNotice = () => {},
+  onNotice = () => { },
   isOwner = false
 }) {
   // Determine anchor date defaulting to latest order date or today
   const defaultDate = useMemo(() => {
     const dates = orders.map(o => o.date).filter(Boolean).sort();
-    return dates.length ? dates[dates.length - 1] : getTodayLocalStr();
+    return dates.length ? dates[dates.length - 1] : getTodayLocalDate();
   }, [orders]);
 
   const [period, setPeriod] = useState('Weekly');
@@ -112,20 +105,19 @@ export default function SalesReports({
 
   // Navigate date range safely
   const shiftAnchor = (step) => {
-    const nextDate = shiftPeriod(anchorDate, period, step);
+    const nextDate = shiftAnchorDate(anchorDate, period, step);
     setAnchorDate(nextDate);
     setActivePoint(null);
   };
 
+  // Compute period range
+  const periodRange = useMemo(() => getPeriodRange(period, anchorDate, [...orders, ...expenses]), [period, anchorDate, orders, expenses]);
+
   // Filter orders by active period
-  const periodOrders = useMemo(() => {
-    return orders.filter(o => isWithinPeriod(o.date, period, anchorDate));
-  }, [orders, period, anchorDate]);
+  const periodOrders = useMemo(() => filterByDateRange(orders, periodRange.startDate, periodRange.endDate), [orders, periodRange]);
 
   // Filter active expenses by period
-  const periodExpenses = useMemo(() => {
-    return expenses.filter(e => isWithinPeriod(e.date, period, anchorDate));
-  }, [expenses, period, anchorDate]);
+  const periodExpenses = useMemo(() => filterByDateRange(expenses, periodRange.startDate, periodRange.endDate), [expenses, periodRange]);
 
   const activePeriodExpenses = useMemo(() => {
     return periodExpenses.filter(e => e.active);
@@ -724,9 +716,8 @@ export default function SalesReports({
         </div>
 
         <div
-          className={`sales-margin-badge ${
-            estimatedMargin > 0 ? 'positive' : estimatedMargin < 0 ? 'negative' : 'neutral'
-          }`}
+          className={`sales-margin-badge ${estimatedMargin > 0 ? 'positive' : estimatedMargin < 0 ? 'negative' : 'neutral'
+            }`}
         >
           <span className="sales-status-dot" />
           <span>{estimatedMargin > 0 ? 'Positive' : estimatedMargin < 0 ? 'Negative' : 'Neutral'}</span>
