@@ -6,10 +6,11 @@ import {
   FiCheckCircle, FiChevronDown, FiChevronUp, FiInfo, FiDownload,
   FiTruck, FiAlertCircle
 } from 'react-icons/fi';
-import { DEMO_PRODUCTS, formatMoney } from '../data/managerDemo.js';
+import { formatMoney } from '../data/managerDemo.js';
+import { buildSalesReportData } from '../utils/buildSalesReportData.js';
 import ExpenseReport from './ExpenseReport.jsx';
 import { getTodayLocalDate, shiftAnchorDate, getPeriodRange, filterByDateRange } from '../utils/reportDateUtils.js';
-import { getPeriodLabel, getPeriodFilename } from '../utils/dateUtils.js';
+import { getPeriodLabel, getPeriodFilename, getWeekRange, formatDateLabel, parseLocalDate } from '../utils/dateUtils.js';
 import {
   generateFinancialSummaryPDF,
   generateCompleteFinancialReportPDF
@@ -18,22 +19,24 @@ import './salesReports.css';
 
 const PERIODS = ['Daily', 'Weekly', 'Monthly', 'Yearly', 'All Time'];
 
-// Accurate payment method classifier
-function classifyPaymentMethod(order) {
-  const m = (order.paymentMethod || order.method || '').trim().toLowerCase();
-  if (m === 'cash') return 'Cash';
-  if (m === 'gcash') return 'GCash';
-  if (m === 'bank transfer' || m.includes('bank') || m.includes('transfer')) return 'Bank Transfer';
-  if (m === 'other') return 'Other';
-  if (!m) return 'Not Specified';
-  return 'Other';
-}
-
-// Service type normalizer
-function normalizeServiceType(order) {
-  const s = (order.service || '').trim();
-  if (!s) return 'Not Specified';
-  return s;
+function getOrderHour(order) {
+  const raw = order?.time || order?.createdAt || order?.created_at;
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const value = raw.trim();
+  const timeMatch = value.match(/^\d{1,2}:\d{2}(?::\d{2})?\s*(AM|PM)?$/i);
+  if (timeMatch) {
+    const parts = value.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
+    let hour = Number(parts[1]);
+    const meridiem = (parts[3] || '').toUpperCase();
+    if (meridiem === 'PM' && hour < 12) hour += 12;
+    if (meridiem === 'AM' && hour === 12) hour = 0;
+    return hour >= 0 && hour <= 23 ? hour : null;
+  }
+  if (value.includes('T')) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.getHours();
+  }
+  return null;
 }
 
 export default function SalesReports({
@@ -110,218 +113,79 @@ export default function SalesReports({
     setActivePoint(null);
   };
 
-  // Compute period range
-  const periodRange = useMemo(() => getPeriodRange(period, anchorDate, [...orders, ...expenses]), [period, anchorDate, orders, expenses]);
+  // One shared calculation source powers the visible report and PDF payload.
+  const reportData = useMemo(
+    () => buildSalesReportData({ orders, expenses, period, anchorDate }),
+    [orders, expenses, period, anchorDate]
+  );
 
-  // Filter orders by active period
-  const periodOrders = useMemo(() => filterByDateRange(orders, periodRange.startDate, periodRange.endDate), [orders, periodRange]);
+  const {
+    periodOrders,
+    activePeriodOrders,
+    periodExpenses,
+    grossSales,
+    verifiedCollected,
+    outstandingBalance,
+    unknownPaymentBalance,
+    recordedExpenses,
+    paidExpenses,
+    unpaidExpenses,
+    unrecordedStatusExpenses,
+    collectionsAfterPaidExpenses,
+    totalOrders,
+    cancelledOrdersCount,
+    paidOrdersCount,
+    unpaidOrdersCount,
+    unknownPaymentOrdersCount,
+    avgTicket,
+    paymentBreakdown,
+    serviceBreakdown,
+    productBreakdown,
+    sourceBreakdown,
+    receivablesList,
+    transactionsList,
+    expensesList
+  } = reportData;
 
-  // Filter active expenses by period
-  const periodExpenses = useMemo(() => filterByDateRange(expenses, periodRange.startDate, periodRange.endDate), [expenses, periodRange]);
+  // Only display hourly data when the selected day has real transaction times.
+  const hasHourlyTimestamps = useMemo(
+    () => activePeriodOrders.some(order => getOrderHour(order) !== null),
+    [activePeriodOrders]
+  );
 
-  const activePeriodExpenses = useMemo(() => {
-    return periodExpenses.filter(e => e.active);
-  }, [periodExpenses]);
-
-  // Financial Statistics
-  const grossSales = useMemo(() => {
-    return periodOrders
-      .filter(o => o.status !== 'Cancelled')
-      .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-  }, [periodOrders]);
-
-  const verifiedCollected = useMemo(() => {
-    return periodOrders
-      .filter(o => o.paymentStatus === 'Paid')
-      .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-  }, [periodOrders]);
-
-  const outstandingBalance = useMemo(() => {
-    return periodOrders
-      .filter(o => o.paymentStatus !== 'Paid' && o.status !== 'Cancelled')
-      .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-  }, [periodOrders]);
-
-  const recordedExpenses = useMemo(() => {
-    return activePeriodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  }, [activePeriodExpenses]);
-
-  const paidExpenses = useMemo(() => {
-    return activePeriodExpenses
-      .filter(e => e.paymentStatus === 'Paid')
-      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  }, [activePeriodExpenses]);
-
-  const unpaidExpenses = useMemo(() => {
-    return activePeriodExpenses
-      .filter(e => e.paymentStatus === 'Unpaid')
-      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  }, [activePeriodExpenses]);
-
-  const unrecordedStatusExpenses = useMemo(() => {
-    return activePeriodExpenses
-      .filter(e => !e.paymentStatus || (e.paymentStatus !== 'Paid' && e.paymentStatus !== 'Unpaid'))
-      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  }, [activePeriodExpenses]);
-
-  const collectionsAfterPaidExpenses = verifiedCollected - paidExpenses;
-  const estimatedMargin = verifiedCollected - recordedExpenses;
-
-  const totalOrders = periodOrders.length;
-  const cancelledOrdersCount = periodOrders.filter(o => o.status === 'Cancelled').length;
-  const paidOrdersCount = periodOrders.filter(o => o.paymentStatus === 'Paid').length;
-  const unpaidOrdersCount = periodOrders.filter(o => o.paymentStatus !== 'Paid' && o.status !== 'Cancelled').length;
-
-  const avgTicket = paidOrdersCount > 0 ? (verifiedCollected / paidOrdersCount) : 0;
-
-  // Accurate Payment Breakdown (distinguishing recorded vs verified)
-  const paymentBreakdown = useMemo(() => {
-    const buckets = {
-      Cash: { recorded: 0, verified: 0, count: 0 },
-      GCash: { recorded: 0, verified: 0, count: 0 },
-      'Bank Transfer': { recorded: 0, verified: 0, count: 0 },
-      Other: { recorded: 0, verified: 0, count: 0 },
-      'Not Specified': { recorded: 0, verified: 0, count: 0 }
-    };
-
-    periodOrders.forEach(o => {
-      if (o.status === 'Cancelled') return;
-      const cat = classifyPaymentMethod(o);
-      const target = buckets[cat] || buckets['Not Specified'];
-      const amt = Number(o.amount) || 0;
-      target.recorded += amt;
-      target.count += 1;
-      if (o.paymentStatus === 'Paid') {
-        target.verified += amt;
-      }
-    });
-
-    return buckets;
-  }, [periodOrders]);
-
-  // Sales by Fulfillment Service Type
-  const serviceBreakdown = useMemo(() => {
-    const map = {};
-    periodOrders.forEach(o => {
-      if (o.status === 'Cancelled') return;
-      const srv = normalizeServiceType(o);
-      if (!map[srv]) {
-        map[srv] = { service: srv, orders: 0, gross: 0, verified: 0, outstanding: 0 };
-      }
-      const amt = Number(o.amount) || 0;
-      map[srv].orders += 1;
-      map[srv].gross += amt;
-      if (o.paymentStatus === 'Paid') {
-        map[srv].verified += amt;
-      } else {
-        map[srv].outstanding += amt;
-      }
-    });
-    return Object.values(map);
-  }, [periodOrders]);
-
-  // Best-Selling Container counts & relative progress
-  const productBreakdown = useMemo(() => {
-    const counts = { round5: 0, slim25: 0, slim5: 0 };
-    let totalQty = 0;
-
-    periodOrders.forEach(o => {
-      if (o.status === 'Cancelled') return;
-      (o.items || []).forEach(item => {
-        if (counts[item.sizeId] !== undefined) {
-          const q = Number(item.quantity) || 0;
-          counts[item.sizeId] += q;
-          totalQty += q;
-        }
-      });
-    });
-
-    const list = DEMO_PRODUCTS.map(p => {
-      const q = counts[p.id] || 0;
-      return {
-        ...p,
-        quantity: q,
-        share: totalQty > 0 ? (q / totalQty) * 100 : 0
-      };
-    });
-
-    const maxQty = Math.max(0, ...list.map(p => p.quantity));
-    return { list, maxQty };
-  }, [periodOrders]);
-
-  // Sales by Order Source
-  const sourceBreakdown = useMemo(() => {
-    const sources = ['Walk-in', 'Online', 'Messenger', 'Phone'];
-    return sources.map(src => {
-      const match = periodOrders.filter(o => o.source === src && o.status !== 'Cancelled');
-      const total = match.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-      const paid = match.filter(o => o.paymentStatus === 'Paid').reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-      return {
-        source: src,
-        total,
-        paid,
-        count: match.length
-      };
-    });
-  }, [periodOrders]);
-
-  // Check if any order has an actual hourly timestamp
-  const hasHourlyTimestamps = useMemo(() => {
-    return periodOrders.some(o => {
-      const t = o.time || o.createdAt || o.created_at;
-      return Boolean(t && typeof t === 'string' && t.includes(':'));
-    });
-  }, [periodOrders]);
-
-  // Chart Data Aggregation
   const chartPoints = useMemo(() => {
     if (period === 'Daily') {
-      if (!hasHourlyTimestamps) {
-        // Honest limitation: no artificial distribution!
-        return [];
-      }
-      // If hourly timestamps exist, group by hour
-      const hours = Array.from({ length: 12 }, (_, i) => i + 8); // 8 AM to 7 PM
-      return hours.map(h => {
-        const hLabel = h > 12 ? `${h - 12} PM` : h === 12 ? '12 PM' : `${h} AM`;
-        const matchOrders = periodOrders.filter(o => {
-          if (o.status === 'Cancelled') return false;
-          const t = o.time || o.createdAt || o.created_at;
-          if (!t) return false;
-          const hr = parseInt(t.split(':')[0], 10);
-          return hr === h;
-        });
-        const sales = matchOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+      if (!hasHourlyTimestamps) return [];
+      return Array.from({ length: 24 }, (_, hour) => {
+        const label = hour === 0 ? '12 AM' : hour < 12 ? hour + ' AM' : hour === 12 ? '12 PM' : (hour - 12) + ' PM';
+        const matchOrders = activePeriodOrders.filter(order => getOrderHour(order) === hour);
         return {
-          label: hLabel,
-          fullLabel: `${hLabel} (${formatDateLabel(anchorDate)})`,
-          sales,
+          label,
+          fullLabel: label + ' (' + formatDateLabel(anchorDate) + ')',
+          sales: matchOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0),
           orders: matchOrders.length
         };
       });
     }
 
     if (period === 'Weekly') {
-      // Sunday through Saturday
-      const { startDate } = getWeekRange(anchorDate);
+      const week = getWeekRange(anchorDate);
       const days = [];
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
       for (let i = 0; i < 7; i++) {
-        const cur = new Date(startDate);
-        cur.setDate(startDate.getDate() + i);
-        const curYear = cur.getFullYear();
-        const curMonth = String(cur.getMonth() + 1).padStart(2, '0');
-        const curDay = String(cur.getDate()).padStart(2, '0');
-        const curStr = `${curYear}-${curMonth}-${curDay}`;
-
-        const dayOrders = orders.filter(o => o.date === curStr && o.status !== 'Cancelled');
-        const daySales = dayOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+        const current = new Date(week.startDate);
+        current.setDate(current.getDate() + i);
+        const dateString = [
+          current.getFullYear(),
+          String(current.getMonth() + 1).padStart(2, '0'),
+          String(current.getDate()).padStart(2, '0')
+        ].join('-');
+        const dayOrders = activePeriodOrders.filter(order => order.date === dateString);
         days.push({
-          date: curStr,
+          date: dateString,
           label: dayNames[i],
-          fullLabel: `${dayNames[i]}, ${cur.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}`,
-          sales: daySales,
+          fullLabel: dayNames[i] + ', ' + formatDateLabel(dateString),
+          sales: dayOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0),
           orders: dayOrders.length
         });
       }
@@ -330,59 +194,64 @@ export default function SalesReports({
 
     if (period === 'Monthly') {
       const parts = anchorDate.split('-');
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10);
-      const numDays = new Date(year, month, 0).getDate();
-      const points = [];
-
-      for (let day = 1; day <= numDays; day++) {
-        const dayStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const dayOrders = orders.filter(o => o.date === dayStr && o.status !== 'Cancelled');
-        const daySales = dayOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-        points.push({
-          date: dayStr,
+      const year = Number(parts[0]);
+      const month = Number(parts[1]);
+      const dayCount = new Date(year, month, 0).getDate();
+      return Array.from({ length: dayCount }, (_, index) => {
+        const day = index + 1;
+        const dateString = year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+        const dayOrders = activePeriodOrders.filter(order => order.date === dateString);
+        return {
+          date: dateString,
           label: String(day),
-          fullLabel: formatDateLabel(dayStr),
-          sales: daySales,
+          fullLabel: formatDateLabel(dateString),
+          sales: dayOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0),
           orders: dayOrders.length
-        });
-      }
-      return points;
+        };
+      });
     }
 
     if (period === 'Yearly') {
       const year = anchorDate.slice(0, 4);
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return months.map((mName, mIdx) => {
-        const mPrefix = `${year}-${String(mIdx + 1).padStart(2, '0')}`;
-        const mOrders = orders.filter(o => o.date && o.date.startsWith(mPrefix) && o.status !== 'Cancelled');
-        const mSales = mOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+      return months.map((monthName, index) => {
+        const prefix = year + '-' + String(index + 1).padStart(2, '0');
+        const monthOrders = activePeriodOrders.filter(order => order.date && order.date.startsWith(prefix));
         return {
-          label: mName,
-          fullLabel: `${mName} ${year}`,
-          sales: mSales,
-          orders: mOrders.length
+          label: monthName,
+          fullLabel: monthName + ' ' + year,
+          sales: monthOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0),
+          orders: monthOrders.length
         };
       });
     }
 
-    // All Time: chronological unique dates
-    const uniqueDates = Array.from(new Set(orders.map(o => o.date).filter(Boolean))).sort();
-    if (!uniqueDates.length) {
-      return [{ label: 'No Data', fullLabel: 'No records', sales: 0, orders: 0 }];
+    // All Time is grouped by month so long-running histories remain readable.
+    const months = Array.from(new Set(
+      activePeriodOrders
+        .map(order => String(order.date || '').slice(0, 7))
+        .filter(value => /^\d{4}-\d{2}$/.test(value))
+    )).sort();
+
+    if (!months.length) return [];
+
+    const first = parseLocalDate(months[0] + '-01');
+    const last = parseLocalDate(months[months.length - 1] + '-01');
+    const points = [];
+    const cursor = new Date(first);
+    while (cursor <= last) {
+      const prefix = cursor.getFullYear() + '-' + String(cursor.getMonth() + 1).padStart(2, '0');
+      const monthOrders = activePeriodOrders.filter(order => order.date && order.date.startsWith(prefix));
+      points.push({
+        label: cursor.toLocaleDateString('en-PH', { month: 'short', year: '2-digit' }),
+        fullLabel: cursor.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' }),
+        sales: monthOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0),
+        orders: monthOrders.length
+      });
+      cursor.setMonth(cursor.getMonth() + 1);
     }
-    return uniqueDates.map(dateStr => {
-      const dOrders = orders.filter(o => o.date === dateStr && o.status !== 'Cancelled');
-      const dSales = dOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-      return {
-        date: dateStr,
-        label: dateStr.slice(5),
-        fullLabel: formatDateLabel(dateStr),
-        sales: dSales,
-        orders: dOrders.length
-      };
-    });
-  }, [period, anchorDate, orders, periodOrders, hasHourlyTimestamps]);
+    return points;
+  }, [period, anchorDate, activePeriodOrders, hasHourlyTimestamps]);
 
   // Zoom Handlers
   const handleZoomIn = () => setZoomLevel(prev => Math.min(3, prev + 1));
@@ -446,70 +315,52 @@ export default function SalesReports({
     });
   }, [periodOrders, searchTx]);
 
-  // Prepare full data payload for PDF generation
-  const buildReportPDFData = () => {
-    const paymentMethodsArr = Object.entries(paymentBreakdown).map(([method, val]) => ({
+  // Compatibility adapter for the existing PDF layout. All amounts originate in reportData.
+  const buildReportPDFData = () => ({
+    period,
+    periodLabel,
+    periodFilename,
+    dateGenerated: reportData.dateGenerated,
+    role: isOwner ? 'Super Admin' : 'Station Manager',
+    grossSales,
+    discounts: null,
+    netSales: grossSales,
+    verifiedCollected,
+    outstandingBalance,
+    unknownPaymentBalance,
+    unknownPaymentOrdersCount,
+    recordedExpenses,
+    paidExpenses,
+    unpaidExpenses,
+    unrecordedStatusExpenses,
+    collectionsAfterPaidExpenses,
+    totalOrders,
+    paidOrdersCount,
+    unpaidOrdersCount,
+    cancelledOrdersCount,
+    avgTicket,
+    sources: sourceBreakdown.map(source => ({
+      source: source.source,
+      orders: source.count,
+      gross: source.total,
+      verified: source.paid
+    })),
+    services: serviceBreakdown,
+    paymentMethods: Object.entries(paymentBreakdown).map(([method, value]) => ({
       method,
-      orders: val.count,
-      recorded: val.recorded,
-      verified: val.verified
-    }));
-
-    const receivablesList = periodOrders
-      .filter(o => o.status !== 'Cancelled' && o.paymentStatus !== 'Paid')
-      .map(o => ({
-        id: o.id,
-        customer: o.customer || 'Walk-in',
-        service: o.service || 'Walk-in',
-        date: o.date,
-        amount: Number(o.amount) || 0,
-        paid: 0,
-        balance: Number(o.amount) || 0,
-        paymentStatus: o.paymentStatus || 'Unpaid'
-      }));
-
-    const transactionsList = periodOrders.map(o => ({
-      id: o.id,
-      date: o.date,
-      customer: o.customer || 'Walk-in',
-      source: o.source || 'Walk-in',
-      service: o.service || 'Walk-in',
-      amount: Number(o.amount) || 0,
-      paymentStatus: o.paymentStatus || 'Unpaid',
-      status: o.status || 'Active'
-    }));
-
-    return {
-      period,
-      periodLabel,
-      periodFilename,
-      dateGenerated: new Date().toLocaleString('en-PH'),
-      role: isOwner ? 'Super Admin / Business Owner' : 'Station Manager',
-      grossSales,
-      discounts: null,
-      netSales: grossSales,
-      verifiedCollected,
-      outstandingBalance,
-      recordedExpenses,
-      paidExpenses,
-      unpaidExpenses,
-      unrecordedStatusExpenses,
-      collectionsAfterPaidExpenses,
-      estimatedMargin,
-      totalOrders,
-      paidOrdersCount,
-      unpaidOrdersCount,
-      cancelledOrdersCount,
-      avgTicket,
-      sources: sourceBreakdown.map(s => ({ source: s.source, orders: s.count, gross: s.total, verified: s.paid })),
-      services: serviceBreakdown,
-      paymentMethods: paymentMethodsArr,
-      containers: productBreakdown.list.map(p => ({ label: `${p.label} · ${p.shape}`, quantity: p.quantity, share: p.share })),
-      expensesList: periodExpenses,
-      receivablesList,
-      transactionsList
-    };
-  };
+      orders: value.count,
+      recorded: value.recorded,
+      verified: value.verified
+    })),
+    containers: productBreakdown.list.map(product => ({
+      label: product.label + ' · ' + product.shape,
+      quantity: product.quantity,
+      share: product.share
+    })),
+    expensesList,
+    receivablesList,
+    transactionsList
+  });
 
   // Trigger Financial Summary PDF
   const handleDownloadSummaryPDF = async () => {
@@ -648,7 +499,11 @@ export default function SalesReports({
                 className="sales-pick-input"
                 value={anchorDate}
                 onChange={e => {
-                  if (e.target.value) setAnchorDate(e.target.value);
+                  if (e.target.value) {
+                    setAnchorDate(e.target.value);
+                    setActivePoint(null);
+                    setZoomLevel(1);
+                  }
                 }}
               />
             </label>
@@ -703,24 +558,24 @@ export default function SalesReports({
       <div className="sales-margin-banner">
         <div className="sales-margin-left">
           <div className="sales-margin-kicker">
-            <FiTrendingUp /> ESTIMATED MARGIN
+            <FiTrendingUp /> COLLECTIONS AFTER PAID EXPENSES
           </div>
           <strong className="sales-margin-amount">
-            {formatMoney(estimatedMargin)}
+            {formatMoney(collectionsAfterPaidExpenses)}
           </strong>
         </div>
 
         <div className="sales-margin-center">
-          <span>Verified collections minus recorded expenses.</span>
-          <em>Not verified actual net profit.</em>
+          <span>Verified collections minus expenses explicitly marked Paid.</span>
+          <em>Cash-flow indicator only — not verified net profit.</em>
         </div>
 
         <div
-          className={`sales-margin-badge ${estimatedMargin > 0 ? 'positive' : estimatedMargin < 0 ? 'negative' : 'neutral'
+          className={`sales-margin-badge ${collectionsAfterPaidExpenses > 0 ? 'positive' : collectionsAfterPaidExpenses < 0 ? 'negative' : 'neutral'
             }`}
         >
           <span className="sales-status-dot" />
-          <span>{estimatedMargin > 0 ? 'Positive' : estimatedMargin < 0 ? 'Negative' : 'Neutral'}</span>
+          <span>{collectionsAfterPaidExpenses > 0 ? 'Positive' : collectionsAfterPaidExpenses < 0 ? 'Negative' : 'Neutral'}</span>
         </div>
       </div>
 
@@ -781,7 +636,7 @@ export default function SalesReports({
               Current order fixtures record calendar dates without hourly timestamps. Displaying full day total:
             </p>
             <div className="sales-daily-badge">
-              {formatDateLabel(anchorDate)} Total: {formatMoney(grossSales)} ({periodOrders.length} {periodOrders.length === 1 ? 'order' : 'orders'})
+              {formatDateLabel(anchorDate)} Total: {formatMoney(grossSales)} ({activePeriodOrders.length} {activePeriodOrders.length === 1 ? 'order' : 'orders'})
             </div>
           </div>
         ) : chartPoints.length > 0 && maxVal > 0 ? (
@@ -1087,8 +942,8 @@ export default function SalesReports({
                       <strong style={{ textDecoration: o.status === 'Cancelled' ? 'line-through' : 'none' }}>
                         {formatMoney(o.amount)}
                       </strong>
-                      <span className={`mgmt-pill ${o.status === 'Cancelled' ? 'warn' : o.paymentStatus === 'Paid' ? 'ok' : 'warn'}`}>
-                        {o.status === 'Cancelled' ? 'Cancelled' : o.paymentStatus}
+                      <span className={`mgmt-pill ${o.status === 'Cancelled' ? 'warn' : o.paymentStatus === 'Paid' ? 'ok' : o.paymentStatus === 'Unpaid' ? 'warn' : ''}`}>
+                        {o.status === 'Cancelled' ? 'Cancelled' : o.paymentStatus || 'Not Recorded'}
                       </span>
                     </div>
                   </div>
