@@ -1,8 +1,9 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   FiBarChart2, FiDollarSign, FiClock, FiCreditCard, FiTrendingUp,
   FiZoomIn, FiZoomOut, FiRefreshCw, FiCalendar, FiChevronLeft,
-  FiChevronRight, FiPieChart, FiShoppingBag, FiSearch, FiFileText
+  FiChevronRight, FiPieChart, FiShoppingBag, FiSearch, FiFileText,
+  FiCheckCircle, FiChevronDown, FiChevronUp, FiInfo
 } from 'react-icons/fi';
 import { DEMO_PRODUCTS, formatMoney } from '../data/managerDemo.js';
 import ExpenseReport from './ExpenseReport.jsx';
@@ -10,7 +11,7 @@ import './salesReports.css';
 
 const PERIODS = ['Daily', 'Weekly', 'Monthly', 'Yearly', 'All Time'];
 
-// Helper to format date strings for presentation
+// Format date strings for clean presentation
 function formatDateLabel(dateStr) {
   if (!dateStr) return 'Unspecified';
   const d = new Date(dateStr + 'T00:00:00');
@@ -18,21 +19,32 @@ function formatDateLabel(dateStr) {
   return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-// Get ISO week start (Monday) and end (Sunday) for a date string YYYY-MM-DD
+// Get ISO week range for an anchor date (Sunday to Saturday or Monday to Sunday)
 function getWeekRange(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
-  const day = d.getDay();
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  const monday = new Date(d);
-  monday.setDate(d.getDate() + diffToMonday);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
+  const day = d.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+  // Sunday start to Saturday end
+  const sunday = new Date(d);
+  sunday.setDate(d.getDate() - day);
+  const saturday = new Date(sunday);
+  saturday.setDate(sunday.getDate() + 6);
   return {
-    monday: monday.toISOString().slice(0, 10),
-    sunday: sunday.toISOString().slice(0, 10),
-    mondayDate: monday,
-    sundayDate: sunday
+    startStr: sunday.toISOString().slice(0, 10),
+    endStr: saturday.toISOString().slice(0, 10),
+    startDate: sunday,
+    endDate: saturday
   };
+}
+
+// Accurate Payment Method Classification
+function classifyPaymentMethod(order) {
+  const m = (order.paymentMethod || order.method || '').trim().toLowerCase();
+  if (m === 'cash') return 'Cash';
+  if (m === 'gcash') return 'GCash';
+  if (m === 'bank transfer' || m.includes('bank') || m.includes('transfer')) return 'Bank Transfer';
+  if (!m && order.source === 'Walk-in') return 'Cash';
+  if (!m) return 'Not Specified';
+  return 'Other';
 }
 
 export default function SalesReports({
@@ -41,7 +53,7 @@ export default function SalesReports({
   setExpenses,
   onNotice = () => {}
 }) {
-  // Determine the default anchor date from the orders or today
+  // Determine anchor date defaulting to latest order date or today
   const defaultDate = useMemo(() => {
     const dates = orders.map(o => o.date).filter(Boolean).sort();
     return dates.length ? dates[dates.length - 1] : new Date().toISOString().slice(0, 10);
@@ -54,13 +66,26 @@ export default function SalesReports({
   const [searchTx, setSearchTx] = useState('');
   const chartViewportRef = useRef(null);
 
-  // Period label for display
+  // Accordion state (collapsed on mobile by default, expanded on desktop)
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const [transactionsOpen, setTransactionsOpen] = useState(false);
+  const [expensesOpen, setExpensesOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 850) {
+      setBreakdownOpen(true);
+      setTransactionsOpen(true);
+      setExpensesOpen(true);
+    }
+  }, []);
+
+  // Format active period label
   const periodLabel = useMemo(() => {
     if (period === 'All Time') return 'All Recorded Time';
     if (period === 'Daily') return formatDateLabel(anchorDate);
     if (period === 'Weekly') {
-      const { monday, sunday } = getWeekRange(anchorDate);
-      return `${formatDateLabel(monday)} – ${formatDateLabel(sunday)}`;
+      const { startStr, endStr } = getWeekRange(anchorDate);
+      return `${formatDateLabel(startStr)} – ${formatDateLabel(endStr)}`;
     }
     if (period === 'Monthly') {
       const [year, month] = anchorDate.split('-');
@@ -73,7 +98,7 @@ export default function SalesReports({
     return anchorDate;
   }, [period, anchorDate]);
 
-  // Navigate anchor date backward or forward
+  // Navigate date range
   const shiftAnchor = (step) => {
     const d = new Date(anchorDate + 'T00:00:00');
     if (period === 'Daily') {
@@ -89,40 +114,36 @@ export default function SalesReports({
     setActivePoint(null);
   };
 
-  // Filter orders by active period
+  // Filter orders by period
   const periodOrders = useMemo(() => {
-    if (period === 'All Time') {
-      return orders;
-    }
+    if (period === 'All Time') return orders;
     if (period === 'Daily') {
       return orders.filter(o => o.date === anchorDate);
     }
     if (period === 'Weekly') {
-      const { monday, sunday } = getWeekRange(anchorDate);
-      return orders.filter(o => o.date && o.date >= monday && o.date <= sunday);
+      const { startStr, endStr } = getWeekRange(anchorDate);
+      return orders.filter(o => o.date && o.date >= startStr && o.date <= endStr);
     }
     if (period === 'Monthly') {
-      const prefix = anchorDate.slice(0, 7); // YYYY-MM
+      const prefix = anchorDate.slice(0, 7);
       return orders.filter(o => o.date && o.date.startsWith(prefix));
     }
     if (period === 'Yearly') {
-      const year = anchorDate.slice(0, 4); // YYYY
+      const year = anchorDate.slice(0, 4);
       return orders.filter(o => o.date && o.date.startsWith(year));
     }
     return orders;
   }, [orders, period, anchorDate]);
 
-  // Filter expenses by active period
+  // Filter active expenses by period
   const periodExpenses = useMemo(() => {
-    if (period === 'All Time') {
-      return expenses.filter(e => e.active);
-    }
+    if (period === 'All Time') return expenses.filter(e => e.active);
     if (period === 'Daily') {
       return expenses.filter(e => e.active && e.date === anchorDate);
     }
     if (period === 'Weekly') {
-      const { monday, sunday } = getWeekRange(anchorDate);
-      return expenses.filter(e => e.active && e.date && e.date >= monday && e.date <= sunday);
+      const { startStr, endStr } = getWeekRange(anchorDate);
+      return expenses.filter(e => e.active && e.date && e.date >= startStr && e.date <= endStr);
     }
     if (period === 'Monthly') {
       const prefix = anchorDate.slice(0, 7);
@@ -135,7 +156,7 @@ export default function SalesReports({
     return expenses.filter(e => e.active);
   }, [expenses, period, anchorDate]);
 
-  // Financial statistics
+  // Financial Statistics
   const grossSales = useMemo(() => {
     return periodOrders
       .filter(o => o.status !== 'Cancelled')
@@ -160,48 +181,34 @@ export default function SalesReports({
 
   const estimatedMargin = verifiedCollected - expensesRecorded;
 
-  const totalCompletedTransactions = useMemo(() => {
-    return periodOrders.filter(o => o.paymentStatus === 'Paid' || o.status === 'Completed').length;
-  }, [periodOrders]);
-
-  const avgSales = totalCompletedTransactions > 0 ? (verifiedCollected / totalCompletedTransactions) : 0;
-
-  // Breakdown by payment methods
+  // Accurate Payment Breakdown (distinguish recorded vs verified)
   const paymentBreakdown = useMemo(() => {
-    let cash = 0;
-    let gcash = 0;
-    let other = 0;
+    const buckets = {
+      Cash: { recorded: 0, verified: 0, count: 0, paidCount: 0 },
+      GCash: { recorded: 0, verified: 0, count: 0, paidCount: 0 },
+      'Bank Transfer': { recorded: 0, verified: 0, count: 0, paidCount: 0 },
+      'Not Specified': { recorded: 0, verified: 0, count: 0, paidCount: 0 }
+    };
+
     periodOrders.forEach(o => {
       if (o.status === 'Cancelled') return;
-      const m = (o.paymentMethod || o.method || '').toLowerCase();
+      const cat = classifyPaymentMethod(o);
+      const target = buckets[cat] || buckets['Not Specified'];
       const amt = Number(o.amount) || 0;
-      if (m.includes('cash') || (!m && o.source === 'Walk-in')) {
-        cash += amt;
-      } else if (m.includes('gcash')) {
-        gcash += amt;
-      } else {
-        other += amt;
+      target.recorded += amt;
+      target.count += 1;
+      if (o.paymentStatus === 'Paid') {
+        target.verified += amt;
+        target.paidCount += 1;
       }
     });
-    return { cash, gcash, other };
+
+    return buckets;
   }, [periodOrders]);
 
-  // Breakdown by Sales Source
-  const sourceBreakdown = useMemo(() => {
-    const sources = ['Walk-in', 'Online', 'Messenger', 'Phone'];
-    return sources.map(src => {
-      const match = periodOrders.filter(o => o.source === src && o.status !== 'Cancelled');
-      const total = match.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-      const paid = match.filter(o => o.paymentStatus === 'Paid').reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
-      return { source: src, total, paid, count: match.length };
-    });
-  }, [periodOrders]);
-
-  // Breakdown by Product / Container Sizes
+  // Best-Selling Container counts & relative progress
   const productBreakdown = useMemo(() => {
     const counts = { round5: 0, slim25: 0, slim5: 0 };
-    const revenues = { round5: 0, slim25: 0, slim5: 0 };
-
     periodOrders.forEach(o => {
       if (o.status === 'Cancelled') return;
       (o.items || []).forEach(item => {
@@ -211,40 +218,68 @@ export default function SalesReports({
       });
     });
 
-    return DEMO_PRODUCTS.map(p => ({
+    const list = DEMO_PRODUCTS.map(p => ({
       ...p,
       quantity: counts[p.id] || 0
     }));
+
+    const maxQty = Math.max(0, ...list.map(p => p.quantity));
+    return { list, maxQty };
   }, [periodOrders]);
 
-  // Aggregate Chart Data Points based on selected period
+  // Sales by Order Source
+  const sourceBreakdown = useMemo(() => {
+    const sources = ['Walk-in', 'Online', 'Messenger', 'Phone'];
+    return sources.map(src => {
+      const match = periodOrders.filter(o => o.source === src && o.status !== 'Cancelled');
+      const total = match.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+      const paid = match.filter(o => o.paymentStatus === 'Paid').reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+      return {
+        source: src,
+        total,
+        paid,
+        count: match.length
+      };
+    });
+  }, [periodOrders]);
+
+  // Honest Chart Data Aggregation (No invented hours!)
   const chartPoints = useMemo(() => {
     if (period === 'Daily') {
-      // 2-hour segments across the day
-      const intervals = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
-      return intervals.map((time, idx) => {
-        // Distribute non-cancelled orders across day intervals for demonstration
-        const assignedOrders = periodOrders.filter(o => o.status !== 'Cancelled');
-        const count = assignedOrders.length;
-        const total = count > 0 && idx === Math.min(idx, 2) ? grossSales : 0;
-        return {
-          label: time,
-          fullLabel: `${formatDateLabel(anchorDate)} at ${time}`,
-          sales: total,
-          orders: total > 0 ? count : 0
-        };
-      });
+      // Do not invent fake hourly timestamps.
+      // Show the selected day's actual recorded total, and surrounding days of that week for context.
+      const { startDate } = getWeekRange(anchorDate);
+      const days = [];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+      for (let i = 0; i < 7; i++) {
+        const cur = new Date(startDate);
+        cur.setDate(startDate.getDate() + i);
+        const curStr = cur.toISOString().slice(0, 10);
+        const dayOrders = orders.filter(o => o.date === curStr && o.status !== 'Cancelled');
+        const daySales = dayOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+        const isCurrent = curStr === anchorDate;
+        days.push({
+          date: curStr,
+          label: dayNames[i],
+          fullLabel: `${dayNames[i]}, ${cur.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}${isCurrent ? ' (Selected)' : ''}`,
+          sales: daySales,
+          orders: dayOrders.length,
+          isSelectedDay: isCurrent
+        });
+      }
+      return days;
     }
 
     if (period === 'Weekly') {
-      // 7 days of the week: Mon through Sun
-      const { mondayDate } = getWeekRange(anchorDate);
+      // Sunday to Saturday
+      const { startDate } = getWeekRange(anchorDate);
       const days = [];
-      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
       for (let i = 0; i < 7; i++) {
-        const cur = new Date(mondayDate);
-        cur.setDate(mondayDate.getDate() + i);
+        const cur = new Date(startDate);
+        cur.setDate(startDate.getDate() + i);
         const curStr = cur.toISOString().slice(0, 10);
         const dayOrders = orders.filter(o => o.date === curStr && o.status !== 'Cancelled');
         const daySales = dayOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
@@ -260,7 +295,6 @@ export default function SalesReports({
     }
 
     if (period === 'Monthly') {
-      // Days of the month
       const [year, month] = anchorDate.split('-');
       const numDays = new Date(Number(year), Number(month), 0).getDate();
       const points = [];
@@ -272,7 +306,7 @@ export default function SalesReports({
         points.push({
           date: dayStr,
           label: String(day),
-          fullLabel: `${formatDateLabel(dayStr)}`,
+          fullLabel: formatDateLabel(dayStr),
           sales: daySales,
           orders: dayOrders.length
         });
@@ -281,7 +315,6 @@ export default function SalesReports({
     }
 
     if (period === 'Yearly') {
-      // 12 months
       const year = anchorDate.slice(0, 4);
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       return months.map((mName, mIdx) => {
@@ -297,7 +330,7 @@ export default function SalesReports({
       });
     }
 
-    // All Time: chronological unique dates
+    // All Time
     const uniqueDates = Array.from(new Set(orders.map(o => o.date).filter(Boolean))).sort();
     if (!uniqueDates.length) {
       return [{ label: 'No Data', fullLabel: 'No records', sales: 0, orders: 0 }];
@@ -313,37 +346,29 @@ export default function SalesReports({
         orders: dOrders.length
       };
     });
-  }, [period, anchorDate, orders, periodOrders, grossSales]);
+  }, [period, anchorDate, orders]);
 
-  // Zoom handlers
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(3, prev + 1));
-  };
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(1, prev - 1));
-  };
+  // Zoom Handlers
+  const handleZoomIn = () => setZoomLevel(prev => Math.min(3, prev + 1));
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(1, prev - 1));
   const handleResetZoom = () => {
     setZoomLevel(1);
     setActivePoint(null);
-    if (chartViewportRef.current) {
-      chartViewportRef.current.scrollLeft = 0;
-    }
+    if (chartViewportRef.current) chartViewportRef.current.scrollLeft = 0;
   };
 
-  // SVG Chart Geometry calculations
-  const chartHeight = 220;
-  const paddingLeft = 55;
-  const paddingRight = 35;
-  const paddingTop = 25;
-  const paddingBottom = 35;
+  // SVG Chart Geometry
+  const chartHeight = 195;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 20;
+  const paddingBottom = 28;
 
   const maxVal = Math.max(100, ...chartPoints.map(p => p.sales));
-  // Round up max to nice integer
   const niceMax = Math.ceil(maxVal / 50) * 50;
 
-  // Base width depends on points count and zoom level
-  const basePointGap = Math.max(55, 600 / Math.max(1, chartPoints.length - 1));
-  const effectiveWidth = Math.max(650, (chartPoints.length - 1) * basePointGap * zoomLevel + paddingLeft + paddingRight);
+  const basePointGap = Math.max(48, 480 / Math.max(1, chartPoints.length - 1));
+  const effectiveWidth = Math.max(540, (chartPoints.length - 1) * basePointGap * zoomLevel + paddingLeft + paddingRight);
 
   const getCoordinates = (index, val) => {
     const x = paddingLeft + (index / Math.max(1, chartPoints.length - 1)) * (effectiveWidth - paddingLeft - paddingRight);
@@ -369,7 +394,7 @@ export default function SalesReports({
     return `${linePath} L ${lastX.toFixed(1)} ${bottomY} L ${firstX.toFixed(1)} ${bottomY} Z`;
   }, [linePath, chartPoints, effectiveWidth]);
 
-  // Filtered transactions for the selected period
+  // Filtered Transactions
   const filteredTransactions = useMemo(() => {
     return periodOrders.filter(o => {
       if (!searchTx.trim()) return true;
@@ -385,21 +410,21 @@ export default function SalesReports({
 
   return (
     <div className="sales-analytics">
-      {/* Top Header & Period Selector */}
-      <div className="mgmt-heading" style={{ marginBottom: 12 }}>
-        <div className="overline">Business intelligence</div>
+      {/* 1. Compact Report Heading */}
+      <div className="sales-header">
+        <div className="overline">BUSINESS INTELLIGENCE</div>
         <h1>Sales & Financial Reports</h1>
         <p>Unified business analytics, transaction history, and operating expense tracking.</p>
       </div>
 
-      {/* Filter and Date Bar */}
-      <div className="sales-top-bar">
-        <div className="sales-period-tabs" role="tablist" aria-label="Report period">
+      {/* 2. Period Selector & Date Navigation */}
+      <div className="sales-filter-row">
+        <div className="sales-period-pillbar" role="tablist" aria-label="Reporting period">
           {PERIODS.map(p => (
             <button
               key={p}
               type="button"
-              className={`sales-period-btn ${period === p ? 'active' : ''}`}
+              className={`sales-period-pill ${period === p ? 'active' : ''}`}
               onClick={() => {
                 setPeriod(p);
                 setZoomLevel(1);
@@ -412,147 +437,167 @@ export default function SalesReports({
         </div>
 
         {period !== 'All Time' && (
-          <div className="sales-date-nav">
-            <button
-              type="button"
-              className="sales-nav-btn"
-              onClick={() => shiftAnchor(-1)}
-              title="Previous period"
-              aria-label="Previous period"
-            >
-              <FiChevronLeft />
-            </button>
-            <span>{periodLabel}</span>
-            <button
-              type="button"
-              className="sales-nav-btn"
-              onClick={() => shiftAnchor(1)}
-              title="Next period"
-              aria-label="Next period"
-            >
-              <FiChevronRight />
-            </button>
-            <input
-              type="date"
-              className="sales-date-input"
-              value={anchorDate}
-              onChange={e => {
-                if (e.target.value) setAnchorDate(e.target.value);
-              }}
-              title="Select reference date"
-            />
+          <div className="sales-date-toolbar">
+            <div className="sales-range-nav">
+              <button
+                type="button"
+                className="sales-nav-arrow"
+                onClick={() => shiftAnchor(-1)}
+                aria-label="Previous period"
+              >
+                <FiChevronLeft />
+              </button>
+              <div className="sales-range-label">
+                <FiCalendar />
+                <span>{periodLabel}</span>
+              </div>
+              <button
+                type="button"
+                className="sales-nav-arrow"
+                onClick={() => shiftAnchor(1)}
+                aria-label="Next period"
+              >
+                <FiChevronRight />
+              </button>
+            </div>
+
+            <label className="sales-pick-btn" title="Pick specific date">
+              <FiCalendar />
+              <span>Pick Date</span>
+              <input
+                type="date"
+                className="sales-pick-input"
+                value={anchorDate}
+                onChange={e => {
+                  if (e.target.value) setAnchorDate(e.target.value);
+                }}
+              />
+            </label>
           </div>
         )}
       </div>
 
-      {/* KPI Stats Grid */}
-      <div className="mgmt-stats" style={{ margin: '4px 0 12px' }}>
-        <div className="mgmt-stat">
-          <div className="mgmt-stat-top">
-            <span>Gross Sales</span>
-            <FiBarChart2 size={17} />
+      {/* 3. Four Primary KPI Cards (2x2 Grid) */}
+      <div className="sales-kpi-grid">
+        <div className="sales-kpi-card">
+          <div className="sales-kpi-icon blue">
+            <FiBarChart2 />
           </div>
-          <strong>{formatMoney(grossSales)}</strong>
+          <div className="sales-kpi-content">
+            <span className="sales-kpi-label">Gross Sales</span>
+            <strong className="sales-kpi-amount">{formatMoney(grossSales)}</strong>
+          </div>
         </div>
-        <div className="mgmt-stat">
-          <div className="mgmt-stat-top">
-            <span>Verified Collected</span>
-            <FiDollarSign size={17} />
+
+        <div className="sales-kpi-card">
+          <div className="sales-kpi-icon green">
+            <FiCheckCircle />
           </div>
-          <strong>{formatMoney(verifiedCollected)}</strong>
+          <div className="sales-kpi-content">
+            <span className="sales-kpi-label">Verified Collected</span>
+            <strong className="sales-kpi-amount">{formatMoney(verifiedCollected)}</strong>
+          </div>
         </div>
-        <div className="mgmt-stat">
-          <div className="mgmt-stat-top">
-            <span>Outstanding Balance</span>
-            <FiClock size={17} />
+
+        <div className="sales-kpi-card">
+          <div className="sales-kpi-icon amber">
+            <FiClock />
           </div>
-          <strong>{formatMoney(outstandingBalance)}</strong>
+          <div className="sales-kpi-content">
+            <span className="sales-kpi-label">Outstanding Balance</span>
+            <strong className="sales-kpi-amount">{formatMoney(outstandingBalance)}</strong>
+          </div>
         </div>
-        <div className="mgmt-stat">
-          <div className="mgmt-stat-top">
-            <span>Expenses Recorded</span>
-            <FiCreditCard size={17} />
+
+        <div className="sales-kpi-card">
+          <div className="sales-kpi-icon cyan">
+            <FiCreditCard />
           </div>
-          <strong>{formatMoney(expensesRecorded)}</strong>
+          <div className="sales-kpi-content">
+            <span className="sales-kpi-label">Expenses Recorded</span>
+            <strong className="sales-kpi-amount">{formatMoney(expensesRecorded)}</strong>
+          </div>
         </div>
       </div>
 
-      {/* Estimated Margin Hero Card */}
-      <div className="sales-margin-card">
-        <div className="sales-margin-head">
-          <div>
-            <div className="sales-margin-title">Estimated Margin (Demo)</div>
-            <div className="sales-margin-value" style={{ color: estimatedMargin >= 0 ? '#1b2f63' : '#d9383a' }}>
-              {formatMoney(estimatedMargin)}
-            </div>
-            <p className="mgmt-sub" style={{ margin: 0 }}>
-              Calculated from verified collections ({formatMoney(verifiedCollected)}) minus active recorded expenses ({formatMoney(expensesRecorded)}). Not verified actual net profit.
-            </p>
+      {/* 4. Compact Estimated Margin Banner */}
+      <div className="sales-margin-banner">
+        <div className="sales-margin-left">
+          <div className="sales-margin-kicker">
+            <FiTrendingUp /> ESTIMATED MARGIN
           </div>
-          <span className={`mgmt-pill ${estimatedMargin >= 0 ? 'ok' : 'warn'}`}>
-            {estimatedMargin >= 0 ? 'Positive Margin' : 'Negative Margin'}
-          </span>
+          <strong className="sales-margin-amount">
+            {formatMoney(estimatedMargin)}
+          </strong>
         </div>
-        <div className="sales-margin-meta">
-          <span><FiShoppingBag /> {totalCompletedTransactions} Paid / Completed Orders</span>
-          <span><FiTrendingUp /> Avg. Ticket: {formatMoney(avgSales)}</span>
-          <span><FiCalendar /> {periodLabel}</span>
+
+        <div className="sales-margin-center">
+          <span>Verified collections minus recorded expenses.</span>
+          <em>Not verified actual net profit.</em>
+        </div>
+
+        <div
+          className={`sales-margin-badge ${
+            estimatedMargin > 0 ? 'positive' : estimatedMargin < 0 ? 'negative' : 'neutral'
+          }`}
+        >
+          <span className="sales-status-dot" />
+          <span>{estimatedMargin > 0 ? 'Positive' : estimatedMargin < 0 ? 'Negative' : 'Neutral'}</span>
         </div>
       </div>
 
-      {/* Main Interactive Line Chart */}
+      {/* 5. Sales Trend Line Chart (Centerpiece) */}
       <div className="sales-chart-card">
         <div className="sales-chart-header">
           <div>
-            <div className="sales-chart-kicker">Sales Trend Analytics</div>
-            <div className="sales-chart-total">{formatMoney(grossSales)}</div>
-            <div className="sales-chart-sub">
-              <span>Period: {periodLabel}</span>
-              {grossSales > 0 ? (
-                <span className="trend-up"><FiTrendingUp /> {periodOrders.length} Recorded Orders</span>
-              ) : (
-                <span className="trend-neutral">0 Sales in Selected Period</span>
-              )}
+            <div className="sales-chart-title">
+              <FiTrendingUp />
+              <span>Sales Trend Analytics</span>
+            </div>
+            <div className="sales-chart-subtitle">
+              {period === 'Daily' ? 'Daily View' : period === 'Weekly' ? 'Weekly Sales' : period} • {periodLabel}
             </div>
           </div>
 
-          {/* Interactive Zoom Controls */}
-          <div className="sales-zoom-controls">
+          <div className="sales-zoom-actions">
             <button
               type="button"
-              className="sales-zoom-btn"
-              onClick={handleZoomOut}
-              disabled={zoomLevel <= 1}
-              title="Zoom out timeline"
-              aria-label="Zoom out"
-            >
-              <FiZoomOut />
-            </button>
-            <span className="sales-zoom-level">{zoomLevel}x</span>
-            <button
-              type="button"
-              className="sales-zoom-btn"
+              className="sales-zoom-pill"
               onClick={handleZoomIn}
               disabled={zoomLevel >= 3}
               title="Zoom in timeline"
-              aria-label="Zoom in"
             >
-              <FiZoomIn />
+              <FiZoomIn /> Zoom In
+            </button>
+            <button
+              type="button"
+              className="sales-zoom-pill"
+              onClick={handleZoomOut}
+              disabled={zoomLevel <= 1}
+              title="Zoom out timeline"
+            >
+              <FiZoomOut /> Zoom Out
             </button>
             {zoomLevel > 1 && (
               <button
                 type="button"
-                className="sales-zoom-reset"
+                className="sales-zoom-pill"
                 onClick={handleResetZoom}
-                title="Reset zoom"
+                title="Reset zoom to 1x"
               >
-                Reset
+                <FiRefreshCw /> Reset
               </button>
             )}
           </div>
         </div>
 
-        {/* Chart Viewport with smooth SVG line visualization */}
+        {period === 'Daily' && (
+          <div style={{ fontSize: 11, color: '#667788', marginBottom: 8, fontStyle: 'italic' }}>
+            Note: Order records store calendar dates without hourly timestamps. Displaying daily sales total ({formatMoney(grossSales)}).
+          </div>
+        )}
+
+        {/* Chart Viewport */}
         {chartPoints.length > 0 && maxVal > 0 ? (
           <div className="sales-chart-viewport" ref={chartViewportRef}>
             <svg
@@ -562,8 +607,8 @@ export default function SalesReports({
               viewBox={`0 0 ${effectiveWidth} ${chartHeight}`}
             >
               <defs>
-                <linearGradient id="salesLineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#2aa9c5" stopOpacity="0.28" />
+                <linearGradient id="chartGradMobile" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#2aa9c5" stopOpacity="0.25" />
                   <stop offset="100%" stopColor="#244ea3" stopOpacity="0.02" />
                 </linearGradient>
               </defs>
@@ -594,9 +639,9 @@ export default function SalesReports({
                 );
               })}
 
-              {/* Area fill under curve */}
+              {/* Gradient Area under line */}
               {areaPath && (
-                <path d={areaPath} fill="url(#salesLineGrad)" />
+                <path d={areaPath} fill="url(#chartGradMobile)" />
               )}
 
               {/* Line path */}
@@ -611,35 +656,30 @@ export default function SalesReports({
                 />
               )}
 
-              {/* Points, X Labels and Interactive Hit Areas */}
+              {/* Data points, labels, and generous touch targets */}
               {chartPoints.map((pt, i) => {
                 const { x, y } = getCoordinates(i, pt.sales);
                 const isSelected = activePoint === i;
                 return (
                   <g key={i}>
-                    {/* X Axis Label */}
                     <text
                       x={x}
-                      y={chartHeight - 12}
+                      y={chartHeight - 8}
                       textAnchor="middle"
                       className="chart-axis-text"
                     >
                       {pt.label}
                     </text>
-
-                    {/* Point Circle */}
                     <circle
                       cx={x}
                       cy={y}
-                      r={isSelected ? 6.5 : 4}
+                      r={isSelected ? 6 : 3.5}
                       className={`chart-point ${isSelected ? 'active' : ''}`}
                     />
-
-                    {/* Generous hit area for mobile tap & desktop hover */}
                     <circle
                       cx={x}
                       cy={y}
-                      r={20}
+                      r={24}
                       className="chart-hit-point"
                       onMouseEnter={() => setActivePoint(i)}
                       onClick={() => setActivePoint(i)}
@@ -649,15 +689,9 @@ export default function SalesReports({
               })}
             </svg>
 
-            {/* Interactive Tooltip Callout */}
+            {/* Tooltip */}
             {activePoint !== null && chartPoints[activePoint] && (
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  marginTop: 8
-                }}
-              >
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
                 <div className="sales-tooltip-bubble">
                   <div className="sales-tooltip-date">
                     {chartPoints[activePoint].fullLabel}
@@ -666,178 +700,224 @@ export default function SalesReports({
                     {formatMoney(chartPoints[activePoint].sales)}
                   </div>
                   <div className="sales-tooltip-meta">
-                    {chartPoints[activePoint].orders} orders recorded
+                    {chartPoints[activePoint].orders === 1 ? '1 order' : `${chartPoints[activePoint].orders} orders`}
                   </div>
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <div className="sales-chart-empty">
-            <FiBarChart2 size={32} />
-            <h3>No Sales Recorded for this Period</h3>
-            <p>
-              There are no transactions dated within this period ({periodLabel}). Switch period filter to "All Time" or navigate to an active date.
-            </p>
+          <div style={{ padding: '24px 12px', textAlign: 'center', color: '#8899a6', fontSize: 12 }}>
+            No sales recorded for this period ({periodLabel}).
           </div>
         )}
       </div>
 
-      {/* Financial Breakdown & Additional Analytics */}
-      <div className="sales-breakdown-grid">
-        {/* Payment Methods Breakdown */}
-        <div className="sales-breakdown-card">
-          <h3>
-            <span>Payment Methods</span>
-            <FiCreditCard />
-          </h3>
-          <div className="mgmt-row">
-            <span className="mgmt-sub">Cash Sales</span>
-            <strong>{formatMoney(paymentBreakdown.cash)}</strong>
+      {/* 6. Expandable Accordion A: Sales Breakdown */}
+      <div className={`sales-accordion ${breakdownOpen ? 'open' : ''}`}>
+        <button
+          type="button"
+          className="sales-accordion-header"
+          onClick={() => setBreakdownOpen(prev => !prev)}
+          aria-expanded={breakdownOpen}
+        >
+          <div className="sales-accordion-left">
+            <div className="sales-acc-icon">
+              <FiPieChart />
+            </div>
+            <div className="sales-accordion-text">
+              <strong>Sales Breakdown</strong>
+              <small>Payment methods, containers, and order sources</small>
+            </div>
           </div>
-          <div className="sales-progress-bar">
-            <div
-              className="sales-progress-fill"
-              style={{
-                width: `${grossSales > 0 ? (paymentBreakdown.cash / grossSales) * 100 : 0}%`
-              }}
-            />
+          <div className="sales-accordion-chevron">
+            {breakdownOpen ? <FiChevronUp /> : <FiChevronDown />}
           </div>
+        </button>
 
-          <div className="mgmt-row" style={{ marginTop: 12 }}>
-            <span className="mgmt-sub">GCash / Digital Payments</span>
-            <strong>{formatMoney(paymentBreakdown.gcash)}</strong>
-          </div>
-          <div className="sales-progress-bar">
-            <div
-              className="sales-progress-fill"
-              style={{
-                width: `${grossSales > 0 ? (paymentBreakdown.gcash / grossSales) * 100 : 0}%`
-              }}
-            />
-          </div>
+        {breakdownOpen && (
+          <div className="sales-accordion-body">
+            {/* Payment Methods */}
+            <div className="sales-inner-card">
+              <div className="sales-inner-title">
+                <span>Payment Methods</span>
+                <FiCreditCard />
+              </div>
+              {Object.entries(paymentBreakdown).map(([method, data]) => {
+                if (data.recorded === 0 && method === 'Bank Transfer') return null;
+                const pct = grossSales > 0 ? (data.recorded / grossSales) * 100 : 0;
+                return (
+                  <div key={method} style={{ marginBottom: 8 }}>
+                    <div className="mgmt-row">
+                      <span className="mgmt-sub">
+                        {method} ({data.count === 1 ? '1 order' : `${data.count} orders`})
+                      </span>
+                      <strong>
+                        {formatMoney(data.verified)}{' '}
+                        <small style={{ color: '#667788', fontWeight: 500 }}>
+                          ({formatMoney(data.recorded)} recorded)
+                        </small>
+                      </strong>
+                    </div>
+                    <div className="sales-progress-bar">
+                      <div className="sales-progress-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-          {paymentBreakdown.other > 0 && (
-            <>
-              <div className="mgmt-row" style={{ marginTop: 12 }}>
-                <span className="mgmt-sub">Other / Bank Transfer</span>
-                <strong>{formatMoney(paymentBreakdown.other)}</strong>
+            {/* Best-Selling Containers */}
+            <div className="sales-inner-card">
+              <div className="sales-inner-title">
+                <span>Best-Selling Containers</span>
+                <FiShoppingBag />
               </div>
-              <div className="sales-progress-bar">
-                <div
-                  className="sales-progress-fill"
-                  style={{
-                    width: `${grossSales > 0 ? (paymentBreakdown.other / grossSales) * 100 : 0}%`
-                  }}
-                />
-              </div>
-            </>
-          )}
-        </div>
+              {productBreakdown.maxQty > 0 ? (
+                productBreakdown.list.map(prod => {
+                  const pct = (prod.quantity / productBreakdown.maxQty) * 100;
+                  const countLabel = prod.quantity === 1 ? '1 container' : `${prod.quantity} containers`;
+                  return (
+                    <div key={prod.id} style={{ marginBottom: 8 }}>
+                      <div className="mgmt-row">
+                        <span className="mgmt-sub">{prod.label} · {prod.shape}</span>
+                        <strong>{countLabel}</strong>
+                      </div>
+                      <div className="sales-progress-bar">
+                        <div className="sales-progress-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="mgmt-sub" style={{ margin: 0 }}>No containers sold in this period.</p>
+              )}
+            </div>
 
-        {/* Best-selling Containers / Water Types */}
-        <div className="sales-breakdown-card">
-          <h3>
-            <span>Best-Selling Containers</span>
-            <FiShoppingBag />
-          </h3>
-          {productBreakdown.map(prod => (
-            <div key={prod.id} style={{ marginBottom: 10 }}>
-              <div className="mgmt-row">
-                <span className="mgmt-sub">{prod.label} · {prod.shape}</span>
-                <strong>{prod.quantity} containers</strong>
+            {/* Sales by Source */}
+            <div className="sales-inner-card">
+              <div className="sales-inner-title">
+                <span>Sales by Order Source</span>
+                <FiPieChart />
               </div>
-              <div className="sales-progress-bar">
-                <div
-                  className="sales-progress-fill"
-                  style={{
-                    width: `${Math.min(100, prod.quantity * 15)}%`
-                  }}
-                />
+              <div className="mgmt-grid" style={{ gap: 8 }}>
+                {sourceBreakdown.map(item => (
+                  <div key={item.source} className="mgmt-card" style={{ padding: 10, borderRadius: 12 }}>
+                    <div className="mgmt-row-title">{item.source}</div>
+                    <div style={{ margin: '4px 0', fontSize: 16, fontWeight: 800, color: '#1b2f63' }}>
+                      {formatMoney(item.total)}
+                    </div>
+                    <div className="mgmt-sub" style={{ fontSize: 10 }}>
+                      {item.count === 1 ? '1 order' : `${item.count} orders`} ({formatMoney(item.paid)} verified)
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Sales by Source */}
-        <div className="sales-breakdown-card" style={{ gridColumn: '1 / -1' }}>
-          <h3>
-            <span>Sales by Order Source</span>
-            <FiPieChart />
-          </h3>
-          <div className="mgmt-grid">
-            {sourceBreakdown.map(item => (
-              <div key={item.source} className="mgmt-card" style={{ padding: 12 }}>
-                <div className="mgmt-row-title">{item.source}</div>
-                <div style={{ margin: '6px 0', fontSize: 18, fontWeight: 800, color: '#1b2f63' }}>
-                  {formatMoney(item.total)}
-                </div>
-                <div className="mgmt-sub">
-                  {item.count} orders ({formatMoney(item.paid)} verified)
-                </div>
-              </div>
-            ))}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Filtered Period Transactions */}
-      <div className="sales-tx-card">
-        <div className="sales-tx-header">
-          <div>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#1b2f63' }}>
-              Transactions in this Period ({filteredTransactions.length})
-            </h3>
-            <p className="mgmt-sub" style={{ margin: '2px 0 0' }}>
-              Non-cancelled orders included in gross sales and financial totals.
-            </p>
+      {/* 7. Expandable Accordion B: Transactions */}
+      <div className={`sales-accordion ${transactionsOpen ? 'open' : ''}`}>
+        <button
+          type="button"
+          className="sales-accordion-header"
+          onClick={() => setTransactionsOpen(prev => !prev)}
+          aria-expanded={transactionsOpen}
+        >
+          <div className="sales-accordion-left">
+            <div className="sales-acc-icon">
+              <FiFileText />
+            </div>
+            <div className="sales-accordion-text">
+              <strong>Transactions ({periodOrders.length})</strong>
+              <small>View order history and payment status</small>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <FiSearch color="#64748d" />
-            <input
-              type="text"
-              placeholder="Search by ID, customer..."
-              className="sales-tx-search"
-              value={searchTx}
-              onChange={e => setSearchTx(e.target.value)}
+          <div className="sales-accordion-chevron">
+            {transactionsOpen ? <FiChevronUp /> : <FiChevronDown />}
+          </div>
+        </button>
+
+        {transactionsOpen && (
+          <div className="sales-accordion-body">
+            <div className="sales-tx-toolbar">
+              <FiSearch color="#64748d" />
+              <input
+                type="text"
+                placeholder="Search orders..."
+                className="sales-tx-search-input"
+                value={searchTx}
+                onChange={e => setSearchTx(e.target.value)}
+              />
+            </div>
+
+            <div>
+              {filteredTransactions.length > 0 ? (
+                filteredTransactions.map(o => (
+                  <div key={o.id} className="sales-tx-row">
+                    <div className="sales-tx-row-info">
+                      <strong>{o.id} · {o.customer || 'Walk-in'}</strong>
+                      <small>{o.source} • {o.service} • {formatDateLabel(o.date)}</small>
+                    </div>
+                    <div className="sales-tx-row-amount">
+                      <strong>{formatMoney(o.amount)}</strong>
+                      <span className={`mgmt-pill ${o.paymentStatus === 'Paid' ? 'ok' : 'warn'}`}>
+                        {o.paymentStatus}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="mgmt-sub" style={{ textAlign: 'center', padding: '12px 0', margin: 0 }}>
+                  No transactions match your search filter.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 8. Expandable Accordion C: Expenses */}
+      <div className={`sales-accordion ${expensesOpen ? 'open' : ''}`}>
+        <button
+          type="button"
+          className="sales-accordion-header"
+          onClick={() => setExpensesOpen(prev => !prev)}
+          aria-expanded={expensesOpen}
+        >
+          <div className="sales-accordion-left">
+            <div className="sales-acc-icon">
+              <FiCreditCard />
+            </div>
+            <div className="sales-accordion-text">
+              <strong>Expenses</strong>
+              <small>Recorded station expenses ({formatMoney(expensesRecorded)} active)</small>
+            </div>
+          </div>
+          <div className="sales-accordion-chevron">
+            {expensesOpen ? <FiChevronUp /> : <FiChevronDown />}
+          </div>
+        </button>
+
+        {expensesOpen && (
+          <div className="sales-accordion-body" style={{ background: 'white' }}>
+            <ExpenseReport
+              expenses={expenses}
+              setExpenses={setExpenses}
+              onEvent={onNotice}
             />
           </div>
-        </div>
-
-        <div className="sales-tx-list">
-          {filteredTransactions.length > 0 ? (
-            filteredTransactions.map(o => (
-              <div key={o.id} className="sales-tx-item">
-                <div className="sales-tx-info">
-                  <strong>{o.id} · {o.customer || 'Walk-in'}</strong>
-                  <p>{o.source} · {o.service} · {formatDateLabel(o.date)}</p>
-                </div>
-                <div className="sales-tx-amount">
-                  <strong>{formatMoney(o.amount)}</strong>
-                  <span className={`mgmt-pill ${o.paymentStatus === 'Paid' ? 'ok' : 'warn'}`}>
-                    {o.paymentStatus}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="owner-empty">
-              <FiFileText size={20} />
-              <p>No transactions match your search filter in this period.</p>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Reused Station Expenses Component */}
-      <ExpenseReport
-        expenses={expenses}
-        setExpenses={setExpenses}
-        onEvent={onNotice}
-      />
-
-      <div className="mgmt-notice" style={{ marginTop: 14 }}>
-        <strong>AquaBest Financial Integrity Notice:</strong> All metrics, margins and charts are calculated in real time from current session orders and recorded station expenses. Production deployment requires persistent database timestamps and server-validated payments.
+      {/* 9. Financial Integrity Notice */}
+      <div className="sales-notice-card">
+        <FiInfo />
+        <div>
+          <strong>AquaBest Financial Integrity Notice:</strong> All metrics, margins and charts are calculated in real time from current session orders and recorded station expenses. Production deployment requires persistent database timestamps and server-validated payments.
+        </div>
       </div>
     </div>
   );

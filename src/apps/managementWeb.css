@@ -36,7 +36,7 @@
 @media(max-width:849px){
  .mgmt-bottom{left:12px;right:12px;width:auto;bottom:max(12px,env(safe-area-inset-bottom));height:66px;padding:4px 6px;border:1px solid #d9e2ec;border-radius:23px;overflow:hidden;box-shadow:0 8px 28px rgba(27,47,99,.15);background:rgba(255,255,255,.97);backdrop-filter:blur(14px)}
  .mgmt-bottom button{border-radius:16px}.mgmt-bottom button.active{background:#eaf1ff}
- .mgmt-body{padding-bottom:118px}
+ .mgmt-body{padding-bottom:max(150px,calc(118px + env(safe-area-inset-bottom,0px)))}
 }
 .mgmt-side-text{display:flex;flex-direction:column;gap:3px;min-width:0}
 .mgmt-side-text strong{font-size:13px}
