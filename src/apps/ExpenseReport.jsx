@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiPlus, FiEdit2, FiCheck, FiX, FiFileText, FiAlertCircle } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiCheck, FiX, FiFileText } from 'react-icons/fi';
 import { formatMoney } from '../data/managerDemo.js';
 import { getTodayLocalStr } from '../utils/dateUtils.js';
 
