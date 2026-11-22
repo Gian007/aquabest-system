@@ -202,6 +202,7 @@ export async function generateFinancialSummaryPDF(data) {
   doc.text(
     'Disclosure: "Collections After Paid Expenses" is recorded Paid collections less expenses explicitly marked Paid. ' +
     'It is a cash-flow indicator only and does not constitute verified net profit.',
+    14,
     currentY,
     { maxWidth: 182 }
   );
