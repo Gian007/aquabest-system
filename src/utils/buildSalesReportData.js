@@ -129,7 +129,6 @@ export function buildSalesReportData({
   const unknownPaymentOrders = activePeriodOrders.filter(order => !isPaid(order) && !isUnpaid(order));
 
   const activePeriodExpenses = periodExpenses.filter(expense => expense.active !== false);
-  const voidedExpenses = periodExpenses.filter(expense => expense.active === false);
   const paidExpenseRecords = activePeriodExpenses.filter(isPaid);
   const unpaidExpenseRecords = activePeriodExpenses.filter(isUnpaid);
   const unclassifiedExpenseRecords = activePeriodExpenses.filter(expense => !isPaid(expense) && !isUnpaid(expense));
