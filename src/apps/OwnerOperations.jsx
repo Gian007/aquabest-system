@@ -1,5 +1,5 @@
-import {useState} from 'react';
-import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle} from 'react-icons/fi';
+import {useEffect,useState} from 'react';
+import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet} from 'react-icons/fi';
 import {formatMoney} from '../data/managerDemo.js';
 import EmployeeDirectory from './EmployeeDirectory.jsx';
 import ProductCatalog from './ProductCatalog.jsx';
@@ -9,6 +9,9 @@ import SalesReports from './SalesReports.jsx';
 function Title({eyebrow,title,description}){return <div className="mgmt-heading"><div className="overline">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div>}
 function Stat({title,value,Icon}){return <div className="mgmt-stat"><div className="mgmt-stat-top"><span>{title}</span><Icon size={17}/></div><strong>{value}</strong></div>}
 const today=()=>new Date().toLocaleString('en-PH');
+const STAFF_ORDERS_KEY='aquabest-staff-operations-demo-v1';
+const STAFF_TRIPS_KEY='aquabest-staff-trips-demo-v1';
+const readList=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(value)?value:[];}catch{return [];}};
 export default function OwnerOperations({page,go,orders,stock,trips,availability,onMessage,expenses,setExpenses}){
  const [settings,setSettings]=useState({deliveryFee:'0',lowStock:'15',hours:'Confirm operating hours with client'});
  const [draft,setDraft]=useState(settings);
@@ -16,6 +19,9 @@ export default function OwnerOperations({page,go,orders,stock,trips,availability
  const [verification,setVerification]=useState([]);
  const [approvals,setApprovals]=useState([]);
  const [auditFilter,setAuditFilter]=useState('All');
+ const [staffOrders,setStaffOrders]=useState(()=>readList(STAFF_ORDERS_KEY));
+ const [staffTrips,setStaffTrips]=useState(()=>readList(STAFF_TRIPS_KEY));
+ useEffect(()=>{const refresh=()=>{setStaffOrders(readList(STAFF_ORDERS_KEY));setStaffTrips(readList(STAFF_TRIPS_KEY));};window.addEventListener('focus',refresh);window.addEventListener('storage',refresh);return()=>{window.removeEventListener('focus',refresh);window.removeEventListener('storage',refresh);};},[]);
  const record=description=>{setAudit(old=>[{id:Date.now()+'-'+old.length,description,time:today()},...old]);onMessage(description+' (demo only)')};
  const paid=orders.filter(o=>o.paymentStatus==='Paid');
  const collected=paid.reduce((n,o)=>n+o.amount,0);
@@ -25,18 +31,29 @@ export default function OwnerOperations({page,go,orders,stock,trips,availability
  const pendingElectronic=trips.filter(t=>t.paymentStatus==='Pending Verification'&&!verification.includes(t.id));
  const activity=orders.length+trips.length;
  const expenseTotal=expenses.filter(e=>e.active).reduce((n,e)=>n+e.amount,0);
+ const operationalQueue=staffOrders.length?staffOrders:orders.map(o=>({...o,stage:({'Pending Confirmation':'waiting',Confirmed:'pending',Preparing:'refilling',Ready:'ready','Out for Delivery':'out',Delivered:'delivered',Completed:'picked',Cancelled:'failed'})[o.status]||'pending'}));
+ const pendingCollection=operationalQueue.filter(o=>o.stage==='collection').length;
+ const pendingRefill=operationalQueue.filter(o=>o.stage==='pending').length;
+ const readyDelivery=operationalQueue.filter(o=>o.stage==='ready').length;
+ const activeDelivery=operationalQueue.filter(o=>['delivery','out'].includes(o.stage)).length;
+ const operationalIssues=operationalQueue.filter(o=>o.stage==='failed'||o.issueReason||o.issue).length;
+ const activeOperationalTrips=staffTrips.length?staffTrips.filter(t=>t.status==='active').length:trips.filter(t=>!['Delivered','Failed Delivery','closed'].includes(t.status)).length;
  const action=(title,target)=><button className="mgmt-quick" onClick={()=>go(target)}>{title}</button>;
  const demo=<p className="mgmt-demo">Super Admin GUI prototype only • All values and access controls are local demo state. No real permissions, payments, expenses or pricing changes are applied to the business.</p>;
  return <>
  {page==='dashboard'&&<>
   <Title eyebrow="Executive overview" title="Super Admin Dashboard" description="Full business oversight, with access to help on any station operation."/>
   <div className="mgmt-stats"><Stat title="Sales (Demo)" value={formatMoney(sales)} Icon={FiBarChart2}/><Stat title="Verified Collected" value={formatMoney(collected)} Icon={FiDollarSign}/><Stat title="Unpaid / Unverified" value={formatMoney(outstanding)} Icon={FiClock}/><Stat title="Cash Pending Remittance" value={formatMoney(remittance)} Icon={FiCreditCard}/><Stat title="Active Expenses" value={formatMoney(expenseTotal)} Icon={FiCreditCard}/></div>
+  <div className="mgmt-section-title"><h2>Live Queue Snapshot</h2><button className="mgmt-link" onClick={()=>go('queue')}>Open Operations Queue</button></div>
+  <div className="mgmt-stats"><Stat title="Pending Collection" value={pendingCollection} Icon={FiTruck}/><Stat title="Pending Refill" value={pendingRefill} Icon={FiDroplet}/><Stat title="Ready Delivery" value={readyDelivery} Icon={FiPackage}/><Stat title="Active Delivery" value={activeDelivery} Icon={FiTruck}/></div>
+  <div className="mgmt-notice">{operationalIssues} issue(s) need review · {activeOperationalTrips} active trip(s). Queue data is read from this browser only; it is not synced across phones.</div>
   <div className="mgmt-section-title"><h2>Business & Operations</h2></div><div className="mgmt-grid">{action('Operations Queue','queue')}{action('Staff Monitoring','staff')}{action('Trips & Pickups','collections')}{action('Sales & Reports','reports')}{action('Payments','payments')}{action('Employee Access','employees')}{action('Products & Services','products')}</div>
   <div className="mgmt-section-title"><h2>Business Snapshot</h2></div><div className="mgmt-card">
    <div className="mgmt-row"><span className="mgmt-sub">Recorded orders</span><strong>{orders.length}</strong></div>
    <div className="mgmt-row"><span className="mgmt-sub">Pending refill / preparation</span><strong>{orders.filter(o=>['Pending Confirmation','Confirmed','Preparing'].includes(o.status)).length}</strong></div>
    <div className="mgmt-row"><span className="mgmt-sub">Ready for pickup / delivery</span><strong>{orders.filter(o=>o.status==='Ready').length}</strong></div>
-   <div className="mgmt-row"><span className="mgmt-sub">Active deliveries</span><strong>{trips.filter(t=>!['Delivered','Failed Delivery'].includes(t.status)).length}</strong></div>
+   <div className="mgmt-row"><span className="mgmt-sub">Active deliveries</span><strong>{activeDelivery}</strong></div>
+   <div className="mgmt-row"><span className="mgmt-sub">Operational issues to review</span><strong>{operationalIssues}</strong></div>
    <div className="mgmt-row"><span className="mgmt-sub">Low stock items</span><strong>{stock.filter(s=>s.quantity<s.minimum).length}</strong></div>
    <div className="mgmt-row"><span className="mgmt-sub">Pending e-payment verification</span><strong>{pendingElectronic.length}</strong></div>
   </div>
