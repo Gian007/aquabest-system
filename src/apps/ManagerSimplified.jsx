@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { FiActivity, FiAlertCircle, FiArrowRight, FiCamera, FiCheckCircle, FiClipboard, FiDroplet, FiPackage, FiSearch, FiTruck, FiUsers, FiChevronDown, FiCheck, FiFilter, FiX } from 'react-icons/fi';
 import { formatMoney, orderSummary } from '../data/managerDemo.js';
 import { STAFF_DEMO_KEYS } from '../services/staffDemoAdapter.js';
+import { saveLocalProof } from './staffProofStorage.js';
 import './managerControl.css';
 import './staffOperations.css';
 import './managerSimplified.css';
-import { saveLocalProof } from './staffProofStorage.js';
 
 // Frontend-only preview. Staff data can be shared in the SAME browser, not across phones.
 const readList=key=>{try{const v=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(v)?v:[];}catch{return [];}};
@@ -112,6 +112,7 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
   saveStaffOrder(o.id,{stage:'delivery',claimedBy:actor,deliveryClaimedAt:dateLabel()},'Delivery task claimed by Super Admin on this browser.');
  };
  const openOwnerCollection=(o,mode)=>{
+  if(!isOwner||o.sourceWorkspace!=='staff'||o.claimedBy!==actor||(mode==='site'?o.stage!=='collectionClaimed':o.stage!=='collectionTransit'))return;
   setOwnerAction({id:o.id,type:mode==='site'?'collectionSite':'collectionStation'});
   setOwnerCollectionQty(String(mode==='site'?quantity(o):(o.collectedQty??quantity(o))));
   setOwnerCollectionCondition(o.containerCondition||'Good');
@@ -120,7 +121,9 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
  const saveOwnerCollection=()=>{
   const o=queue.find(x=>x.id===ownerAction?.id);
   const value=Number(ownerCollectionQty);
-  if(!o)return;
+  if(!isOwner||!o||o.sourceWorkspace!=='staff'||o.claimedBy!==actor)return;
+  if(ownerAction.type==='collectionSite'&&o.stage!=='collectionClaimed')return;
+  if(ownerAction.type==='collectionStation'&&o.stage!=='collectionTransit')return;
   if(!Number.isInteger(value)||value!==quantity(o)){setOwnerActionError('The quantity must match the expected gallons. If there is a shortage or damaged container, record it for follow-up instead of confirming a match.');return;}
   if(ownerAction.type==='collectionSite'){
    const saved=saveStaffOrder(o.id,{stage:'collectionTransit',collectedQty:value,containerCondition:ownerCollectionCondition,collectedAt:dateLabel()},'Collection recorded. Return the empty containers to the station.');
@@ -143,7 +146,7 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
   if(!writeList(STAFF_DEMO_KEYS.trips,nextTrips)||!writeList(STAFF_DEMO_KEYS.orders,nextOrders)){onNotice('Could not save the delivery trip in this browser.');return;}
   setStaffTrips(nextTrips);setStaffOrders(nextOrders);onNotice('Delivery started. Confirm the customer handover and save photo proof before marking it complete.');
  };
- const openOwnerDelivery=(o)=>{setOwnerAction({id:o.id,type:'delivery'});setOwnerDeliveryPhoto(null);setOwnerDeliveryCash('');setOwnerDeliveryRemarks('');setOwnerActionError('');};
+ const openOwnerDelivery=(o)=>{if(!isOwner||o.sourceWorkspace!=='staff'||o.stage!=='out'||o.claimedBy!==actor)return;setOwnerAction({id:o.id,type:'delivery'});setOwnerDeliveryPhoto(null);setOwnerDeliveryCash(o.paymentStatus==='Paid'?'0':'');setOwnerDeliveryRemarks('');setOwnerActionError('');};
  const saveOwnerDelivery=async()=>{
   const o=queue.find(x=>x.id===ownerAction?.id);
   if(!o||o.sourceWorkspace!=='staff'||o.stage!=='out'||o.claimedBy!==actor)return;
@@ -162,6 +165,7 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
   finally{setOwnerDeliverySaving(false);}
  };
  const reportOwnerDeliveryIssue=o=>{
+  if(!isOwner||o.sourceWorkspace!=='staff'||o.stage!=='out'||o.claimedBy!==actor)return;
   const reason=window.prompt('What happened with this delivery? Enter a reason; this will not mark it delivered.');
   if(reason===null)return;
   if(!reason.trim()){onNotice('Enter an issue reason before reporting.');return;}
