@@ -104,11 +104,11 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
   onNotice(actor+' completed refill. No cross-device sync.');
  };
  const claimCollection=o=>{
-  if(!isOwner||o.stage!=='collection'||o.claimedBy)return;
+  if(!isOwner||o.sourceWorkspace!=='staff'||o.stage!=='collection'||o.claimedBy)return;
   saveStaffOrder(o.id,{stage:'collectionClaimed',claimedBy:actor,collectedBy:actor,collectionClaimedAt:dateLabel()},'Collection task claimed by Super Admin on this browser.');
  };
  const claimDelivery=o=>{
-  if(!isOwner||o.stage!=='ready'||o.claimedBy)return;
+  if(!isOwner||o.sourceWorkspace!=='staff'||o.stage!=='ready'||o.claimedBy)return;
   saveStaffOrder(o.id,{stage:'delivery',claimedBy:actor,deliveryClaimedAt:dateLabel()},'Delivery task claimed by Super Admin on this browser.');
  };
  const openOwnerCollection=(o,mode)=>{
@@ -132,7 +132,7 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
   if(saved)setOwnerAction(null);
  };
  const dispatchOwnerDelivery=o=>{
-  if(!isOwner||o.stage!=='delivery'||o.claimedBy!==actor)return;
+  if(!isOwner||o.sourceWorkspace!=='staff'||o.stage!=='delivery'||o.claimedBy!==actor)return;
   const latestOrders=readList(STAFF_DEMO_KEYS.orders),current=latestOrders.find(x=>x.id===o.id);
   if(!current||current.stage!=='delivery'||current.claimedBy!==actor){onNotice('This delivery was already changed. Refresh the queue.');refresh();return;}
   const latestTrips=readList(STAFF_DEMO_KEYS.trips);
@@ -146,7 +146,7 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
  const openOwnerDelivery=(o)=>{setOwnerAction({id:o.id,type:'delivery'});setOwnerDeliveryPhoto(null);setOwnerDeliveryCash('');setOwnerDeliveryRemarks('');setOwnerActionError('');};
  const saveOwnerDelivery=async()=>{
   const o=queue.find(x=>x.id===ownerAction?.id);
-  if(!o||o.stage!=='out'||o.claimedBy!==actor)return;
+  if(!o||o.sourceWorkspace!=='staff'||o.stage!=='out'||o.claimedBy!==actor)return;
   if(!ownerDeliveryPhoto){setOwnerActionError('Choose a delivery photo before completion.');return;}
   const cash=Number(ownerDeliveryCash);
   if(ownerDeliveryCash.trim()===''||!Number.isFinite(cash)||cash<0){setOwnerActionError('Enter the actual COD cash collected (use 0 if no cash was collected).');return;}
@@ -168,7 +168,7 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
   saveStaffOrder(o.id,{stage:'failed',issueReason:reason.trim(),failedAt:dateLabel()},'Delivery issue recorded for '+o.id+'. Review it before ending the trip.');
  };
  const confirmOwnerPickup=o=>{
-  if(!isOwner||o.stage!=='pickup')return;
+  if(!isOwner||o.sourceWorkspace!=='staff'||o.stage!=='pickup')return;
   if(!window.confirm('Confirm that the customer received '+o.id+'?'))return;
   saveStaffOrder(o.id,{stage:'picked',releasedBy:actor,releasedAt:dateLabel()},'Customer pickup confirmed on this browser.');
  };
@@ -193,15 +193,15 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
   <div className="staffapp-compact-row staffapp-compact-meta"><span>{o.items?orderSummary(o.items):quantity(o)+' gallons'} · {o.address||o.customerReference||o.service||'Walk-in'}</span><span>{o.createdAt||o.date||'—'}</span></div>
   <div className="manager-staff-state"><small>{STATUS[o.stage]||o.stage} · {assigned(o)}</small></div>
   <div className="staffapp-compact-row staffapp-compact-actions"><button className="staffapp-secondary" onClick={()=>openOrder(o)}>Details <FiChevronDown/></button>
-   {isOwner&&o.stage==='collection'&&!o.claimedBy&&<button className="staffapp-primary" onClick={()=>claimCollection(o)}>Claim Collect</button>}
-   {isOwner&&o.stage==='collectionClaimed'&&o.claimedBy===actor&&<button className="staffapp-primary" onClick={()=>openOwnerCollection(o,'site')}>Confirm Collection</button>}
-   {isOwner&&o.stage==='collectionTransit'&&o.claimedBy===actor&&<button className="staffapp-primary" onClick={()=>openOwnerCollection(o,'station')}>Received at Station</button>}
+   {isOwner&&o.sourceWorkspace==='staff'&&o.stage==='collection'&&!o.claimedBy&&<button className="staffapp-primary" onClick={()=>claimCollection(o)}>Claim Collect</button>}
+   {isOwner&&o.sourceWorkspace==='staff'&&o.stage==='collectionClaimed'&&o.claimedBy===actor&&<button className="staffapp-primary" onClick={()=>openOwnerCollection(o,'site')}>Confirm Collection</button>}
+   {isOwner&&o.sourceWorkspace==='staff'&&o.stage==='collectionTransit'&&o.claimedBy===actor&&<button className="staffapp-primary" onClick={()=>openOwnerCollection(o,'station')}>Received at Station</button>}
    {o.stage==='pending'&&!o.claimedBy&&<button className="staffapp-primary" onClick={()=>claimRefill(o)}>Claim Refill</button>}
    {o.stage==='refilling'&&o.claimedBy===actor&&<button className="staffapp-primary" onClick={()=>setConfirmRefill(o.id)}>Complete Refill</button>}
-   {isOwner&&o.stage==='ready'&&!o.claimedBy&&<button className="staffapp-primary" onClick={()=>claimDelivery(o)}>Claim Delivery</button>}
-   {isOwner&&o.stage==='delivery'&&o.claimedBy===actor&&<button className="staffapp-primary" onClick={()=>dispatchOwnerDelivery(o)}>Out for Delivery</button>}
-   {isOwner&&o.stage==='out'&&o.claimedBy===actor&&<><button className="staffapp-primary" onClick={()=>openOwnerDelivery(o)}><FiCamera/> Confirm Delivery</button><button className="staffapp-secondary" onClick={()=>reportOwnerDeliveryIssue(o)}>Report Issue</button></>}
-   {isOwner&&o.stage==='pickup'&&<button className="staffapp-primary" onClick={()=>confirmOwnerPickup(o)}>Confirm Pickup</button>}
+   {isOwner&&o.sourceWorkspace==='staff'&&o.stage==='ready'&&!o.claimedBy&&<button className="staffapp-primary" onClick={()=>claimDelivery(o)}>Claim Delivery</button>}
+   {isOwner&&o.sourceWorkspace==='staff'&&o.stage==='delivery'&&o.claimedBy===actor&&<button className="staffapp-primary" onClick={()=>dispatchOwnerDelivery(o)}>Out for Delivery</button>}
+   {isOwner&&o.sourceWorkspace==='staff'&&o.stage==='out'&&o.claimedBy===actor&&<><button className="staffapp-primary" onClick={()=>openOwnerDelivery(o)}><FiCamera/> Confirm Delivery</button><button className="staffapp-secondary" onClick={()=>reportOwnerDeliveryIssue(o)}>Report Issue</button></>}
+   {isOwner&&o.sourceWorkspace==='staff'&&o.stage==='pickup'&&<button className="staffapp-primary" onClick={()=>confirmOwnerPickup(o)}>Confirm Pickup</button>}
   </div>
  </article>):<p className="manager-control-empty">{empty}</p>}</div>;
  return <div className="manager-control manager-simple">
@@ -259,7 +259,7 @@ export default function ManagerSimplified({page,go,orders,availability,onOpenOrd
   {(selectedTask||confirmRefill)&&<div className="manager-simple-overlay" onClick={()=>{setStaffTask('');setConfirmRefill('')}} role="presentation"><section className="manager-simple-sheet" role="dialog" aria-modal="true" aria-label={confirmRefill?'Confirm refill completion':'Task details'} onClick={e=>e.stopPropagation()}>
    <div className="manager-control-order-head"><h2>{confirmRefill?'Complete This Refill?':'Task Details'}</h2><button className="manager-control-secondary" onClick={()=>{setStaffTask('');setConfirmRefill('')}}>Close</button></div>
    {confirmRefill?<>
-    <p>Confirm that all gallons for <strong>{queue.find(x=>x.id===confirmRefill)?.customer}</strong> are physically refilled and sealed. This updates the order stage and records <strong>Manager</strong> as the refiller. Only Manager-claimed refills can be completed.</p>
+    <p>Confirm that all gallons for <strong>{queue.find(x=>x.id===confirmRefill)?.customer}</strong> are physically refilled and sealed. This updates the order stage and records <strong>{actor}</strong> as the refiller. Only {actor}-claimed refills can be completed.</p>
     <p className="manager-control-help">This is a local demo update, not a server-authorized action.</p>
     <button className="manager-control-primary" onClick={finishRefill}>Confirm Refill Completed</button>
    </>:selectedTask&&<><p><strong>{selectedTask.id} · {selectedTask.customer}</strong></p><p>Status: {STATUS[selectedTask.stage]||selectedTask.stage}</p><p>Quantity: {quantity(selectedTask)} gallons</p><p>Assigned/Claimed: {assigned(selectedTask)}</p><p>{selectedTask.address||selectedTask.notes||'No additional details recorded.'}</p></>}
