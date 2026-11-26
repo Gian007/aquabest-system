@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import {
-  FiBarChart2, FiDollarSign, FiClock, FiCreditCard, FiTrendingUp,
+  FiBarChart2, FiClock, FiCreditCard, FiTrendingUp,
   FiZoomIn, FiZoomOut, FiRefreshCw, FiCalendar, FiChevronLeft,
   FiChevronRight, FiPieChart, FiShoppingBag, FiSearch, FiFileText,
   FiCheckCircle, FiChevronDown, FiChevronUp, FiInfo, FiDownload,
@@ -64,17 +64,9 @@ export default function SalesReports({
   const exportDropdownRef = useRef(null);
 
   // Accordion state (collapsed on mobile by default, expanded on desktop)
-  const [breakdownOpen, setBreakdownOpen] = useState(false);
-  const [transactionsOpen, setTransactionsOpen] = useState(false);
-  const [expensesOpen, setExpensesOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 850) {
-      setBreakdownOpen(true);
-      setTransactionsOpen(true);
-      setExpensesOpen(true);
-    }
-  }, []);
+  const [breakdownOpen, setBreakdownOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 850);
+  const [transactionsOpen, setTransactionsOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 850);
+  const [expensesOpen, setExpensesOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 850);
 
   // Close export dropdown on outside click or Escape
   useEffect(() => {
@@ -110,7 +102,9 @@ export default function SalesReports({
   const shiftAnchor = (step) => {
     const nextDate = shiftAnchorDate(anchorDate, period, step);
     setAnchorDate(nextDate);
+    setZoomLevel(1);
     setActivePoint(null);
+    if (chartViewportRef.current) chartViewportRef.current.scrollLeft = 0;
   };
 
   // One shared calculation source powers the visible report and PDF payload.
@@ -269,6 +263,7 @@ export default function SalesReports({
   const paddingTop = 20;
   const paddingBottom = 28;
 
+  const hasSales = useMemo(() => chartPoints.some(pt => pt.sales > 0), [chartPoints]);
   const maxVal = Math.max(100, ...chartPoints.map(p => p.sales));
   const niceMax = Math.ceil(maxVal / 50) * 50;
 
@@ -284,8 +279,11 @@ export default function SalesReports({
 
   const linePath = useMemo(() => {
     if (chartPoints.length === 0) return '';
+    const usableHeight = chartHeight - paddingTop - paddingBottom;
+    const spanX = effectiveWidth - paddingLeft - paddingRight;
     return chartPoints.map((pt, i) => {
-      const { x, y } = getCoordinates(i, pt.sales);
+      const x = paddingLeft + (i / Math.max(1, chartPoints.length - 1)) * spanX;
+      const y = chartHeight - paddingBottom - (pt.sales / niceMax) * usableHeight;
       return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
     }).join(' ');
   }, [chartPoints, effectiveWidth, niceMax]);
@@ -293,11 +291,12 @@ export default function SalesReports({
   const areaPath = useMemo(() => {
     if (!linePath) return '';
     const lastIdx = chartPoints.length - 1;
-    const { x: firstX } = getCoordinates(0, 0);
-    const { x: lastX } = getCoordinates(lastIdx, 0);
+    const spanX = effectiveWidth - paddingLeft - paddingRight;
+    const firstX = paddingLeft;
+    const lastX = paddingLeft + (lastIdx / Math.max(1, chartPoints.length - 1)) * spanX;
     const bottomY = chartHeight - paddingBottom;
     return `${linePath} L ${lastX.toFixed(1)} ${bottomY} L ${firstX.toFixed(1)} ${bottomY} Z`;
-  }, [linePath, chartPoints, effectiveWidth]);
+  }, [linePath, chartPoints.length, effectiveWidth]);
 
   // Filtered Transactions for UI list
   const filteredTransactions = useMemo(() => {
@@ -329,6 +328,7 @@ export default function SalesReports({
     outstandingBalance,
     unknownPaymentBalance,
     unknownPaymentOrdersCount,
+    unknownPaymentOrders: reportData.unknownPaymentOrders,
     recordedExpenses,
     paidExpenses,
     unpaidExpenses,
@@ -428,7 +428,7 @@ export default function SalesReports({
                 role="menuitem"
               >
                 <strong><FiFileText /> Financial Summary PDF</strong>
-                <small>1–2 page executive KPI & deductions overview</small>
+                <small>One-page executive KPI & deductions overview</small>
               </button>
 
               <button
@@ -457,6 +457,7 @@ export default function SalesReports({
                 setPeriod(p);
                 setZoomLevel(1);
                 setActivePoint(null);
+                if (chartViewportRef.current) chartViewportRef.current.scrollLeft = 0;
               }}
             >
               {p}
@@ -503,6 +504,7 @@ export default function SalesReports({
                     setAnchorDate(e.target.value);
                     setActivePoint(null);
                     setZoomLevel(1);
+                    if (chartViewportRef.current) chartViewportRef.current.scrollLeft = 0;
                   }
                 }}
               />
@@ -639,7 +641,7 @@ export default function SalesReports({
               {formatDateLabel(anchorDate)} Total: {formatMoney(grossSales)} ({activePeriodOrders.length} {activePeriodOrders.length === 1 ? 'order' : 'orders'})
             </div>
           </div>
-        ) : chartPoints.length > 0 && maxVal > 0 ? (
+        ) : chartPoints.length > 0 && hasSales ? (
           <div className="sales-chart-viewport" ref={chartViewportRef}>
             <svg
               className="sales-svg-chart"

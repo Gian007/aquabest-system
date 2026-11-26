@@ -2,10 +2,27 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import logoUrl from '../assets/AquaBest logo.png';
 
-// Convert image URL to Base64 in browser
+const PDF_COLORS = {
+  navy: [27, 47, 99],
+  blue: [36, 78, 163],
+  aqua: [42, 169, 197],
+  lightBlue: [234, 241, 255],
+  surface: [248, 251, 255],
+  border: [217, 226, 236],
+  muted: [102, 119, 136],
+  amber: [196, 125, 11],
+  green: [19, 131, 88],
+  greenBg: [240, 249, 244],
+  greenBorder: [200, 233, 214],
+  white: [255, 255, 255]
+};
+
+// Convert image URL to Base64 in browser (returns null safely in Node or on failure)
 async function getBase64Image(url) {
+  if (typeof fetch !== 'function' || typeof FileReader === 'undefined') return null;
   try {
     const res = await fetch(url);
+    if (!res.ok) return null;
     const blob = await res.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -23,460 +40,380 @@ const formatCurrency = (val) => 'PHP ' + Number(val || 0).toLocaleString('en-PH'
   maximumFractionDigits: 2
 });
 
-function drawHeaderAndFooter(doc, reportTitle, reportPeriod, pageCountTotal = null) {
+function addLogoOrFallback(doc, logoBase64, x, y, w, h, fontSize = 15) {
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, 'PNG', x, y, w, h);
+      return;
+    } catch {
+      // Fall through to text fallback
+    }
+  }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(fontSize);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('AQUABEST', x, y + h * 0.7);
+}
+
+function drawHeaderAndFooter(doc, reportPeriod) {
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
 
     // Subtle top banner line
-    doc.setDrawColor(36, 78, 163);
-    doc.setLineWidth(0.6);
-    doc.line(14, 10, 196, 10);
+    doc.setDrawColor(...PDF_COLORS.blue);
+    doc.setLineWidth(0.5);
+    doc.line(12, 10, 198, 10);
 
     // Running header
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(36, 78, 163);
-    doc.text('AQUABEST WATER REFILLING STATION', 14, 8);
+    doc.setFontSize(7.5);
+    doc.setTextColor(...PDF_COLORS.blue);
+    doc.text('AQUABEST WATER REFILLING STATION', 12, 8);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
-    doc.setTextColor(102, 119, 136);
-    doc.text(`Period: ${reportPeriod}`, 196, 8, { align: 'right' });
+    doc.setTextColor(...PDF_COLORS.muted);
+    doc.text(`Period: ${reportPeriod}`, 198, 8, { align: 'right' });
 
     // Running footer
-    doc.setDrawColor(217, 226, 236);
+    doc.setDrawColor(...PDF_COLORS.border);
     doc.setLineWidth(0.4);
-    doc.line(14, 285, 196, 285);
+    doc.line(12, 284, 198, 284);
 
     doc.setFontSize(7.5);
-    doc.setTextColor(102, 119, 136);
-    doc.text('CONFIDENTIAL • AQUABEST INTERNAL BUSINESS MANAGEMENT REPORT', 14, 290);
-    const totalPagesStr = pageCountTotal || pageCount;
-    doc.text(`Page ${i} of ${totalPagesStr}`, 196, 290, { align: 'right' });
+    doc.setTextColor(...PDF_COLORS.muted);
+    doc.text('CONFIDENTIAL • AQUABEST INTERNAL BUSINESS MANAGEMENT REPORT', 12, 289);
+    doc.text(`Page ${i} of ${pageCount}`, 198, 289, { align: 'right' });
   }
 }
 
 // -------------------------------------------------------------
-// 1. FINANCIAL SUMMARY PDF (1 - 2 Pages)
+// 1. FINANCIAL SUMMARY PDF (Strictly 1 A4 Portrait Page)
 // -------------------------------------------------------------
-export async function generateFinancialSummaryPDF(data) {
+export function createFinancialSummaryDoc(data, logoBase64 = null) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const logoBase64 = await getBase64Image(logoUrl);
-
-  let currentY = 16;
+  const margin = 12;
+  const contentWidth = 210 - margin * 2; // 186mm
+  let y = 13;
 
   // Header branding
-  if (logoBase64) {
-    try {
-      doc.addImage(logoBase64, 'PNG', 14, currentY, 38, 13);
-    } catch {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.setTextColor(27, 47, 99);
-      doc.text('AQUABEST', 14, currentY + 9);
-    }
-  } else {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(27, 47, 99);
-    doc.text('AQUABEST', 14, currentY + 9);
-  }
+  addLogoOrFallback(doc, logoBase64, margin, y, 34, 11, 15);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(27, 47, 99);
-  doc.text('EXECUTIVE FINANCIAL SUMMARY REPORT', 60, currentY + 5);
+  doc.setFontSize(13);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('SALES & FINANCIAL SUMMARY', 50, y + 4.5);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(102, 119, 136);
-  doc.text('CONFIDENTIAL MANAGEMENT PERFORMANCE OVERVIEW', 60, currentY + 10);
-  doc.text(`Reporting Period: ${data.periodLabel} (${data.period})`, 60, currentY + 14);
-
-  currentY += 20;
-
-  // Metadata block
-  doc.setFillColor(248, 251, 255);
-  doc.setDrawColor(217, 226, 236);
-  doc.roundedRect(14, currentY, 182, 12, 2, 2, 'FD');
-
-  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.setTextColor(36, 78, 163);
-  doc.text('DATE GENERATED:', 18, currentY + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(27, 47, 99);
-  doc.text(data.dateGenerated, 52, currentY + 5);
+  doc.setTextColor(...PDF_COLORS.muted);
+  doc.text(`Reporting Period: ${data.periodLabel} (${data.period})`, 50, y + 9);
+  doc.text(`Generated: ${data.dateGenerated}  •  Role: ${data.role || 'Station Manager'}`, 50, y + 13);
 
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(36, 78, 163);
-  doc.text('GENERATED BY:', 18, currentY + 9.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(27, 47, 99);
-  doc.text(data.role || 'AquaBest Station Management', 52, currentY + 9.5);
+  y += 16;
 
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(36, 78, 163);
-  doc.text('REPORT STATUS:', 115, currentY + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(27, 47, 99);
-  doc.text('Demo / Local Session Records', 145, currentY + 5);
-
-  currentY += 17;
-
-  // SECTION A: Executive Financial Summary Table
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(27, 47, 99);
-  doc.text('Section A — Executive Financial Summary', 14, currentY);
-  currentY += 3;
-
-  const summaryRows = [
-    ['Gross Sales', 'Total non-cancelled recorded sales', formatCurrency(data.grossSales)],
-    ['Discounts', 'Recorded promotional or bulk discounts', data.discounts !== null ? formatCurrency(data.discounts) : 'Not Recorded'],
-    ['Net Billed Sales', 'Gross Sales less recorded discounts', formatCurrency(data.netSales)],
-    ['Verified Collected', 'Orders confirmed and marked Paid', formatCurrency(data.verifiedCollected)],
-    ['Outstanding Receivables', 'Remaining unpaid customer balances', formatCurrency(data.outstandingBalance)],
-    ['Recorded Expenses Total', 'All active station expenses recorded in period', formatCurrency(data.recordedExpenses)],
-    ['Paid Expenses', 'Recorded station expenses explicitly marked Paid', formatCurrency(data.paidExpenses)],
-    ['Unpaid Expenses', 'Recorded station expenses explicitly marked Unpaid', formatCurrency(data.unpaidExpenses)]
+  // 4 Compact KPI Cards (4-across)
+  const cardGap = 3;
+  const cardWidth = (contentWidth - cardGap * 3) / 4;
+  const kpis = [
+    { label: 'GROSS SALES', value: formatCurrency(data.grossSales), sub: `${data.totalOrders - data.cancelledOrdersCount} active orders`, color: PDF_COLORS.navy },
+    { label: 'VERIFIED COLLECTED', value: formatCurrency(data.verifiedCollected), sub: `${data.paidOrdersCount} paid orders`, color: PDF_COLORS.green },
+    { label: 'OUTSTANDING BALANCE', value: formatCurrency(data.outstandingBalance), sub: `${data.unpaidOrdersCount} unpaid orders`, color: PDF_COLORS.amber },
+    { label: 'RECORDED EXPENSES', value: formatCurrency(data.recordedExpenses), sub: `${formatCurrency(data.paidExpenses)} paid`, color: PDF_COLORS.blue }
   ];
 
-  if (data.unrecordedStatusExpenses > 0) {
-    summaryRows.push([
-      'Expenses (Status Unrecorded)',
-      'Legacy records without explicit Paid/Unpaid flag',
-      formatCurrency(data.unrecordedStatusExpenses)
+  kpis.forEach((kpi, idx) => {
+    const cx = margin + idx * (cardWidth + cardGap);
+    doc.setFillColor(...PDF_COLORS.surface);
+    doc.setDrawColor(...PDF_COLORS.border);
+    doc.roundedRect(cx, y, cardWidth, 16, 1.5, 1.5, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...PDF_COLORS.muted);
+    doc.text(kpi.label, cx + 2.5, y + 4.5);
+
+    doc.setFontSize(10);
+    doc.setTextColor(...kpi.color);
+    doc.text(kpi.value, cx + 2.5, y + 10);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...PDF_COLORS.muted);
+    doc.text(kpi.sub, cx + 2.5, y + 14);
+  });
+
+  y += 20;
+
+  // SECTION A: Financial Summary Table
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('Financial Summary', margin, y);
+  y += 2;
+
+  const summaryRows = [
+    ['Gross Sales', 'Non-cancelled recorded orders in period', formatCurrency(data.grossSales)],
+    ['Verified Collected', 'Orders explicitly marked Paid', formatCurrency(data.verifiedCollected)],
+    ['Outstanding Receivables', 'Orders explicitly marked Unpaid', formatCurrency(data.outstandingBalance)],
+    ['Recorded Expenses', 'All active station expenses in period', formatCurrency(data.recordedExpenses)],
+    ['Paid Expenses', 'Active expenses explicitly marked Paid', formatCurrency(data.paidExpenses)],
+    ['Unpaid Expenses', 'Active expenses explicitly marked Unpaid', formatCurrency(data.unpaidExpenses)],
+    ['Collections After Paid Expenses', 'Verified Collected minus Paid Expenses (cash-flow indicator)', formatCurrency(data.collectionsAfterPaidExpenses)]
+  ];
+
+  if (data.unknownPaymentOrdersCount > 0) {
+    summaryRows.splice(3, 0, [
+      'Unrecorded Order Payment Status',
+      `${data.unknownPaymentOrdersCount} active order(s) without Paid/Unpaid flag`,
+      formatCurrency(data.unknownPaymentBalance)
     ]);
   }
 
   autoTable(doc, {
-    startY: currentY,
-    head: [['Metric', 'Description / Accounting Treatment', 'Amount']],
+    startY: y,
+    head: [['Metric', 'Accounting Treatment', 'Amount']],
     body: summaryRows,
     theme: 'grid',
-    headStyles: { fillColor: [36, 78, 163], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 8, cellPadding: 2.2 },
+    headStyles: { fillColor: PDF_COLORS.blue, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 8, cellPadding: 1.8 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 7.8, cellPadding: 1.6 },
     columnStyles: {
-      0: { fontStyle: 'bold', width: 48 },
-      1: { width: 96 },
-      2: { halign: 'right', fontStyle: 'bold', width: 38 }
+      0: { fontStyle: 'bold', cellWidth: 52 },
+      1: { cellWidth: 96 },
+      2: { halign: 'right', fontStyle: 'bold', cellWidth: 38 }
     },
-    margin: { left: 14, right: 14 }
+    didParseCell(hookData) {
+      if (hookData.section === 'body' && hookData.row.raw[0] === 'Collections After Paid Expenses') {
+        hookData.cell.styles.fillColor = PDF_COLORS.lightBlue;
+        hookData.cell.styles.fontStyle = 'bold';
+      }
+    },
+    margin: { left: margin, right: margin }
   });
 
-  currentY = doc.lastAutoTable.finalY + 7;
+  y = doc.lastAutoTable.finalY + 5;
 
-  // SECTION B: Collections After Paid Expenses
+  // SECTION B: Compact Sales Channel Breakdown
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(27, 47, 99);
-  doc.text('Section B — Collections After Paid Expenses', 14, currentY);
-  currentY += 3;
+  doc.setFontSize(9.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('Sales Channel Breakdown', margin, y);
+  y += 2;
 
-  const deductionRows = [
-    ['Verified Collections (Cash/Digital verified received)', formatCurrency(data.verifiedCollected)],
-    ['Less: Paid Expenses (Explicitly verified station cash outflow)', `(${formatCurrency(data.paidExpenses)})`],
-    ['Collections After Paid Expenses', formatCurrency(data.collectionsAfterPaidExpenses)],
-  ];
-
-  autoTable(doc, {
-    startY: currentY,
-    head: [['Deduction Step', 'Financial Figure']],
-    body: deductionRows,
-    theme: 'grid',
-    headStyles: { fillColor: [42, 169, 197], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 8, cellPadding: 2.4 },
-    columnStyles: {
-      0: { fontStyle: 'bold', width: 144 },
-      1: { halign: 'right', fontStyle: 'bold', width: 38 }
-    },
-    margin: { left: 14, right: 14 }
-  });
-
-  currentY = doc.lastAutoTable.finalY + 4;
-  doc.setFont('helvetica', 'italic');
-  doc.setFontSize(7);
-  doc.setTextColor(102, 119, 136);
-  doc.text(
-    'Disclosure: "Collections After Paid Expenses" is recorded Paid collections less expenses explicitly marked Paid. ' +
-    'It is a cash-flow indicator only and does not constitute verified net profit.',
-    14,
-    currentY,
-    { maxWidth: 182 }
-  );
-
-  currentY += 10;
-
-  // Check if we need page break before Section C
-  if (currentY > 210) {
-    doc.addPage();
-    currentY = 20;
-  }
-
-  // SECTION C: Sales Channel & Operational Breakdown
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(27, 47, 99);
-  doc.text('Section C — Sales Performance & Channel Breakdown', 14, currentY);
-  currentY += 4;
-
-  // Source breakdown table
-  const sourceTableData = data.sources.map(s => [
+  const sourceRows = (data.sources || []).slice(0, 6).map(s => [
     s.source,
-    s.orders,
+    String(s.orders),
     formatCurrency(s.gross),
     formatCurrency(s.verified)
   ]);
 
   autoTable(doc, {
-    startY: currentY,
+    startY: y,
     head: [['Order Source', 'Orders', 'Gross Sales', 'Verified Collected']],
-    body: sourceTableData,
+    body: sourceRows.length ? sourceRows : [['No order sources recorded', '0', formatCurrency(0), formatCurrency(0)]],
     theme: 'grid',
-    headStyles: { fillColor: [36, 78, 163], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 7.5, cellPadding: 2 },
+    headStyles: { fillColor: PDF_COLORS.blue, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 8, cellPadding: 1.6 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 7.6, cellPadding: 1.5 },
     columnStyles: {
-      0: { fontStyle: 'bold', width: 45 },
-      1: { halign: 'center', width: 25 },
-      2: { halign: 'right', width: 56 },
-      3: { halign: 'right', width: 56 }
+      0: { fontStyle: 'bold', cellWidth: 56 },
+      1: { halign: 'center', cellWidth: 24 },
+      2: { halign: 'right', cellWidth: 53 },
+      3: { halign: 'right', cellWidth: 53 }
     },
-    margin: { left: 14, right: 14 }
+    margin: { left: margin, right: margin }
   });
 
-  currentY = doc.lastAutoTable.finalY + 6;
+  y = doc.lastAutoTable.finalY + 4;
 
-  // Service breakdown table
-  const serviceTableData = data.services.map(s => [
-    s.service,
-    s.orders,
-    formatCurrency(s.gross),
-    formatCurrency(s.verified),
-    formatCurrency(s.outstanding)
-  ]);
+  // Compact Fulfillment Service table (only if vertical space allows without risking page 2)
+  if (y < 218) {
+    const serviceRows = (data.services || []).slice(0, 5).map(s => [
+      s.service,
+      String(s.orders),
+      formatCurrency(s.gross),
+      formatCurrency(s.verified),
+      formatCurrency(s.outstanding)
+    ]);
 
-  autoTable(doc, {
-    startY: currentY,
-    head: [['Fulfillment Service', 'Orders', 'Gross Sales', 'Verified Collected', 'Outstanding']],
-    body: serviceTableData,
-    theme: 'grid',
-    headStyles: { fillColor: [42, 169, 197], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 7.5, cellPadding: 2 },
-    columnStyles: {
-      0: { fontStyle: 'bold', width: 45 },
-      1: { halign: 'center', width: 20 },
-      2: { halign: 'right', width: 39 },
-      3: { halign: 'right', width: 39 },
-      4: { halign: 'right', width: 39 }
-    },
-    margin: { left: 14, right: 14 }
-  });
+    autoTable(doc, {
+      startY: y,
+      head: [['Fulfillment Service', 'Orders', 'Gross Sales', 'Collected', 'Outstanding']],
+      body: serviceRows.length ? serviceRows : [['No services recorded', '0', formatCurrency(0), formatCurrency(0), formatCurrency(0)]],
+      theme: 'grid',
+      headStyles: { fillColor: PDF_COLORS.aqua, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 8, cellPadding: 1.6 },
+      bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 7.6, cellPadding: 1.5 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 52 },
+        1: { halign: 'center', cellWidth: 20 },
+        2: { halign: 'right', cellWidth: 38 },
+        3: { halign: 'right', cellWidth: 38 },
+        4: { halign: 'right', cellWidth: 38 }
+      },
+      margin: { left: margin, right: margin }
+    });
 
-  currentY = doc.lastAutoTable.finalY + 6;
-
-  // Check if we need page break for Signatures
-  if (currentY > 230) {
-    doc.addPage();
-    currentY = 24;
+    y = doc.lastAutoTable.finalY + 5;
   }
 
-  // Signature Block
+  // Disclaimer Box (kept within Page 1 bounds)
+  const disclaimerY = Math.min(y, 246);
+  doc.setFillColor(...PDF_COLORS.lightBlue);
+  doc.setDrawColor(...PDF_COLORS.border);
+  doc.roundedRect(margin, disclaimerY, contentWidth, 21, 1.5, 1.5, 'FD');
+
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(27, 47, 99);
-  doc.text('Review & Sign-Off Authorization', 14, currentY);
-  currentY += 8;
+  doc.setFontSize(7.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('IMPORTANT FINANCIAL & DEMO DATA NOTES', margin + 3, disclaimerY + 4.5);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(102, 119, 136);
+  doc.setFontSize(7);
+  doc.setTextColor(...PDF_COLORS.muted);
+  doc.text(
+    '• Collections After Paid Expenses is a cash-flow indicator (Verified Collected minus Paid Expenses), not verified net profit.\n' +
+    '• DEMO REPORT: Figures are based on local session records and manually recorded payment statuses; they are not server-verified.',
+    margin + 3,
+    disclaimerY + 9,
+    { maxWidth: contentWidth - 6, lineHeightFactor: 1.35 }
+  );
 
-  const colWidth = 56;
-  doc.text('Prepared by: ________________________', 14, currentY);
-  doc.text('Reviewed by: ________________________', 14 + colWidth + 6, currentY);
-  doc.text('Approved by: ________________________', 14 + (colWidth + 6) * 2, currentY);
+  // Order count summary line at bottom above footer
+  const sigY = Math.min(disclaimerY + 26, 276);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...PDF_COLORS.muted);
+  doc.text(
+    `Order Summary: ${data.totalOrders} total (${data.paidOrdersCount} Paid, ${data.unpaidOrdersCount} Unpaid` +
+    `${data.unknownPaymentOrdersCount ? `, ${data.unknownPaymentOrdersCount} Not Recorded` : ''}` +
+    `${data.cancelledOrdersCount ? `, ${data.cancelledOrdersCount} Cancelled` : ''})`,
+    margin,
+    sigY
+  );
 
-  currentY += 6;
-  doc.text('Station Manager', 14, currentY);
-  doc.text('Accountant / Bookkeeper', 14 + colWidth + 6, currentY);
-  doc.text('Super Admin / Owner', 14 + (colWidth + 6) * 2, currentY);
+  drawHeaderAndFooter(doc, data.periodLabel);
+  return doc;
+}
 
-  drawHeaderAndFooter(doc, 'EXECUTIVE FINANCIAL SUMMARY', data.periodLabel);
-
+export async function generateFinancialSummaryPDF(data) {
+  const logoBase64 = await getBase64Image(logoUrl);
+  const doc = createFinancialSummaryDoc(data, logoBase64);
   const filename = `AquaBest_Financial_Summary_${data.periodFilename}.pdf`;
   doc.save(filename);
   return filename;
 }
 
 // -------------------------------------------------------------
-// 2. COMPLETE FINANCIAL REPORT PDF (Multi-Page Detailed)
+// 2. COMPLETE FINANCIAL REPORT PDF (Multi-Page Content-Driven)
 // -------------------------------------------------------------
-export async function generateCompleteFinancialReportPDF(data) {
+export function createCompleteFinancialReportDoc(data, logoBase64 = null) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const logoBase64 = await getBase64Image(logoUrl);
+  const margin = 12;
+  const contentWidth = 210 - margin * 2; // 186mm
+  const tableMargin = { top: 15, bottom: 16, left: margin, right: margin };
 
-  // ================= PAGE 1: EXECUTIVE SUMMARY =================
-  let y = 16;
-  if (logoBase64) {
-    try {
-      doc.addImage(logoBase64, 'PNG', 14, y, 42, 14);
-    } catch {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-      doc.setTextColor(27, 47, 99);
-      doc.text('AQUABEST', 14, y + 10);
+  const ensureSpace = (neededMm, currentY) => {
+    if (currentY + neededMm > 276) {
+      doc.addPage();
+      return 16;
     }
-  } else {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.setTextColor(27, 47, 99);
-    doc.text('AQUABEST', 14, y + 10);
-  }
+    return currentY;
+  };
+
+  let y = 14;
+  addLogoOrFallback(doc, logoBase64, margin, y, 38, 13, 17);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(27, 47, 99);
-  doc.text('COMPLETE SALES & FINANCIAL AUDIT REPORT', 64, y + 5);
+  doc.setFontSize(14);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('COMPLETE SALES & FINANCIAL AUDIT REPORT', 54, y + 5);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(102, 119, 136);
-  doc.text('CONFIDENTIAL COMPREHENSIVE BUSINESS PERFORMANCE REPORT', 64, y + 10);
-  doc.text(`Reporting Period: ${data.periodLabel} (${data.period})`, 64, y + 14);
-
-  y += 20;
-
-  // Metadata Block
-  doc.setFillColor(248, 251, 255);
-  doc.setDrawColor(217, 226, 236);
-  doc.roundedRect(14, y, 182, 13, 2, 2, 'FD');
-
-  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.setTextColor(36, 78, 163);
-  doc.text('GENERATION DATE:', 18, y + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(27, 47, 99);
-  doc.text(data.dateGenerated, 52, y + 5);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(36, 78, 163);
-  doc.text('AUTHORIZED OPERATOR:', 18, y + 9.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(27, 47, 99);
-  doc.text(data.role || 'Super Admin / Owner & Manager', 52, y + 9.5);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(36, 78, 163);
-  doc.text('AUDIT CLASSIFICATION:', 115, y + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(27, 47, 99);
-  doc.text('Demo / Local Session Report', 150, y + 5);
+  doc.setTextColor(...PDF_COLORS.muted);
+  doc.text('CONFIDENTIAL COMPREHENSIVE BUSINESS PERFORMANCE REPORT', 54, y + 9.5);
+  doc.text(`Reporting Period: ${data.periodLabel} (${data.period})`, 54, y + 13.5);
 
   y += 18;
 
-  // Page 1: Executive KPI Table
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(27, 47, 99);
-  doc.text('1. Executive Financial Summary', 14, y);
-  y += 3;
+  // Metadata Block
+  doc.setFillColor(...PDF_COLORS.surface);
+  doc.setDrawColor(...PDF_COLORS.border);
+  doc.roundedRect(margin, y, contentWidth, 13, 2, 2, 'FD');
 
-  const p1Rows = [
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.8);
+  doc.setTextColor(...PDF_COLORS.blue);
+  doc.text('GENERATION DATE:', margin + 4, y + 5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text(String(data.dateGenerated || ''), margin + 38, y + 5);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PDF_COLORS.blue);
+  doc.text('AUTHORIZED ROLE:', margin + 4, y + 9.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text(data.role || 'Station Manager', margin + 38, y + 9.5);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PDF_COLORS.blue);
+  doc.text('REPORT SOURCE:', margin + 102, y + 5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('Demo / Local Session Records', margin + 132, y + 5);
+
+  y += 18;
+
+  // 1. Executive Financial Summary
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('1. Executive Financial Summary', margin, y);
+  y += 2.5;
+
+  const execRows = [
     ['Gross Sales (Non-Cancelled Orders)', formatCurrency(data.grossSales)],
-    ['Verified Collections (Paid Orders)', formatCurrency(data.verifiedCollected)],
-    ['Outstanding Receivables (Unpaid Balance)', formatCurrency(data.outstandingBalance)],
-    ['Recorded Station Expenses (Active Expenses Total)', formatCurrency(data.recordedExpenses)],
+    ['Verified Collected (Explicitly Paid Orders)', formatCurrency(data.verifiedCollected)],
+    ['Outstanding Receivables (Explicitly Unpaid Orders)', formatCurrency(data.outstandingBalance)],
+    ['Unrecorded Order Payment Status', formatCurrency(data.unknownPaymentBalance || 0)],
+    ['Recorded Station Expenses (Active Total)', formatCurrency(data.recordedExpenses)],
     ['Paid Expenses (Verified Cash Outflow)', formatCurrency(data.paidExpenses)],
     ['Unpaid Expenses (Pending Payables)', formatCurrency(data.unpaidExpenses)],
-    ['Collections After Paid Expenses (Verified Inflow less Verified Outflow)', formatCurrency(data.collectionsAfterPaidExpenses)],
+    ['Expenses (Payment Status Not Recorded)', formatCurrency(data.unrecordedStatusExpenses || 0)],
+    ['Collections After Paid Expenses (Verified Collected less Paid Expenses)', formatCurrency(data.collectionsAfterPaidExpenses)]
   ];
 
   autoTable(doc, {
     startY: y,
     head: [['Financial Core Metric', 'Amount']],
-    body: p1Rows,
+    body: execRows,
     theme: 'grid',
-    headStyles: { fillColor: [36, 78, 163], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 8.5, cellPadding: 2.8 },
+    headStyles: { fillColor: PDF_COLORS.blue, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 8.5 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 8, cellPadding: 2.2 },
     columnStyles: {
-      0: { fontStyle: 'bold', width: 136 },
-      1: { halign: 'right', fontStyle: 'bold', width: 46 }
+      0: { fontStyle: 'bold', cellWidth: 140 },
+      1: { halign: 'right', fontStyle: 'bold', cellWidth: 46 }
     },
-    margin: { left: 14, right: 14 }
+    didParseCell(hookData) {
+      if (hookData.section === 'body' && hookData.row.index === execRows.length - 1) {
+        hookData.cell.styles.fillColor = PDF_COLORS.lightBlue;
+      }
+    },
+    margin: tableMargin
   });
 
-  y = doc.lastAutoTable.finalY + 8;
+  y = doc.lastAutoTable.finalY + 7;
 
-  // Executive KPI summary card
-  doc.setFillColor(240, 249, 244);
-  doc.setDrawColor(200, 233, 214);
-  doc.roundedRect(14, y, 182, 28, 2, 2, 'FD');
-
+  // 2. Sales by Order Source
+  y = ensureSpace(28, y);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9.5);
-  doc.setTextColor(19, 131, 88);
-  doc.text('COLLECTIONS & MARGIN STATEMENT', 20, y + 7);
+  doc.setFontSize(10.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('2. Sales by Order Source', margin, y);
+  y += 2.5;
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(27, 47, 99);
-  doc.text(formatCurrency(data.collectionsAfterPaidExpenses), 20, y + 16);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(73, 108, 88);
-  doc.text('Verified collections minus verified paid expenses for the selected timeframe.', 20, y + 21);
-  doc.text('Disclaimer: Not verified actual net profit. Excludes capital costs, water utility costs per liter, and depreciation.', 20, y + 25);
-
-  y += 34;
-
-  // Financial definitions
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(27, 47, 99);
-  doc.text('Key Accounting & Data Rules for this Report:', 14, y);
-  y += 5;
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(102, 119, 136);
-  const defs = [
-    '• Gross Sales excludes cancelled orders and counts only legitimate active customer orders.',
-    '• Verified Collected counts orders explicitly marked "Paid". Completed fulfillment does not imply payment.',
-    '• Outstanding Receivables reflects unpaid non-cancelled balances awaiting customer remittance.',
-    '• Voided expenses are retained in audit records but are strictly excluded from all expense deduction calculations.',
-    '• Daily, weekly, and monthly periods are computed timezone-safely without UTC shifts.'
-  ];
-  defs.forEach(d => {
-    doc.text(d, 14, y);
-    y += 4;
-  });
-
-  // ================= PAGE 2: SALES PERFORMANCE =================
-  doc.addPage();
-  y = 20;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(27, 47, 99);
-  doc.text('2. Sales Channels & Operational Fulfillment', 14, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(102, 119, 136);
-  doc.text('Detailed revenue breakdown by ordering channels, fulfillment methods, and payment types.', 14, y + 4.5);
-  y += 9;
-
-  // A. Sales by Source
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(36, 78, 163);
-  doc.text('A. Sales by Order Source', 14, y);
-  y += 3;
-
-  const srcRows = data.sources.map(s => [
+  const srcRows = (data.sources || []).map(s => [
     s.source,
     s.orders,
     formatCurrency(s.gross),
@@ -485,30 +422,31 @@ export async function generateCompleteFinancialReportPDF(data) {
 
   autoTable(doc, {
     startY: y,
-    head: [['Order Source', 'Total Orders', 'Gross Sales', 'Verified Collected']],
-    body: srcRows,
+    head: [['Order Source', 'Orders', 'Gross Sales', 'Verified Collected']],
+    body: srcRows.length ? srcRows : [['No order sources recorded', 0, formatCurrency(0), formatCurrency(0)]],
     theme: 'grid',
-    headStyles: { fillColor: [36, 78, 163], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 7.5, cellPadding: 2 },
+    headStyles: { fillColor: PDF_COLORS.blue, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 8 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 7.5, cellPadding: 2 },
     columnStyles: {
-      0: { fontStyle: 'bold', width: 45 },
-      1: { halign: 'center', width: 25 },
-      2: { halign: 'right', width: 56 },
-      3: { halign: 'right', width: 56 }
+      0: { fontStyle: 'bold', cellWidth: 54 },
+      1: { halign: 'center', cellWidth: 24 },
+      2: { halign: 'right', cellWidth: 54 },
+      3: { halign: 'right', cellWidth: 54 }
     },
-    margin: { left: 14, right: 14 }
+    margin: tableMargin
   });
 
-  y = doc.lastAutoTable.finalY + 8;
+  y = doc.lastAutoTable.finalY + 7;
 
-  // B. Sales by Service Type
+  // 3. Sales by Fulfillment Service
+  y = ensureSpace(28, y);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(36, 78, 163);
-  doc.text('B. Sales by Fulfillment Service', 14, y);
-  y += 3;
+  doc.setFontSize(10.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('3. Sales by Fulfillment Service', margin, y);
+  y += 2.5;
 
-  const srvRows = data.services.map(s => [
+  const srvRows = (data.services || []).map(s => [
     s.service,
     s.orders,
     formatCurrency(s.gross),
@@ -518,31 +456,32 @@ export async function generateCompleteFinancialReportPDF(data) {
 
   autoTable(doc, {
     startY: y,
-    head: [['Service Type', 'Orders', 'Gross Sales', 'Verified Collected', 'Outstanding Balance']],
-    body: srvRows,
+    head: [['Service Type', 'Orders', 'Gross Sales', 'Verified Collected', 'Outstanding']],
+    body: srvRows.length ? srvRows : [['No service records', 0, formatCurrency(0), formatCurrency(0), formatCurrency(0)]],
     theme: 'grid',
-    headStyles: { fillColor: [42, 169, 197], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 7.5, cellPadding: 2 },
+    headStyles: { fillColor: PDF_COLORS.aqua, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 8 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 7.5, cellPadding: 2 },
     columnStyles: {
-      0: { fontStyle: 'bold', width: 45 },
-      1: { halign: 'center', width: 20 },
-      2: { halign: 'right', width: 39 },
-      3: { halign: 'right', width: 39 },
-      4: { halign: 'right', width: 39 }
+      0: { fontStyle: 'bold', cellWidth: 50 },
+      1: { halign: 'center', cellWidth: 20 },
+      2: { halign: 'right', cellWidth: 38.6 },
+      3: { halign: 'right', cellWidth: 38.7 },
+      4: { halign: 'right', cellWidth: 38.7 }
     },
-    margin: { left: 14, right: 14 }
+    margin: tableMargin
   });
 
-  y = doc.lastAutoTable.finalY + 8;
+  y = doc.lastAutoTable.finalY + 7;
 
-  // C. Payment Method Breakdown
+  // 4. Payment Method Breakdown
+  y = ensureSpace(28, y);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(36, 78, 163);
-  doc.text('C. Payment Method Breakdown (Recorded vs Verified)', 14, y);
-  y += 3;
+  doc.setFontSize(10.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('4. Payment Method Breakdown (Recorded vs Verified)', margin, y);
+  y += 2.5;
 
-  const payRows = data.paymentMethods.map(p => [
+  const payRows = (data.paymentMethods || []).map(p => [
     p.method,
     p.orders,
     formatCurrency(p.recorded),
@@ -551,33 +490,34 @@ export async function generateCompleteFinancialReportPDF(data) {
 
   autoTable(doc, {
     startY: y,
-    head: [['Payment Method', 'Orders', 'Recorded Order Amount', 'Verified Collected Amount']],
+    head: [['Payment Method', 'Orders', 'Recorded Amount', 'Verified Collected']],
     body: payRows,
     theme: 'grid',
-    headStyles: { fillColor: [27, 47, 99], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 7.5, cellPadding: 2 },
+    headStyles: { fillColor: PDF_COLORS.navy, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 8 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 7.5, cellPadding: 2 },
     columnStyles: {
-      0: { fontStyle: 'bold', width: 45 },
-      1: { halign: 'center', width: 25 },
-      2: { halign: 'right', width: 56 },
-      3: { halign: 'right', width: 56 }
+      0: { fontStyle: 'bold', cellWidth: 54 },
+      1: { halign: 'center', cellWidth: 24 },
+      2: { halign: 'right', cellWidth: 54 },
+      3: { halign: 'right', cellWidth: 54 }
     },
-    margin: { left: 14, right: 14 }
+    margin: tableMargin
   });
 
-  y = doc.lastAutoTable.finalY + 8;
+  y = doc.lastAutoTable.finalY + 7;
 
-  // D. Container Sizes Summary
+  // 5. Best-Selling Containers
+  y = ensureSpace(28, y);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(36, 78, 163);
-  doc.text('D. Best-Selling Containers', 14, y);
-  y += 3;
+  doc.setFontSize(10.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('5. Best-Selling Containers', margin, y);
+  y += 2.5;
 
-  const contRows = data.containers.map(c => [
+  const contRows = (data.containers || []).map(c => [
     c.label,
     c.quantity === 1 ? '1 container' : `${c.quantity} containers`,
-    `${c.share.toFixed(1)}%`
+    `${Number(c.share || 0).toFixed(1)}%`
   ]);
 
   autoTable(doc, {
@@ -585,155 +525,171 @@ export async function generateCompleteFinancialReportPDF(data) {
     head: [['Container Type', 'Quantity Dispensed', 'Share of Volume']],
     body: contRows,
     theme: 'grid',
-    headStyles: { fillColor: [102, 119, 136], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 7.5, cellPadding: 2 },
+    headStyles: { fillColor: PDF_COLORS.muted, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 8 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 7.5, cellPadding: 2 },
     columnStyles: {
-      0: { fontStyle: 'bold', width: 80 },
-      1: { halign: 'center', width: 51 },
-      2: { halign: 'center', width: 51 }
+      0: { fontStyle: 'bold', cellWidth: 84 },
+      1: { halign: 'center', cellWidth: 51 },
+      2: { halign: 'center', cellWidth: 51 }
     },
-    margin: { left: 14, right: 14 }
+    margin: tableMargin
   });
 
-  // ================= PAGE 3: EXPENSE LEDGER =================
-  doc.addPage();
-  y = 20;
+  y = doc.lastAutoTable.finalY + 7;
 
+  // 6. Complete Expense Ledger (Active and Voided)
+  y = ensureSpace(32, y);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(27, 47, 99);
-  doc.text('3. Station Operating Expense Ledger', 14, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(102, 119, 136);
-  doc.text('Audit ledger of all recorded station operating expenses within the selected period.', 14, y + 4.5);
-  y += 9;
+  doc.setFontSize(10.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('6. Complete Expense Ledger (Active & Voided)', margin, y);
+  y += 2.5;
 
-  const expTableRows = data.expensesList.map(e => [
-    e.date || 'Unspecified',
-    e.category || 'Other',
-    e.description || '',
-    formatCurrency(e.amount),
-    e.active ? (e.paymentStatus || 'Status Not Recorded') : 'VOIDED (Inactive)',
-    e.paymentMethod || 'Not Specified',
-    e.reference || '-'
-  ]);
+  const expTableRows = (data.expensesList || []).map(e => {
+    const isVoided = e.active === false;
+    return [
+      e.date || 'Unspecified',
+      e.category || 'Other',
+      e.description || '',
+      formatCurrency(e.amount),
+      e.paymentStatus || 'Not Recorded',
+      isVoided ? 'Voided' : 'Active',
+      e.paymentMethod || 'Not Recorded',
+      e.reference || '-'
+    ];
+  });
 
   if (!expTableRows.length) {
-    expTableRows.push(['-', 'No recorded expenses in this timeframe', '-', 'PHP 0.00', '-', '-', '-']);
+    expTableRows.push(['-', '-', 'No recorded expenses in this timeframe', formatCurrency(0), '-', '-', '-', '-']);
   }
 
   autoTable(doc, {
     startY: y,
-    head: [['Date', 'Category', 'Description', 'Amount', 'Payment Status', 'Method', 'Ref']],
+    head: [['Date', 'Category', 'Description', 'Amount', 'Payment Status', 'Record Status', 'Method', 'Reference']],
     body: expTableRows,
     theme: 'striped',
-    headStyles: { fillColor: [36, 78, 163], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 7, cellPadding: 2 },
+    headStyles: { fillColor: PDF_COLORS.blue, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 7.2 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 6.8, cellPadding: 1.8 },
     columnStyles: {
-      0: { width: 20 },
-      1: { width: 22 },
-      2: { width: 44 },
-      3: { halign: 'right', fontStyle: 'bold', width: 26 },
-      4: { width: 30 },
-      5: { width: 22 },
-      6: { width: 18 }
+      0: { cellWidth: 19 },
+      1: { cellWidth: 20 },
+      2: { cellWidth: 40 },
+      3: { halign: 'right', fontStyle: 'bold', cellWidth: 23 },
+      4: { cellWidth: 22 },
+      5: { cellWidth: 18 },
+      6: { cellWidth: 24 },
+      7: { cellWidth: 20 }
     },
-    margin: { left: 14, right: 14 }
+    margin: tableMargin
   });
 
-  y = doc.lastAutoTable.finalY + 6;
+  y = doc.lastAutoTable.finalY + 7;
 
-  // Expense Summary Footer
+  // 7. Outstanding Receivables (Explicitly Unpaid only)
+  y = ensureSpace(32, y);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(27, 47, 99);
-  doc.text(`Total Active Expenses: ${formatCurrency(data.recordedExpenses)}`, 14, y);
-  doc.text(`Paid Expenses: ${formatCurrency(data.paidExpenses)}`, 85, y);
-  doc.text(`Unpaid Payables: ${formatCurrency(data.unpaidExpenses)}`, 145, y);
+  doc.setFontSize(10.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('7. Outstanding Receivables (Explicitly Unpaid)', margin, y);
+  y += 2.5;
 
-  // ================= PAGE 4: OUTSTANDING RECEIVABLES =================
-  doc.addPage();
-  y = 20;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(27, 47, 99);
-  doc.text('4. Outstanding Customer Receivables', 14, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(102, 119, 136);
-  doc.text('Aging and collection list of customer orders with unpaid or pending balances.', 14, y + 4.5);
-  y += 9;
-
-  const recTableRows = data.receivablesList.map(r => [
+  const recTableRows = (data.receivablesList || []).map(r => [
     r.id,
     r.customer || 'Walk-in',
-    r.service || 'Walk-in',
+    r.service || 'Not Specified',
     r.date || 'Unspecified',
     formatCurrency(r.amount),
-    formatCurrency(r.paid),
-    formatCurrency(r.balance),
     r.paymentStatus || 'Unpaid'
   ]);
 
   if (!recTableRows.length) {
-    recTableRows.push(['-', 'No outstanding receivables for this period', '-', '-', 'PHP 0.00', 'PHP 0.00', 'PHP 0.00', 'All Paid']);
+    recTableRows.push(['-', 'No outstanding unpaid orders in this period', '-', '-', formatCurrency(0), '-']);
   }
 
   autoTable(doc, {
     startY: y,
-    head: [['Order ID', 'Customer', 'Service', 'Date', 'Amount', 'Paid', 'Balance', 'Status']],
+    head: [['Order ID', 'Customer', 'Service', 'Date', 'Amount', 'Payment Status']],
     body: recTableRows,
     theme: 'striped',
-    headStyles: { fillColor: [196, 125, 11], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 7, cellPadding: 2 },
+    headStyles: { fillColor: PDF_COLORS.amber, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 7, cellPadding: 1.8 },
     columnStyles: {
-      0: { fontStyle: 'bold', width: 22 },
-      1: { width: 38 },
-      2: { width: 28 },
-      3: { width: 22 },
-      4: { halign: 'right', width: 22 },
-      5: { halign: 'right', width: 18 },
-      6: { halign: 'right', fontStyle: 'bold', width: 20 },
-      7: { width: 12 }
+      0: { fontStyle: 'bold', cellWidth: 24 },
+      1: { cellWidth: 50 },
+      2: { cellWidth: 36 },
+      3: { cellWidth: 24 },
+      4: { halign: 'right', fontStyle: 'bold', cellWidth: 28 },
+      5: { cellWidth: 24 }
     },
-    margin: { left: 14, right: 14 }
+    margin: tableMargin
   });
 
-  y = doc.lastAutoTable.finalY + 6;
+  y = doc.lastAutoTable.finalY + 7;
+
+  // 8. Orders with Unknown / Unrecorded Payment Status
+  y = ensureSpace(32, y);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(196, 125, 11);
-  doc.text(`Total Outstanding Receivables: ${formatCurrency(data.outstandingBalance)} across ${data.unpaidOrdersCount} order(s)`, 14, y);
+  doc.setFontSize(10.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('8. Orders with Unrecorded Payment Status', margin, y);
+  y += 2.5;
 
-  // ================= PAGE 5+: COMPLETE TRANSACTION REGISTER =================
-  doc.addPage();
-  y = 20;
+  const unknownRows = (data.unknownPaymentOrders || []).map(o => [
+    o.id || 'No Order ID',
+    o.date || 'Unspecified',
+    o.customer || 'Walk-in',
+    o.source || 'Not Specified',
+    o.service || 'Not Specified',
+    formatCurrency(o.amount),
+    o.paymentStatus || 'Not Recorded'
+  ]);
 
+  if (!unknownRows.length) {
+    unknownRows.push(['-', '-', 'No orders with unrecorded payment status', '-', '-', formatCurrency(0), '-']);
+  }
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Order ID', 'Date', 'Customer', 'Source', 'Service', 'Amount', 'Payment Status']],
+    body: unknownRows,
+    theme: 'striped',
+    headStyles: { fillColor: PDF_COLORS.muted, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 7, cellPadding: 1.8 },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 22 },
+      1: { cellWidth: 22 },
+      2: { cellWidth: 42 },
+      3: { cellWidth: 24 },
+      4: { cellWidth: 28 },
+      5: { halign: 'right', fontStyle: 'bold', cellWidth: 24 },
+      6: { cellWidth: 24 }
+    },
+    margin: tableMargin
+  });
+
+  y = doc.lastAutoTable.finalY + 7;
+
+  // 9. Complete Transaction Register (Includes Cancelled, clearly labeled)
+  y = ensureSpace(32, y);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(27, 47, 99);
-  doc.text('5. Complete Transaction Register', 14, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(102, 119, 136);
-  doc.text('Chronological record of all orders logged during the selected reporting period.', 14, y + 4.5);
-  y += 9;
+  doc.setFontSize(10.5);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('9. Complete Transaction Register', margin, y);
+  y += 2.5;
 
-  const txTableRows = data.transactionsList.map(t => [
+  const txTableRows = (data.transactionsList || []).map(t => [
     t.id,
     t.date || 'Unspecified',
-    t.customer || 'Walk-in Customer',
-    t.source || 'Walk-in',
-    t.service || 'Walk-in',
+    t.customer || 'Walk-in',
+    t.source || 'Not Specified',
+    t.service || 'Not Specified',
     formatCurrency(t.amount),
-    t.paymentStatus || 'Unpaid',
+    t.paymentStatus || 'Not Recorded',
     t.status || 'Active'
   ]);
 
   if (!txTableRows.length) {
-    txTableRows.push(['-', '-', 'No transactions logged in this timeframe', '-', '-', 'PHP 0.00', '-', '-']);
+    txTableRows.push(['-', '-', 'No transactions logged in this timeframe', '-', '-', formatCurrency(0), '-', '-']);
   }
 
   autoTable(doc, {
@@ -741,58 +697,65 @@ export async function generateCompleteFinancialReportPDF(data) {
     head: [['Order ID', 'Date', 'Customer', 'Source', 'Service', 'Amount', 'Payment', 'Order Status']],
     body: txTableRows,
     theme: 'striped',
-    headStyles: { fillColor: [36, 78, 163], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
-    bodyStyles: { textColor: [27, 47, 99], fontSize: 7, cellPadding: 2 },
+    headStyles: { fillColor: PDF_COLORS.blue, textColor: PDF_COLORS.white, fontStyle: 'bold', fontSize: 7.3 },
+    bodyStyles: { textColor: PDF_COLORS.navy, fontSize: 6.9, cellPadding: 1.8 },
     columnStyles: {
-      0: { fontStyle: 'bold', width: 22 },
-      1: { width: 22 },
-      2: { width: 38 },
-      3: { width: 22 },
-      4: { width: 26 },
-      5: { halign: 'right', fontStyle: 'bold', width: 22 },
-      6: { width: 16 },
-      7: { width: 14 }
+      0: { fontStyle: 'bold', cellWidth: 20 },
+      1: { cellWidth: 20 },
+      2: { cellWidth: 34 },
+      3: { cellWidth: 20 },
+      4: { cellWidth: 26 },
+      5: { halign: 'right', fontStyle: 'bold', cellWidth: 22 },
+      6: { cellWidth: 20 },
+      7: { cellWidth: 24 }
     },
-    margin: { left: 14, right: 14 }
+    margin: tableMargin
   });
 
   y = doc.lastAutoTable.finalY + 8;
 
-  // FINAL SECTION: Notes & Signatures
-  if (y > 230) {
-    doc.addPage();
-    y = 24;
-  }
-
+  // 10. Financial Notes, Disclaimer & Signatures
+  y = ensureSpace(36, y);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
-  doc.setTextColor(27, 47, 99);
-  doc.text('Audit Notes & Formal Authorization', 14, y);
-  y += 6;
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('10. Financial Notes & Disclaimer', margin, y);
+  y += 4.5;
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.setTextColor(102, 119, 136);
+  doc.setTextColor(...PDF_COLORS.muted);
   doc.text(
-    'DEMO REPORT: Figures are based on local browser session orders and manually recorded payment statuses. ' +
-    'They are not independently verified by a production server.',
-    y
+    'DEMO REPORT — figures are based on local session records and manually recorded payment statuses. ' +
+    'They are not independently verified by a production server. Cancelled orders are excluded from financial totals, ' +
+    'voided expenses are excluded from active expense totals, and Collections After Paid Expenses is a cash-flow indicator rather than verified net profit.',
+    margin,
+    y,
+    { maxWidth: contentWidth, lineHeightFactor: 1.35 }
   );
-  y += 10;
+  y += 16;
 
-  const sigColWidth = 56;
+  const sigColWidth = 58;
   doc.setFontSize(8);
-  doc.text('Prepared by: ________________________', 14, y);
-  doc.text('Reviewed by: ________________________', 14 + sigColWidth + 6, y);
-  doc.text('Approved by: ________________________', 14 + (sigColWidth + 6) * 2, y);
+  doc.setTextColor(...PDF_COLORS.navy);
+  doc.text('Prepared by: _______________________', margin, y);
+  doc.text('Reviewed by: _______________________', margin + sigColWidth + 6, y);
+  doc.text('Approved by: _______________________', margin + (sigColWidth + 6) * 2, y);
 
-  y += 6;
-  doc.text('Station Manager', 14, y);
-  doc.text('Accounting / Audit Staff', 14 + sigColWidth + 6, y);
-  doc.text('Super Admin / Business Owner', 14 + (sigColWidth + 6) * 2, y);
+  y += 5;
+  doc.setFontSize(7.5);
+  doc.setTextColor(...PDF_COLORS.muted);
+  doc.text('Station Manager', margin, y);
+  doc.text('Accountant / Audit Staff', margin + sigColWidth + 6, y);
+  doc.text('Super Admin / Business Owner', margin + (sigColWidth + 6) * 2, y);
 
-  drawHeaderAndFooter(doc, 'COMPLETE FINANCIAL REPORT', data.periodLabel);
+  drawHeaderAndFooter(doc, data.periodLabel);
+  return doc;
+}
 
+export async function generateCompleteFinancialReportPDF(data) {
+  const logoBase64 = await getBase64Image(logoUrl);
+  const doc = createCompleteFinancialReportDoc(data, logoBase64);
   const filename = `AquaBest_Complete_Financial_Report_${data.periodFilename}.pdf`;
   doc.save(filename);
   return filename;
