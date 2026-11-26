@@ -26,7 +26,7 @@ const modules=[
  ['inventory','Inventory',FiPackage],['payments','Payments',FiCreditCard],
  ['reports','Sales Reports',FiBarChart2],['staff','Staff Tasks',FiUsers]
 ];
-const ownerModules=[['dashboard','Dashboard',FiHome],['reports','Sales Reports',FiBarChart2],['employees','Employees',FiUsers],['products','Products & Services',FiPackage],['approvals','Verification',FiCreditCard],['orders','Orders',FiClipboard],['pos','POS',FiMonitor],['refill','Refill Tasks',FiDroplet],['delivery','Delivery',FiTruck],['inventory','Inventory',FiPackage],['payments','Payments',FiDollarSign],['settings','Business Settings',FiEdit3],['audit','Audit Logs',FiActivity]];
+const ownerModules=[['dashboard','Dashboard',FiHome],['queue','Operations Queue',FiClipboard],['staff','Staff Monitoring',FiUsers],['collections','Trips & Pickups',FiTruck],['reports','Sales Reports',FiBarChart2],['employees','Employees & Access',FiUsers],['products','Products & Services',FiPackage],['approvals','Verification',FiCreditCard],['orders','Orders',FiClipboard],['pos','POS',FiMonitor],['inventory','Inventory',FiPackage],['payments','Payments',FiDollarSign],['settings','Business Settings',FiEdit3],['audit','Audit Logs',FiActivity]];
 const staffModules=[['dashboard','Dashboard',FiHome],['refill','Refill Tasks',FiDroplet],['orders','Assigned Orders',FiClipboard],['inventory','Inventory',FiPackage],['activity','My Activity',FiActivity]];
 const deliveryModules=[['dashboard','Dashboard',FiHome],['deliveries','My Deliveries',FiTruck],['bottles','Bottle Handling',FiPackage],['collections','Collections',FiCreditCard],['history','Delivery History',FiActivity]];
 const stages=['Pending Confirmation','Confirmed','Preparing','Ready','Out for Delivery','Delivered','Completed'];
@@ -65,7 +65,7 @@ export default function ManagementWeb({role='manager',onLogout}){
  const [stockOpen,setStockOpen]=useState(false);
  const go=(p)=>{if(isDelivery&&!['dashboard','deliveries','bottles','collections','history','more','notifications'].includes(p))return;if(isStaff&&!['dashboard','refill','orders','inventory','activity','more','notifications'].includes(p))return;setPage(p);setSelected(null);window.scrollTo(0,0)};
  const assignedOrders=orders.filter(o=>o.assigned==='Staff A');
- const ownStatusName=isOwner?'Owner':isDelivery?'Driver A':isStaff?'Staff A':'Manager';
+ const ownStatusName=isOwner?'Super Admin':isDelivery?'Driver A':isStaff?'Staff A':'Manager';
  const deliveryAvailabilityOrders=trips.map(t=>({id:t.id,assigned:t.driver,status:t.status}));
  const logout=()=>{setSelected(null);setStockOpen(false);setPage('dashboard');onLogout?.()};
  const active=orders.filter(o=>!['Completed','Cancelled'].includes(o.status));
@@ -94,8 +94,8 @@ export default function ManagementWeb({role='manager',onLogout}){
   setSale(initialSale());go('orders');
  };
  const changeOrder=(id,patch)=>setOrders(old=>old.map(o=>o.id===id?{...o,...patch}:o));
- const claimManagerRefill=(id)=>setOrders(old=>old.map(o=>o.id===id&&['Pending Confirmation','Confirmed'].includes(o.status)&&!o.claimedBy?{...o,status:'Preparing',claimedBy:'Manager',assigned:'Manager',refillClaimedAt:new Date().toLocaleString('en-PH')}:o));
- const finishManagerRefill=(id)=>setOrders(old=>old.map(o=>o.id===id&&['Pending Confirmation','Confirmed','Preparing'].includes(o.status)?{...o,status:'Ready',refilledBy:'Manager',refillCompletedAt:new Date().toLocaleString('en-PH')}:o));
+ const claimManagerRefill=(id,actor='Manager')=>setOrders(old=>old.map(o=>o.id===id&&['Pending Confirmation','Confirmed'].includes(o.status)&&!o.claimedBy?{...o,status:'Preparing',claimedBy:actor,assigned:actor,refillClaimedAt:new Date().toLocaleString('en-PH')}:o));
+ const finishManagerRefill=(id,actor='Manager')=>setOrders(old=>old.map(o=>o.id===id&&o.claimedBy===actor&&o.status==='Preparing'?{...o,status:'Ready',claimedBy:null,refilledBy:actor,refillCompletedAt:new Date().toLocaleString('en-PH')}:o));
  const openOrder=(order)=>{if(isStaff&&order.assigned!=='Staff A')return;setSelected(order.id);setAssigned(order.assigned||'Unassigned');setNextStatus(order.status)};
  const current=orders.find(o=>o.id===selected);
  const applyOrder=()=>{if(!current)return;if(!isStaff&&assigned!==current.assigned){const x=availabilityFor(assigned,availability,orders);if(!x.assignable){setNotification(assigned+' is '+x.label+'. Cannot assign a new task.');return}if(x.queued>=3){setNotification(assigned+' already has 3 queued tasks. Soft limit exceeded; review workload.')}}if(isStaff){const next=current.status==='Confirmed'?'Preparing':current.status==='Preparing'?'Ready':null;if(current.assigned!=='Staff A'||!next||nextStatus!==next)return;changeOrder(current.id,{status:next});setStaffHistory(h=>[{id:Date.now(),label:current.id+' moved to '+next,time:new Date().toLocaleString('en-PH')},...h]);}else changeOrder(current.id,{status:nextStatus,assigned});setSelected(null);setNotification('Sample task updated locally.')};
@@ -115,7 +115,7 @@ export default function ManagementWeb({role='manager',onLogout}){
 
  return <div className="mgmt">
   <header className="mgmt-header"><div className="mgmt-header-inner">
-    <button type="button" className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>go('dashboard')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>{isOwner?'Owner Workspace':isDelivery?'Delivery Workspace':isStaff?'Staff Workspace':'Manager Workspace'}</strong></span></button>
+    <button type="button" className="mgmt-brand mgmt-brand-button" aria-label="AquaBest — Go to Dashboard" onClick={()=>go('dashboard')}><img src={logo} alt="AquaBest"/><span className="mgmt-brand-label"><small>Management System</small><strong style={{fontSize:12,color:'#1b2f63'}}>{isOwner?'Super Admin Workspace':isDelivery?'Delivery Workspace':isStaff?'Staff Workspace':'Manager Workspace'}</strong></span></button>
     <div className="mgmt-header-end">
       <ManagementHeaderActions name={ownStatusName} entries={availability} orders={isDelivery?deliveryAvailabilityOrders:orders} onUpdate={updateAvailability} onNotifications={()=>go('notifications')}/>
       <button type="button" className="mgmt-header-logout" onClick={logout} aria-label="Log out of business workspace" title="Log out of business workspace"><FiLogOut aria-hidden="true"/><span>Log Out</span></button>
@@ -126,7 +126,7 @@ export default function ManagementWeb({role='manager',onLogout}){
    <main className="mgmt-main">
     {notification&&<div className="mgmt-notice" role="status">{notification} <button className="mgmt-link" onClick={()=>setNotification('')}>Dismiss</button></div>}
     {isManager&&page==='remittance'&&<ManagerControl page={page} go={go} orders={orders} availability={availability} onOpenOrder={openOrder} onNotice={setNotification}/>}
-     {isManager&&['dashboard','queue','collections','staff'].includes(page)&&<ManagerSimplified page={page} go={go} orders={orders} availability={availability} onOpenOrder={openOrder} onFinishManagerRefill={finishManagerRefill} onClaimManagerRefill={claimManagerRefill} onNotice={setNotification}/>}
+     {(isManager&&['dashboard','queue','collections','staff'].includes(page)||isOwner&&['queue','collections','staff'].includes(page))&&<ManagerSimplified page={page} go={go} orders={orders} availability={availability} isOwner={isOwner} onOpenOrder={openOrder} onFinishManagerRefill={finishManagerRefill} onClaimManagerRefill={claimManagerRefill} onNotice={setNotification}/>}
      {isManager&&page==='verification'&&<ManagerDeliveryVerification go={go} managerOrders={orders} onNotice={setNotification}/>}
      {isOwner&&<OwnerOperations page={page} go={go} orders={orders} stock={stock} trips={trips} availability={availability} onMessage={setNotification} expenses={expenses} setExpenses={setExpenses}/>}
     {isDelivery&&<DeliveryOperations page={page} go={go} trips={trips} setTrips={setTrips} onMessage={setNotification} onLogout={logout}/>}

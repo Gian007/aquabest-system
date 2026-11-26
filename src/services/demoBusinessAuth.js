@@ -1,7 +1,7 @@
 // Frontend demonstration ONLY. This is not authentication or authorization.
 // Never store real passwords or use this for production access.
 export const DEMO_BUSINESS_ACCOUNTS = Object.freeze([
-  { username: 'admin', password: 'admin', role: 'owner', label: 'Owner / Admin' },
+  { username: 'admin', password: 'admin', role: 'owner', label: 'Super Admin' },
   { username: 'manager', password: 'manager', role: 'manager', label: 'Manager' },
   { username: 'staff', password: 'staff', role: 'staff', label: 'Operations Staff (Refill + Delivery)' },
 ]);
