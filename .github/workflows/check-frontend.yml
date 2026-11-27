@@ -19,7 +19,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - run: npm run build:pages
       - run: npm run lint
-      - run: node --test tests/salesReportData.test.js tests/salesChartData.test.js tests/ownerDashboardData.test.js tests/ownerDashboardSettings.test.js tests/dateRangePresets.test.js
+      - run: npm run test:frontend
       - run: npm run test:backend

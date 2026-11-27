@@ -9,6 +9,7 @@ const amountOf = record => {
 
 const sumAmounts = records => records.reduce((sum, record) => sum + amountOf(record), 0);
 const isCancelled = order => String(order?.status || '').toLowerCase() === 'cancelled';
+const isCompleted = order => ['completed', 'delivered', 'picked up'].includes(String(order?.status || '').trim().toLowerCase());
 const isPaid = record => record?.paymentStatus === 'Paid';
 const isUnpaid = record => record?.paymentStatus === 'Unpaid';
 
@@ -123,6 +124,7 @@ export function buildSalesReportData({
     : filterByDateRange(safeExpenses, range.startDate, range.endDate);
 
   const activePeriodOrders = periodOrders.filter(order => !isCancelled(order));
+  const completedPeriodOrders = activePeriodOrders.filter(isCompleted);
   const cancelledOrders = periodOrders.filter(isCancelled);
   const paidOrders = activePeriodOrders.filter(isPaid);
   const unpaidOrders = activePeriodOrders.filter(isUnpaid);
@@ -134,7 +136,10 @@ export function buildSalesReportData({
   const unclassifiedExpenseRecords = activePeriodExpenses.filter(expense => !isPaid(expense) && !isUnpaid(expense));
 
   const grossSales = sumAmounts(activePeriodOrders);
+  const completedSales = sumAmounts(completedPeriodOrders);
   const verifiedCollected = sumAmounts(paidOrders);
+  const verifiedCollectedCompleted = sumAmounts(completedPeriodOrders.filter(isPaid));
+  const unpaidCompletedSales = sumAmounts(completedPeriodOrders.filter(isUnpaid));
   const outstandingBalance = sumAmounts(unpaidOrders);
   const unknownPaymentBalance = sumAmounts(unknownPaymentOrders);
 
@@ -143,6 +148,8 @@ export function buildSalesReportData({
   const unpaidExpenses = sumAmounts(unpaidExpenseRecords);
   const unrecordedStatusExpenses = sumAmounts(unclassifiedExpenseRecords);
   const collectionsAfterPaidExpenses = verifiedCollected - paidExpenses;
+  // Recorded Operating Result (Demo): completed sales minus active recorded expenses (not audited net profit)
+  const recordedOperatingResult = completedSales - recordedExpenses;
 
   const totalOrders = periodOrders.length;
   const cancelledOrdersCount = cancelledOrders.length;
@@ -195,7 +202,10 @@ export function buildSalesReportData({
     periodExpenses,
     activePeriodExpenses,
     grossSales,
+    completedSales,
     verifiedCollected,
+    verifiedCollectedCompleted,
+    unpaidCompletedSales,
     outstandingBalance,
     unknownPaymentBalance,
     recordedExpenses,
@@ -203,6 +213,7 @@ export function buildSalesReportData({
     unpaidExpenses,
     unrecordedStatusExpenses,
     collectionsAfterPaidExpenses,
+    recordedOperatingResult,
     totalOrders,
     cancelledOrdersCount,
     paidOrdersCount,

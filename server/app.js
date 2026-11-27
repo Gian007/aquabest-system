@@ -5,7 +5,20 @@ const VALID_SOURCES = new Set(['Walk-in', 'Online', 'Messenger', 'Phone']);
 const VALID_SERVICES = new Set(['Walk-in', 'Pickup & Delivery', 'Drop-off & Delivery', 'Delivery', 'Collect & Return (Same Bottles)']);
 const VALID_ORDER_STATUSES = new Set(['Pending Confirmation', 'Confirmed', 'Preparing', 'Ready', 'Out for Delivery', 'Delivered', 'Completed', 'Cancelled']);
 const VALID_PAYMENT_STATUSES = new Set(['Paid', 'Unpaid', 'Pending Verification', 'Not Recorded']);
-const VALID_EXPENSE_CATEGORIES = new Set(['Fuel', 'Electricity', 'Supplies', 'Maintenance', 'Wages', 'Other']);
+const VALID_EXPENSE_CATEGORIES = new Set([
+  'Fuel',
+  'Electricity',
+  'Supplies',
+  'Water treatment supplies',
+  'Delivery and transportation',
+  'Rent',
+  'Maintenance',
+  'Equipment',
+  'Wages',
+  'Employee-related expenses',
+  'Other',
+  'Other operating expenses'
+]);
 const VALID_CONTAINER_MOVEMENTS = new Set(['issued', 'borrowed', 'returned', 'sold']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 

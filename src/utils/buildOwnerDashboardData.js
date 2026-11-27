@@ -210,7 +210,9 @@ export function buildGallonActivity({
   periodOrders = [],
   trips = [],
   stock = [],
-  stockLog = []
+  stockLog = [],
+  containerMovements = [],
+  range = null
 }) {
   const activeOrders = periodOrders.filter(o => o.status !== 'Cancelled');
 
@@ -233,26 +235,55 @@ export function buildGallonActivity({
     return sum;
   }, 0);
 
-  // 3. Gallons Issued / Borrowed: explicit store-owned returnable orders only
-  const gallonsBorrowed = activeOrders.reduce((sum, o) => {
-    if (o.ownership === 'store' && o.arrangement === 'returnable') {
-      return sum + sumOrderQty(o);
-    }
-    return sum;
-  }, 0);
+  // 3 & 4 & 5. Borrowed, Returned, and Outstanding Borrowed Gallons
+  const hasLinkedLedger = Array.isArray(containerMovements) && containerMovements.length > 0;
+  let gallonsBorrowed = 0;
+  let gallonsReturned = 0;
+  let outstandingBorrowed = null;
 
-  // 4. Gallons Returned / Collected: from trip emptiesCollected + manual IN return logs
-  const tripEmpties = trips.reduce((sum, t) => sum + (Number(t.emptiesCollected) || 0), 0);
-  const stockReturnLogs = stockLog.reduce((sum, m) => {
-    if (m.type === 'IN' && /return/i.test(String(m.reason || ''))) {
-      return sum + (Number(m.quantity) || 0);
-    }
-    return sum;
-  }, 0);
-  const gallonsReturned = tripEmpties + stockReturnLogs;
+  if (hasLinkedLedger) {
+    const inPeriod = containerMovements.filter(cm => {
+      const d = String(cm.date || cm.recorded_at || '').slice(0, 10);
+      if (!range || !range.startDate || !range.endDate) return true;
+      return d && d >= range.startDate && d <= range.endDate;
+    });
+    gallonsBorrowed = inPeriod
+      .filter(cm => cm.movement_type === 'borrowed' || cm.movement_type === 'issued')
+      .reduce((s, cm) => s + (Number(cm.quantity) || 0), 0);
+    gallonsReturned = inPeriod
+      .filter(cm => cm.movement_type === 'returned')
+      .reduce((s, cm) => s + (Number(cm.quantity) || 0), 0);
 
-  // 5. Outstanding Borrowed Gallons: cannot be reliably matched without customer borrow ledger IDs
-  const outstandingBorrowed = null;
+    // Cumulative outstanding borrowed up to end of selected range
+    const upToEnd = containerMovements.filter(cm => {
+      const d = String(cm.date || cm.recorded_at || '').slice(0, 10);
+      return !range?.endDate || !d || d <= range.endDate;
+    });
+    const totalBorrowed = upToEnd
+      .filter(cm => cm.movement_type === 'borrowed' || cm.movement_type === 'issued')
+      .reduce((s, cm) => s + (Number(cm.quantity) || 0), 0);
+    const totalReturned = upToEnd
+      .filter(cm => cm.movement_type === 'returned')
+      .reduce((s, cm) => s + (Number(cm.quantity) || 0), 0);
+    outstandingBorrowed = Math.max(0, totalBorrowed - totalReturned);
+  } else {
+    gallonsBorrowed = activeOrders.reduce((sum, o) => {
+      if (o.ownership === 'store' && o.arrangement === 'returnable') {
+        return sum + sumOrderQty(o);
+      }
+      return sum;
+    }, 0);
+
+    const tripEmpties = trips.reduce((sum, t) => sum + (Number(t.emptiesCollected) || 0), 0);
+    const stockReturnLogs = stockLog.reduce((sum, m) => {
+      if (m.type === 'IN' && /return/i.test(String(m.reason || ''))) {
+        return sum + (Number(m.quantity) || 0);
+      }
+      return sum;
+    }, 0);
+    gallonsReturned = tripEmpties + stockReturnLogs;
+    outstandingBorrowed = null;
+  }
 
   // 6. Current Container Inventory
   const totalAvailableStock = stock.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
@@ -260,7 +291,7 @@ export function buildGallonActivity({
     const prod = DEMO_PRODUCTS.find(p => p.id === s.id);
     return {
       id: s.id,
-      label: prod ? `${prod.label} · ${prod.shape}` : s.id,
+      label: prod ? `${prod.label} · ${prod.shape}` : (s.label || s.id),
       quantity: Number(s.quantity) || 0,
       minimum: Number(s.minimum) || 0,
       low: (Number(s.quantity) || 0) < (Number(s.minimum) || 0)
@@ -284,6 +315,7 @@ export function buildOwnerDashboardData({
   trips = [],
   stock = [],
   stockLog = [],
+  containerMovements = [],
   period = 'Daily',
   anchorDate,
   customStart,
@@ -305,45 +337,60 @@ export function buildOwnerDashboardData({
   let periodOrders = [];
   let periodExpenses = [];
   let grossSales = 0;
+  let completedSales = 0;
   let verifiedCollected = 0;
+  let verifiedCollectedCompleted = 0;
+  let unpaidCompletedSales = 0;
   let outstandingBalance = 0;
   let recordedExpenses = 0;
+  let recordedOperatingResult = 0;
 
   if (period === 'Custom' || (period !== 'All Time' && range.endDate < getPeriodRange(period, safeAnchor, orders).endDate)) {
     periodOrders = filterByDateRange(orders, range.startDate, range.endDate);
     periodExpenses = filterByDateRange(expenses, range.startDate, range.endDate);
     const activeOrders = periodOrders.filter(o => o.status !== 'Cancelled');
+    const completedOrders = activeOrders.filter(o => ['Completed', 'Delivered', 'Picked Up'].includes(o.status));
     grossSales = activeOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0);
+    completedSales = completedOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0);
     verifiedCollected = activeOrders.filter(o => o.paymentStatus === 'Paid').reduce((s, o) => s + (Number(o.amount) || 0), 0);
+    verifiedCollectedCompleted = completedOrders.filter(o => o.paymentStatus === 'Paid').reduce((s, o) => s + (Number(o.amount) || 0), 0);
+    unpaidCompletedSales = completedOrders.filter(o => o.paymentStatus === 'Unpaid').reduce((s, o) => s + (Number(o.amount) || 0), 0);
     outstandingBalance = activeOrders.filter(o => o.paymentStatus === 'Unpaid').reduce((s, o) => s + (Number(o.amount) || 0), 0);
     recordedExpenses = periodExpenses.filter(e => e.active !== false).reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    recordedOperatingResult = completedSales - recordedExpenses;
   } else {
     const shared = buildSalesReportData({ orders, expenses, period, anchorDate: safeAnchor });
     periodOrders = shared.periodOrders;
     periodExpenses = shared.periodExpenses;
     grossSales = shared.grossSales;
+    completedSales = shared.completedSales;
     verifiedCollected = shared.verifiedCollected;
+    verifiedCollectedCompleted = shared.verifiedCollectedCompleted;
+    unpaidCompletedSales = shared.unpaidCompletedSales;
     outstandingBalance = shared.outstandingBalance;
     recordedExpenses = shared.recordedExpenses;
+    recordedOperatingResult = shared.recordedOperatingResult;
   }
 
   const activeOrders = periodOrders.filter(o => o.status !== 'Cancelled');
+  const completedPeriodOrders = activeOrders.filter(o => ['Completed', 'Delivered', 'Picked Up'].includes(o.status));
 
   // Previous equivalent period comparison (only when historical data exists)
   let previousComparison = null;
   if (['Daily', 'Weekly', 'Monthly', 'Yearly'].includes(period)) {
     const prevAnchor = shiftAnchorDate(safeAnchor, period, -1);
     const prevRange = getPeriodRange(period, prevAnchor, orders);
-    const prevOrders = filterByDateRange(orders, prevRange.startDate, prevRange.endDate).filter(o => o.status !== 'Cancelled');
+    const prevOrders = filterByDateRange(orders, prevRange.startDate, prevRange.endDate)
+      .filter(o => ['Completed', 'Delivered', 'Picked Up'].includes(o.status));
     if (prevOrders.length > 0) {
       const prevSales = prevOrders.reduce((s, o) => s + (Number(o.amount) || 0), 0);
-      const deltaPct = prevSales > 0 ? ((grossSales - prevSales) / prevSales) * 100 : null;
+      const deltaPct = prevSales > 0 ? ((completedSales - prevSales) / prevSales) * 100 : null;
       previousComparison = { prevSales, prevCount: prevOrders.length, deltaPct };
     }
   }
 
-  const chart = buildChartSeries({ period, range, activeOrders, todayStr });
-  const gallons = buildGallonActivity({ periodOrders, trips, stock, stockLog });
+  const chart = buildChartSeries({ period, range, activeOrders: completedPeriodOrders, todayStr });
+  const gallons = buildGallonActivity({ periodOrders, trips, stock, stockLog, containerMovements, range });
 
   // Unified Recent Business Activity feed
   const activity = [
@@ -360,7 +407,7 @@ export function buildOwnerDashboardData({
     })),
     ...stockLog.map(m => ({
       id: `stk-${m.id}`,
-      date: m.time || '',
+      date: m.date || m.time || '',
       ref: m.orderId || m.productId,
       type: m.type === 'IN' ? 'Container Returned / Stock IN' : 'Container Issued / Stock OUT',
       detail: m.reason || 'Stock movement',
@@ -374,13 +421,19 @@ export function buildOwnerDashboardData({
     range,
     periodOrders,
     activeOrders,
+    completedPeriodOrders,
     periodExpenses,
     financials: {
       grossSales,
+      completedSales,
       totalOrders: activeOrders.length,
+      completedOrdersCount: completedPeriodOrders.length,
       verifiedCollected,
+      verifiedCollectedCompleted,
+      unpaidCompletedSales,
       outstandingBalance,
-      recordedExpenses
+      recordedExpenses,
+      recordedOperatingResult
     },
     previousComparison,
     chart,
