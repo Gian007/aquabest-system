@@ -9,7 +9,7 @@ import {
 import { formatMoney } from '../data/managerDemo.js';
 import { buildSalesReportData } from '../utils/buildSalesReportData.js';
 import ExpenseReport from './ExpenseReport.jsx';
-import { getTodayLocalDate, shiftAnchorDate } from '../utils/reportDateUtils.js';
+import { getTodayLocalDate, shiftAnchorDate, filterByDateRange } from '../utils/reportDateUtils.js';
 import { getPeriodLabel, getPeriodFilename, getWeekRange, formatDateLabel, parseLocalDate } from '../utils/dateUtils.js';
 import {
   generateFinancialSummaryPDF,
@@ -17,24 +17,31 @@ import {
 } from '../utils/generateSalesReportPDF.js';
 import './salesReports.css';
 
-const PERIODS = ['Daily', 'Weekly', 'Monthly', 'Yearly', 'All Time'];
+const PERIODS = ['Daily', 'Weekly', 'Monthly', 'Yearly', 'All Time', 'Custom'];
 
 function getOrderHour(order) {
   const raw = order?.time || order?.createdAt || order?.created_at;
   if (typeof raw !== 'string' || !raw.trim()) return null;
   const value = raw.trim();
-  const timeMatch = value.match(/^\d{1,2}:\d{2}(?::\d{2})?\s*(AM|PM)?$/i);
+  const timeMatch = value.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
   if (timeMatch) {
-    const parts = value.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
-    let hour = Number(parts[1]);
-    const meridiem = (parts[3] || '').toUpperCase();
+    let hour = Number(timeMatch[1]);
+    const meridiem = (timeMatch[3] || '').toUpperCase();
     if (meridiem === 'PM' && hour < 12) hour += 12;
     if (meridiem === 'AM' && hour === 12) hour = 0;
     return hour >= 0 && hour <= 23 ? hour : null;
   }
   if (value.includes('T')) {
     const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) return parsed.getHours();
+    if (!Number.isNaN(parsed.getTime())) {
+      const hourStr = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila',
+        hour: 'numeric',
+        hour12: false
+      }).format(parsed);
+      const hr = Number(hourStr) % 24;
+      return Number.isFinite(hr) ? hr : null;
+    }
   }
   return null;
 }
@@ -52,8 +59,12 @@ export default function SalesReports({
     return dates.length ? dates[dates.length - 1] : getTodayLocalDate();
   }, [orders]);
 
+  const todayStr = getTodayLocalDate();
   const [period, setPeriod] = useState('Weekly');
   const [anchorDate, setAnchorDate] = useState(defaultDate);
+  const [customStart, setCustomStart] = useState(defaultDate);
+  const [customEnd, setCustomEnd] = useState(defaultDate);
+  const [chartMetric, setChartMetric] = useState('revenue');
   const [zoomLevel, setZoomLevel] = useState(1);
   const [activePoint, setActivePoint] = useState(null);
   const [searchTx, setSearchTx] = useState('');
@@ -91,16 +102,21 @@ export default function SalesReports({
 
   // Period label for display
   const periodLabel = useMemo(() => {
+    if (period === 'Custom') {
+      return customStart === customEnd ? formatDateLabel(customStart) : `${formatDateLabel(customStart)} – ${formatDateLabel(customEnd)}`;
+    }
     return getPeriodLabel(period, anchorDate);
-  }, [period, anchorDate]);
+  }, [period, anchorDate, customStart, customEnd]);
 
   const periodFilename = useMemo(() => {
+    if (period === 'Custom') return `${customStart}_to_${customEnd}`;
     return getPeriodFilename(period, anchorDate);
-  }, [period, anchorDate]);
+  }, [period, anchorDate, customStart, customEnd]);
 
-  // Navigate date range safely
+  // Navigate date range safely (capped at todayStr to prevent future navigation)
   const shiftAnchor = (step) => {
     const nextDate = shiftAnchorDate(anchorDate, period, step);
+    if (step > 0 && nextDate > todayStr) return;
     setAnchorDate(nextDate);
     setZoomLevel(1);
     setActivePoint(null);
@@ -108,10 +124,16 @@ export default function SalesReports({
   };
 
   // One shared calculation source powers the visible report and PDF payload.
-  const reportData = useMemo(
-    () => buildSalesReportData({ orders, expenses, period, anchorDate }),
-    [orders, expenses, period, anchorDate]
-  );
+  const reportData = useMemo(() => {
+    const scopedOrders = period === 'Custom' ? filterByDateRange(orders, customStart, customEnd) : orders;
+    const scopedExpenses = period === 'Custom' ? filterByDateRange(expenses, customStart, customEnd) : expenses;
+    return buildSalesReportData({
+      orders: scopedOrders,
+      expenses: scopedExpenses,
+      period: period === 'Custom' ? 'All Time' : period,
+      anchorDate
+    });
+  }, [orders, expenses, period, anchorDate, customStart, customEnd]);
 
   const {
     periodOrders,
@@ -149,7 +171,15 @@ export default function SalesReports({
 
   const chartPoints = useMemo(() => {
     if (period === 'Daily') {
-      if (!hasHourlyTimestamps) return [];
+      if (!hasHourlyTimestamps) {
+        if (activePeriodOrders.length === 0) return [];
+        return [{
+          label: 'Daily Total',
+          fullLabel: `${formatDateLabel(anchorDate)} (Daily Total — no hourly timestamps)`,
+          sales: grossSales,
+          orders: activePeriodOrders.length
+        }];
+      }
       return Array.from({ length: 24 }, (_, hour) => {
         const label = hour === 0 ? '12 AM' : hour < 12 ? hour + ' AM' : hour === 12 ? '12 PM' : (hour - 12) + ' PM';
         const matchOrders = activePeriodOrders.filter(order => getOrderHour(order) === hour);
@@ -245,7 +275,7 @@ export default function SalesReports({
       cursor.setMonth(cursor.getMonth() + 1);
     }
     return points;
-  }, [period, anchorDate, activePeriodOrders, hasHourlyTimestamps]);
+  }, [period, anchorDate, activePeriodOrders, hasHourlyTimestamps, grossSales]);
 
   // Zoom Handlers
   const handleZoomIn = () => setZoomLevel(prev => Math.min(3, prev + 1));
@@ -465,7 +495,31 @@ export default function SalesReports({
           ))}
         </div>
 
-        {period !== 'All Time' && (
+        {period === 'Custom' ? (
+          <div className="sales-date-toolbar" style={{ flexWrap: 'wrap' }}>
+            <label className="sales-pick-btn" style={{ flex: 1 }}>
+              <span>From</span>
+              <input
+                type="date"
+                max={todayStr}
+                value={customStart}
+                onChange={e => setCustomStart(e.target.value || todayStr)}
+                style={{ border: 0, background: 'transparent', fontSize: 12, fontWeight: 700, color: '#1b2f63' }}
+              />
+            </label>
+            <label className="sales-pick-btn" style={{ flex: 1 }}>
+              <span>To</span>
+              <input
+                type="date"
+                max={todayStr}
+                min={customStart}
+                value={customEnd}
+                onChange={e => setCustomEnd(e.target.value || customStart)}
+                style={{ border: 0, background: 'transparent', fontSize: 12, fontWeight: 700, color: '#1b2f63' }}
+              />
+            </label>
+          </div>
+        ) : period !== 'All Time' && (
           <div className="sales-date-toolbar">
             <div className="sales-range-nav">
               <button
@@ -485,6 +539,7 @@ export default function SalesReports({
                 type="button"
                 className="sales-nav-arrow"
                 onClick={() => shiftAnchor(1)}
+                disabled={shiftAnchorDate(anchorDate, period, 1) > todayStr}
                 aria-label="Next period"
                 title="Next period"
               >
@@ -498,10 +553,11 @@ export default function SalesReports({
               <input
                 type="date"
                 className="sales-pick-input"
+                max={todayStr}
                 value={anchorDate}
                 onChange={e => {
                   if (e.target.value) {
-                    setAnchorDate(e.target.value);
+                    setAnchorDate(e.target.value > todayStr ? todayStr : e.target.value);
                     setActivePoint(null);
                     setZoomLevel(1);
                     if (chartViewportRef.current) chartViewportRef.current.scrollLeft = 0;
@@ -594,9 +650,28 @@ export default function SalesReports({
             </div>
           </div>
 
-          {/* Zoom controls only active when chart points exist */}
-          {chartPoints.length > 0 && (
+          {/* Metric Toggle & Zoom controls */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             <div className="sales-zoom-actions">
+              <button
+                type="button"
+                className={`sales-zoom-pill ${chartMetric === 'revenue' ? 'active' : ''}`}
+                style={chartMetric === 'revenue' ? { background: '#244ea3', color: '#fff', borderColor: '#244ea3' } : undefined}
+                onClick={() => { setChartMetric('revenue'); setActivePoint(null); }}
+              >
+                Revenue
+              </button>
+              <button
+                type="button"
+                className={`sales-zoom-pill ${chartMetric === 'orders' ? 'active' : ''}`}
+                style={chartMetric === 'orders' ? { background: '#244ea3', color: '#fff', borderColor: '#244ea3' } : undefined}
+                onClick={() => { setChartMetric('orders'); setActivePoint(null); }}
+              >
+                Orders
+              </button>
+            </div>
+            {chartPoints.length > 1 && (
+              <div className="sales-zoom-actions">
               <button
                 type="button"
                 className="sales-zoom-pill"
@@ -625,20 +700,38 @@ export default function SalesReports({
                   <FiRefreshCw /> Reset
                 </button>
               )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Daily view honest information state if no hourly timestamps */}
-        {period === 'Daily' && !hasHourlyTimestamps ? (
-          <div className="sales-daily-info">
-            <FiClock size={24} color="#244ea3" />
-            <h3>Hourly breakdown unavailable — transaction times are not recorded.</h3>
-            <p>
-              Current order fixtures record calendar dates without hourly timestamps. Displaying full day total:
-            </p>
-            <div className="sales-daily-badge">
-              {formatDateLabel(anchorDate)} Total: {formatMoney(grossSales)} ({activePeriodOrders.length} {activePeriodOrders.length === 1 ? 'order' : 'orders'})
+        {/* Daily view: Mode 2 Daily Total bar fallback if no hourly timestamps */}
+        {period === 'Daily' && !hasHourlyTimestamps && chartPoints.length > 0 ? (
+          <div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '14px 12px 6px' }}>
+              <div style={{ width: '100%', maxWidth: 220, background: '#f4f8ff', border: '1px solid #d9e2ec', borderRadius: 12, padding: 14, textAlign: 'center' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#52657d', marginBottom: 8 }}>Daily Total ({formatDateLabel(anchorDate)})</div>
+                <div style={{ height: 74, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: 8 }}>
+                  <div
+                    style={{
+                      width: 64,
+                      height: '100%',
+                      background: 'linear-gradient(180deg, #2aa9c5 0%, #244ea3 100%)',
+                      borderRadius: '8px 8px 3px 3px'
+                    }}
+                    aria-label="Daily Total Bar"
+                  />
+                </div>
+                <strong style={{ fontSize: 18, color: '#1b2f63', display: 'block' }}>
+                  {chartMetric === 'revenue' ? formatMoney(grossSales) : `${activePeriodOrders.length} ${activePeriodOrders.length === 1 ? 'order' : 'orders'}`}
+                </strong>
+                <span style={{ fontSize: 11, color: '#64748d' }}>
+                  {chartMetric === 'revenue' ? `${activePeriodOrders.length} ${activePeriodOrders.length === 1 ? 'order' : 'orders'}` : formatMoney(grossSales)}
+                </span>
+              </div>
+              <p style={{ margin: '10px 0 0', fontSize: 11, color: '#64748d', textAlign: 'center', maxWidth: 420 }}>
+                Historical hourly breakdown unavailable — these records do not contain transaction timestamps.
+              </p>
             </div>
           </div>
         ) : chartPoints.length > 0 && hasSales ? (
@@ -750,8 +843,22 @@ export default function SalesReports({
             )}
           </div>
         ) : (
-          <div style={{ padding: '24px 12px', textAlign: 'center', color: '#8899a6', fontSize: 12 }}>
-            No sales recorded for this period ({periodLabel}).
+          <div style={{ padding: '22px 12px', textAlign: 'center', color: '#64748d', fontSize: 12 }}>
+            <p style={{ margin: '0 0 10px' }}>No transactions recorded for this period ({periodLabel}).</p>
+            {orders.length > 0 && defaultDate && defaultDate !== anchorDate && (
+              <button
+                type="button"
+                className="sales-zoom-pill"
+                onClick={() => {
+                  setPeriod('Daily');
+                  setAnchorDate(defaultDate);
+                  setActivePoint(null);
+                  setZoomLevel(1);
+                }}
+              >
+                View latest recorded activity — {defaultDate}
+              </button>
+            )}
           </div>
         )}
       </div>

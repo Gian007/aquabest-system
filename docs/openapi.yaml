@@ -1,0 +1,137 @@
+openapi: 3.0.3
+info:
+  title: AquaBest Temporary Local API
+  version: 1.0.0
+  description: Local development REST API for AquaBest SQLite persistence and backend handoff.
+servers:
+  - url: http://127.0.0.1:8787
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Backend status
+  /api/orders:
+    get:
+      summary: List orders
+      parameters:
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Order list }
+    post:
+      summary: Create order atomically with items
+      responses:
+        '201': { description: Created order }
+        '400': { description: Validation error }
+        '409': { description: Conflict or insufficient stock }
+  /api/orders/{id}:
+    get:
+      summary: Get order by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Order detail }
+        '404': { description: Not found }
+    patch:
+      summary: Update order status, paymentStatus, or assigned employee
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Updated order }
+  /api/inventory:
+    get:
+      summary: List inventory items and movements
+      responses:
+        '200': { description: Inventory state }
+  /api/inventory/movements:
+    post:
+      summary: Record stock IN/OUT movement
+      responses:
+        '201': { description: Recorded movement }
+  /api/expenses:
+    get:
+      summary: List expenses
+      responses:
+        '200': { description: Expense list }
+    post:
+      summary: Create expense
+      responses:
+        '201': { description: Created expense }
+  /api/expenses/{id}:
+    patch:
+      summary: Update or void expense
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Updated expense }
+  /api/payments:
+    get:
+      summary: List payments
+      responses:
+        '200': { description: Payments list }
+    post:
+      summary: Record payment or pending verification proof
+      responses:
+        '201': { description: Payment recorded }
+  /api/payments/{id}/verification:
+    patch:
+      summary: Verify or reject pending payment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Updated payment }
+  /api/refills:
+    get:
+      summary: List refill records
+      responses:
+        '200': { description: Refill records }
+    post:
+      summary: Complete refill for order
+      responses:
+        '201': { description: Refill recorded }
+  /api/container-movements:
+    get:
+      summary: List container movements
+      responses:
+        '200': { description: Container movements }
+    post:
+      summary: Record container issue, borrow, return, or sale
+      responses:
+        '201': { description: Container movement recorded }
+  /api/trips:
+    get:
+      summary: List delivery trips and stops
+      responses:
+        '200': { description: Trips list }
+    post:
+      summary: Create delivery trip
+      responses:
+        '201': { description: Trip created }
+  /api/reports/summary:
+    get:
+      summary: Financial summary metrics
+      responses:
+        '200': { description: Financial summary }
+  /api/reports/container-activity:
+    get:
+      summary: Container activity totals
+      responses:
+        '200': { description: Container activity }

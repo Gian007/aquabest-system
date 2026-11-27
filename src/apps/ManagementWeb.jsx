@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
  FiHome,FiMonitor,FiClipboard,FiMenu,FiBell,FiDroplet,FiTruck,
  FiPackage,FiCreditCard,FiBarChart2,FiUsers,FiPlus,FiMinus,FiArrowRight,
@@ -12,6 +12,7 @@ import { useEmployeeAvailability, availabilityFor, TeamAvailability } from './Em
 import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import ManagementNotifications from './ManagementNotifications.jsx';
 import DeliveryOperations, { INITIAL_DELIVERY_TRIPS } from './DeliveryOperations.jsx';
+import { apiClient } from '../services/apiClient.js';
 import OwnerOperations from './OwnerOperations.jsx';
 import SalesReports from './SalesReports.jsx';
 import ManagerControl from './ManagerControl.jsx';
@@ -63,6 +64,31 @@ export default function ManagementWeb({role='manager',onLogout}){
  const [notification,setNotification]=useState('');
  const [newStock,setNewStock]=useState({id:'round5',type:'IN',quantity:1,reason:''});
  const [stockOpen,setStockOpen]=useState(false);
+ const [backendStatus,setBackendStatus]=useState('checking');
+ const [backendError,setBackendError]=useState('');
+ const [savingSale,setSavingSale]=useState(false);
+ const syncFromBackend=async()=>{
+  try{
+   await apiClient.health();
+   const [ordRes,expRes,invRes]=await Promise.all([apiClient.getOrders(),apiClient.getExpenses(),apiClient.getInventory()]);
+   setOrders(ordRes.orders||[]);
+   setExpenses(expRes.expenses||[]);
+   if(Array.isArray(invRes.items)&&invRes.items.length){
+    setStock(invRes.items.map(i=>({id:i.id,quantity:i.quantity,minimum:i.minimum})));
+   }
+   if(Array.isArray(invRes.movements)){
+    setStockLog(invRes.movements.map(m=>({id:m.id,productId:m.product_id,type:m.movement_type,quantity:m.quantity,reason:m.reason,orderId:m.order_id,automatic:Boolean(m.order_id),time:m.created_at})));
+   }
+   setBackendStatus('online');
+   setBackendError('');
+   return true;
+  }catch(err){
+   setBackendStatus('offline');
+   setBackendError(err.message);
+   return false;
+  }
+ };
+ useEffect(()=>{syncFromBackend();},[]);
  const go=(p)=>{if(isDelivery&&!['dashboard','deliveries','bottles','collections','history','more','notifications'].includes(p))return;if(isStaff&&!['dashboard','refill','orders','inventory','activity','more','notifications'].includes(p))return;setPage(p);setSelected(null);window.scrollTo(0,0)};
  const assignedOrders=orders.filter(o=>o.assigned==='Staff A');
  const ownStatusName=isOwner?'Super Admin':isDelivery?'Driver A':isStaff?'Staff A':'Manager';
@@ -77,34 +103,81 @@ export default function ManagementWeb({role='manager',onLogout}){
  const setSaleProp=(key,val)=>setSale(p=>({...p,[key]:val}));
  const updateQty=(id,change)=>setSale(p=>({...p,quantities:{...p.quantities,[id]:Math.max(0,Math.min(99,(p.quantities[id]||0)+change))}}));
  const startSale=()=>{if(isStaff)return;setSale(initialSale());go('pos')};
- const saveSale=()=>{
-  if(isStaff||!selectedQty)return;
+ const saveSale=async()=>{
+  if(isStaff||!selectedQty||savingSale)return;
   if(sale.ownership==='store' && Object.entries(sale.quantities).some(([id,q])=>q>(stock.find(x=>x.id===id)?.quantity||0))){setNotification('Insufficient AquaBest bottle stock.');return;}
+  if(backendStatus==='online'){
+   setSavingSale(true);
+   try{
+    await apiClient.createOrder({
+     customer:sale.customer.trim()||'Walk-in Customer',
+     source:sale.source,
+     service:sale.service,
+     paymentMethod:sale.paymentMethod,
+     paymentStatus:sale.paymentStatus,
+     reference:sale.reference,
+     notes:sale.notes,
+     ownership:sale.ownership,
+     arrangement:sale.arrangement,
+     date:today(),
+     items:Object.entries(sale.quantities).filter(([,q])=>q>0).map(([sizeId,quantity])=>({sizeId,quantity}))
+    });
+    await syncFromBackend();
+    setNotification('Order saved to local SQLite database.');
+    setSale(initialSale());setFilter('All');go('orders');
+   }catch(err){
+    setNotification('Failed to save order: '+err.message);
+   }finally{
+    setSavingSale(false);
+   }
+   return;
+  }
   const id='DEMO-'+String(Date.now()).slice(-6);
   const isPaid=sale.paymentStatus==='Paid';
+  const nowIso=new Date().toISOString();
   const record={id,customer:sale.customer.trim()||'Walk-in Customer',customerReference:sale.customerReference.trim(),source:sale.source,items:Object.entries(sale.quantities).filter(([,q])=>q>0).map(([sizeId,quantity])=>({sizeId,quantity})),
    status:sale.service==='Walk-in'?(isPaid?'Completed':'Confirmed'):'Pending Confirmation',paymentStatus:sale.paymentStatus,method:sale.paymentMethod,
-   reference:sale.reference,amount:selectedTotal,service:sale.service,ownership:sale.ownership,assigned:'Unassigned',date:today(),notes:sale.notes};
+   reference:sale.reference,amount:selectedTotal,service:sale.service,ownership:sale.ownership,assigned:'Unassigned',date:today(),created_at:nowIso,updated_at:nowIso,notes:sale.notes};
   if(sale.ownership==='store'){
    const events=record.items.map(item=>({id:id+'-'+item.sizeId,productId:item.sizeId,type:'OUT',quantity:item.quantity,reason:sale.arrangement==='returnable'?'Returnable bottle issued':'Container sold',orderId:id,automatic:true,time:new Date().toLocaleString('en-PH')}));
    setStock(old=>old.map(x=>({...x,quantity:x.quantity-(record.items.find(i=>i.sizeId===x.id)?.quantity||0)})));
    setStockLog(old=>[...events,...old]);
   }
-  setOrders(old=>[record,...old]);setNotification('Demo order saved. '+(sale.ownership==='store'?'AquaBest bottle stock automatically deducted.':'Customer-owned container: no bottle stock deduction.'));
+  setOrders(old=>[record,...old]);setNotification('Local demo order saved (SQLite backend offline). '+(sale.ownership==='store'?'AquaBest bottle stock deducted.':'Customer-owned container.'));
   setSale(initialSale());go('orders');
  };
- const changeOrder=(id,patch)=>setOrders(old=>old.map(o=>o.id===id?{...o,...patch}:o));
+ const changeOrder=async(id,patch)=>{
+  if(backendStatus==='online'){
+   try{
+    await apiClient.updateOrder(id,patch);
+    await syncFromBackend();
+    return;
+   }catch(err){
+    setNotification('Failed to update order: '+err.message);
+    return;
+   }
+  }
+  setOrders(old=>old.map(o=>o.id===id?{...o,...patch}:o));
+ };
  const claimManagerRefill=(id,actor='Manager')=>setOrders(old=>old.map(o=>o.id===id&&['Pending Confirmation','Confirmed'].includes(o.status)&&!o.claimedBy?{...o,status:'Preparing',claimedBy:actor,assigned:actor,refillClaimedAt:new Date().toLocaleString('en-PH')}:o));
  const finishManagerRefill=(id,actor='Manager')=>setOrders(old=>old.map(o=>o.id===id&&o.claimedBy===actor&&o.status==='Preparing'?{...o,status:'Ready',claimedBy:null,refilledBy:actor,refillCompletedAt:new Date().toLocaleString('en-PH')}:o));
  const openOrder=(order)=>{if(isStaff&&order.assigned!=='Staff A')return;setSelected(order.id);setAssigned(order.assigned||'Unassigned');setNextStatus(order.status)};
  const current=orders.find(o=>o.id===selected);
  const applyOrder=()=>{if(!current)return;if(!isStaff&&assigned!==current.assigned){const x=availabilityFor(assigned,availability,orders);if(!x.assignable){setNotification(assigned+' is '+x.label+'. Cannot assign a new task.');return}if(x.queued>=3){setNotification(assigned+' already has 3 queued tasks. Soft limit exceeded; review workload.')}}if(isStaff){const next=current.status==='Confirmed'?'Preparing':current.status==='Preparing'?'Ready':null;if(current.assigned!=='Staff A'||!next||nextStatus!==next)return;changeOrder(current.id,{status:next});setStaffHistory(h=>[{id:Date.now(),label:current.id+' moved to '+next,time:new Date().toLocaleString('en-PH')},...h]);}else changeOrder(current.id,{status:nextStatus,assigned});setSelected(null);setNotification('Sample task updated locally.')};
  const applyPayment=()=>{if(isStaff||!current)return;changeOrder(current.id,{paymentStatus:'Paid'});setSelected(null);setNotification('Demo payment recorded. Production requires actual payment verification.')};
- const adjustStock=()=>{
+ const adjustStock=async()=>{
  const n=Number(newStock.quantity),item=stock.find(s=>s.id===newStock.id),reason=newStock.reason.trim();
  if(!Number.isInteger(n)||n<1){setStockError('Enter a valid positive whole number.');return}
  if(!reason){setStockError('Reason is required.');return}
  if(newStock.type==='OUT'&&n>item.quantity){setStockError('Insufficient bottle stock.');return}
+ if(backendStatus==='online'){
+  try{
+   await apiClient.recordInventoryMovement({productId:newStock.id,type:newStock.type,quantity:n,reason});
+   await syncFromBackend();
+   setStockOpen(false);setStockError('');setNewStock({id:'round5',type:'IN',quantity:1,reason:''});setNotification('Stock movement saved to SQLite.');
+  }catch(err){setStockError(err.message);}
+  return;
+ }
  setStock(old=>old.map(s=>s.id===newStock.id?{...s,quantity:s.quantity+(newStock.type==='IN'?n:-n)}:s));
  setStockLog(old=>[{id:'MAN-'+Date.now(),productId:newStock.id,type:newStock.type,quantity:n,reason,automatic:false,time:new Date().toLocaleString('en-PH')},...old]);
  if(isStaff)setStaffHistory(h=>[{id:Date.now(),label:'Inventory '+newStock.type+' ('+n+'): '+reason,time:new Date().toLocaleString('en-PH')},...h]);
@@ -124,6 +197,7 @@ export default function ManagementWeb({role='manager',onLogout}){
   <div className="mgmt-body">
    <aside className="mgmt-sidebar" aria-label="Management sections">{(isOwner?ownerModules:isDelivery?deliveryModules:isStaff?staffModules:modules).map(([id,label,Icon])=><button key={id} className={'mgmt-sidebtn '+(page===id?'active':'')} onClick={()=>go(id)}><Icon/><span className="mgmt-side-text"><strong>{label}</strong><small>{({dashboard:'Daily operations overview',pos:'Walk-in and manual sales',orders:'Review and assign orders',refill:'Preparation work queue',delivery:'Dispatch and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and balances',reports:'Revenue and sales breakdown',staff:'Personnel assignments',activity:'Your task and stock movement history',deliveries:'Your assigned trips and stops',bottles:'Loaded bottles, empties and returns',collections:'COD and remittance records',history:'Completed trips and activity',employees:'Accounts and role permissions',approvals:'Electronic proofs and cash remittances',settings:'Product prices and business rules',audit:'Administrative activity and audit history',products:'Manage products, images and availability'})[id]}</small></span></button>)}<button className="mgmt-sidebtn mgmt-logout-link" onClick={logout}><FiLogOut/><span className="mgmt-side-text"><strong>Log Out</strong><small>Exit the demo workspace</small></span></button></aside>
    <main className="mgmt-main">
+    {backendStatus==='offline'&&<div className="mgmt-notice" role="status">Local SQLite backend offline ({backendError||'http://127.0.0.1:8787'}). Run <code>npm run dev:backend</code> for persistent storage. <button type="button" className="mgmt-link" onClick={syncFromBackend}>Retry</button></div>}
     {notification&&<div className="mgmt-notice" role="status">{notification} <button className="mgmt-link" onClick={()=>setNotification('')}>Dismiss</button></div>}
     {isManager&&page==='remittance'&&<ManagerControl page={page} go={go} orders={orders} availability={availability} onOpenOrder={openOrder} onNotice={setNotification}/>}
      {(isManager&&['dashboard','queue','collections','staff'].includes(page)||isOwner&&['queue','collections','staff'].includes(page))&&<ManagerSimplified page={page} go={go} orders={orders} availability={availability} isOwner={isOwner} onOpenOrder={openOrder} onFinishManagerRefill={finishManagerRefill} onClaimManagerRefill={claimManagerRefill} onNotice={setNotification}/>}
@@ -172,7 +246,7 @@ export default function ManagementWeb({role='manager',onLogout}){
         </div>
       </div>
       <div className="mgmt-summary" style={{marginTop:12}}><strong>Transaction Summary</strong>{DEMO_PRODUCTS.filter(p=>sale.quantities[p.id]>0).map(p=><div key={p.id}><span>{p.label} · {p.shape} × {sale.quantities[p.id]}</span><b>{formatMoney(sale.quantities[p.id]*DEMO_PRICES[p.id])}</b></div>)}<div className="total"><span>Sample total</span><strong>{formatMoney(selectedTotal)}</strong></div></div>
-      <div style={{display:'flex',gap:9,marginTop:14}}><button className="mgmt-btn secondary" onClick={()=>setSale(initialSale())}>Clear</button><button className="mgmt-btn" style={{flex:1}} disabled={!selectedQty} onClick={saveSale}><FiSave/> Save Demo Transaction</button></div>
+      <div style={{display:'flex',gap:9,marginTop:14}}><button className="mgmt-btn secondary" onClick={()=>setSale(initialSale())}>Clear</button><button className="mgmt-btn" style={{flex:1}} disabled={!selectedQty||savingSale} onClick={saveSale}><FiSave/> {savingSale?'Saving...':'Save Demo Transaction'}</button></div>
       {section}
     </>}
     {!isDelivery&&page==='orders'&&<>

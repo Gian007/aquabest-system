@@ -31,3 +31,9 @@ dist-ssr
 service-account*.json
 *credentials*.json
 secrets/
+
+# Temporary local SQLite database files
+server/data/*.sqlite
+server/data/*.sqlite-*
+*.sqlite
+*.db
