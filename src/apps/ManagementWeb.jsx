@@ -128,7 +128,7 @@ export default function ManagementWeb({role='manager',onLogout}){
     {isManager&&page==='remittance'&&<ManagerControl page={page} go={go} orders={orders} availability={availability} onOpenOrder={openOrder} onNotice={setNotification}/>}
      {(isManager&&['dashboard','queue','collections','staff'].includes(page)||isOwner&&['queue','collections','staff'].includes(page))&&<ManagerSimplified page={page} go={go} orders={orders} availability={availability} isOwner={isOwner} onOpenOrder={openOrder} onFinishManagerRefill={finishManagerRefill} onClaimManagerRefill={claimManagerRefill} onNotice={setNotification}/>}
      {isManager&&page==='verification'&&<ManagerDeliveryVerification go={go} managerOrders={orders} onNotice={setNotification}/>}
-     {isOwner&&<OwnerOperations page={page} go={go} orders={orders} stock={stock} trips={trips} availability={availability} onMessage={setNotification} expenses={expenses} setExpenses={setExpenses}/>}
+     {isOwner&&<OwnerOperations page={page} go={go} orders={orders} stock={stock} trips={trips} availability={availability} onMessage={setNotification} onOpenOrder={openOrder} expenses={expenses} setExpenses={setExpenses}/>}
     {isDelivery&&<DeliveryOperations page={page} go={go} trips={trips} setTrips={setTrips} onMessage={setNotification} onLogout={logout}/>}
     {isStaff&&page==='dashboard'&&<>
      <Heading kicker="Staff workspace" title="My Work Today" subtitle="Assigned orders, refill preparation and container tasks."/>

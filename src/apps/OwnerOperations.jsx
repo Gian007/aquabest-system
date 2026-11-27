@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet} from 'react-icons/fi';
+import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet,FiChevronRight} from 'react-icons/fi';
 import {formatMoney} from '../data/managerDemo.js';
 import EmployeeDirectory from './EmployeeDirectory.jsx';
 import ProductCatalog from './ProductCatalog.jsx';
@@ -12,7 +12,7 @@ const today=()=>new Date().toLocaleString('en-PH');
 const STAFF_ORDERS_KEY='aquabest-staff-operations-demo-v1';
 const STAFF_TRIPS_KEY='aquabest-staff-trips-demo-v1';
 const readList=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(value)?value:[];}catch{return [];}};
-export default function OwnerOperations({page,go,orders,stock,trips,availability,onMessage,expenses,setExpenses}){
+export default function OwnerOperations({page,go,orders,stock,trips,availability,onMessage,onOpenOrder,expenses,setExpenses}){
  const [settings,setSettings]=useState({deliveryFee:'0',lowStock:'15',hours:'Confirm operating hours with client'});
  const [draft,setDraft]=useState(settings);
  const [audit,setAudit]=useState([]);
@@ -26,40 +26,189 @@ export default function OwnerOperations({page,go,orders,stock,trips,availability
  const paid=orders.filter(o=>o.paymentStatus==='Paid');
  const collected=paid.reduce((n,o)=>n+o.amount,0);
  const sales=orders.filter(o=>o.status!=='Cancelled').reduce((n,o)=>n+o.amount,0);
+ const unpaidOrders=orders.filter(o=>o.paymentStatus!=='Paid'&&o.status!=='Cancelled');
  const outstanding=orders.filter(o=>o.paymentStatus!=='Paid').reduce((n,o)=>n+o.amount,0);
  const remittance=trips.reduce((n,t)=>n+(t.remittance==='Awaiting Remittance'?t.collectedCash||0:0),0);
  const pendingElectronic=trips.filter(t=>t.paymentStatus==='Pending Verification'&&!verification.includes(t.id));
  const activity=orders.length+trips.length;
- const expenseTotal=expenses.filter(e=>e.active).reduce((n,e)=>n+e.amount,0);
+ const expenseTotal=expenses.filter(e=>e.active!==false).reduce((n,e)=>n+e.amount,0);
  const operationalQueue=staffOrders.length?staffOrders:orders.map(o=>({...o,stage:({'Pending Confirmation':'waiting',Confirmed:'pending',Preparing:'refilling',Ready:'ready','Out for Delivery':'out',Delivered:'delivered',Completed:'picked',Cancelled:'failed'})[o.status]||'pending'}));
  const pendingCollection=operationalQueue.filter(o=>o.stage==='collection').length;
  const pendingRefill=operationalQueue.filter(o=>o.stage==='pending').length;
  const readyDelivery=operationalQueue.filter(o=>o.stage==='ready').length;
  const activeDelivery=operationalQueue.filter(o=>['delivery','out'].includes(o.stage)).length;
  const operationalIssues=operationalQueue.filter(o=>o.stage==='failed'||o.issueReason||o.issue).length;
+ const lowStockCount=stock.filter(s=>s.quantity<s.minimum).length;
  const activeOperationalTrips=staffTrips.length?staffTrips.filter(t=>t.status==='active').length:trips.filter(t=>!['Delivered','Failed Delivery','closed'].includes(t.status)).length;
- const action=(title,target)=><button className="mgmt-quick" onClick={()=>go(target)}>{title}</button>;
+ const attentionItems=[
+  operationalIssues>0&&{id:'issues',severity:'critical',title:`${operationalIssues} operational issue${operationalIssues===1?'':'s'} requiring review`,meta:'Check failed or flagged tasks in Operations Queue',target:'queue',Icon:FiAlertTriangle},
+  lowStockCount>0&&{id:'low-stock',severity:'critical',title:`${lowStockCount} low stock container${lowStockCount===1?'':'s'}`,meta:'Review bottle inventory & catalog thresholds',target:'products',Icon:FiPackage},
+  pendingElectronic.length>0&&{id:'verify',severity:'warning',title:`${pendingElectronic.length} pending payment verification${pendingElectronic.length===1?'':'s'}`,meta:'Review submitted GCash or bank references',target:'approvals',Icon:FiCreditCard},
+  unpaidOrders.length>0&&{id:'unpaid',severity:'warning',title:`${unpaidOrders.length} unpaid order${unpaidOrders.length===1?'':'s'} (${formatMoney(outstanding)})`,meta:'Track outstanding customer balances in Payments',target:'payments',Icon:FiClock},
+  activeDelivery>0&&{id:'active-delivery',severity:'info',title:`${activeDelivery} active delivery order${activeDelivery===1?'':'s'} in progress`,meta:`Across ${activeOperationalTrips} active trip${activeOperationalTrips===1?'':'s'} — monitor in Trips & Pickups`,target:'collections',Icon:FiTruck}
+ ].filter(Boolean);
+ const shortcuts=[
+  ['queue','Operations Queue','Live task execution & claiming',FiClipboard],
+  ['staff','Staff Monitoring','Workload & availability',FiUsers],
+  ['collections','Trips & Pickups','Delivery trips & customer pickups',FiTruck],
+  ['orders','Orders','Order records & status tracking',FiClipboard],
+  ['reports','Sales & Reports','Revenue, expenses & PDF exports',FiBarChart2],
+  ['payments','Payments','Collections & unpaid balances',FiCreditCard],
+  ['employees','Employee Access','Accounts & role permissions',FiUsers],
+  ['products','Products & Services','Catalog, pricing & stock alerts',FiPackage]
+ ];
  const demo=<p className="mgmt-demo">Super Admin GUI prototype only • All values and access controls are local demo state. No real permissions, payments, expenses or pricing changes are applied to the business.</p>;
  return <>
- {page==='dashboard'&&<>
-  <Title eyebrow="Executive overview" title="Super Admin Dashboard" description="Full business oversight, with access to help on any station operation."/>
-  <div className="mgmt-stats"><Stat title="Sales (Demo)" value={formatMoney(sales)} Icon={FiBarChart2}/><Stat title="Verified Collected" value={formatMoney(collected)} Icon={FiDollarSign}/><Stat title="Unpaid / Unverified" value={formatMoney(outstanding)} Icon={FiClock}/><Stat title="Cash Pending Remittance" value={formatMoney(remittance)} Icon={FiCreditCard}/><Stat title="Active Expenses" value={formatMoney(expenseTotal)} Icon={FiCreditCard}/></div>
-  <div className="mgmt-section-title"><h2>Live Queue Snapshot</h2><button className="mgmt-link" onClick={()=>go('queue')}>Open Operations Queue</button></div>
-  <div className="mgmt-stats"><Stat title="Pending Collection" value={pendingCollection} Icon={FiTruck}/><Stat title="Pending Refill" value={pendingRefill} Icon={FiDroplet}/><Stat title="Ready Delivery" value={readyDelivery} Icon={FiPackage}/><Stat title="Active Delivery" value={activeDelivery} Icon={FiTruck}/></div>
-  <div className="mgmt-notice">{operationalIssues} issue(s) need review · {activeOperationalTrips} active trip(s). Queue data is read from this browser only; it is not synced across phones.</div>
-  <div className="mgmt-section-title"><h2>Business & Operations</h2></div><div className="mgmt-grid">{action('Operations Queue','queue')}{action('Staff Monitoring','staff')}{action('Trips & Pickups','collections')}{action('Sales & Reports','reports')}{action('Payments','payments')}{action('Employee Access','employees')}{action('Products & Services','products')}</div>
-  <div className="mgmt-section-title"><h2>Business Snapshot</h2></div><div className="mgmt-card">
-   <div className="mgmt-row"><span className="mgmt-sub">Recorded orders</span><strong>{orders.length}</strong></div>
-   <div className="mgmt-row"><span className="mgmt-sub">Pending refill / preparation</span><strong>{orders.filter(o=>['Pending Confirmation','Confirmed','Preparing'].includes(o.status)).length}</strong></div>
-   <div className="mgmt-row"><span className="mgmt-sub">Ready for pickup / delivery</span><strong>{orders.filter(o=>o.status==='Ready').length}</strong></div>
-   <div className="mgmt-row"><span className="mgmt-sub">Active deliveries</span><strong>{activeDelivery}</strong></div>
-   <div className="mgmt-row"><span className="mgmt-sub">Operational issues to review</span><strong>{operationalIssues}</strong></div>
-   <div className="mgmt-row"><span className="mgmt-sub">Low stock items</span><strong>{stock.filter(s=>s.quantity<s.minimum).length}</strong></div>
-   <div className="mgmt-row"><span className="mgmt-sub">Pending e-payment verification</span><strong>{pendingElectronic.length}</strong></div>
-  </div>
-  <div className="mgmt-section-title"><h2>Recent Transactions</h2><button className="mgmt-link" onClick={()=>go('orders')}>View Orders</button></div>
-  <div className="mgmt-card">{orders.slice(0,4).map(o=><div className="mgmt-row" key={o.id}><div><div className="mgmt-row-title">{o.id} · {o.customer}</div><div className="mgmt-sub">{o.source} · {o.paymentStatus}</div></div><strong>{formatMoney(o.amount)}</strong></div>)}</div>{demo}
- </>}
+ {page==='dashboard'&&<div className="owner-dash">
+  {/* A. Dashboard Header */}
+  <header className="owner-dash-header">
+   <h1>Super Admin Dashboard</h1>
+   <p>Business overview and operational control.</p>
+  </header>
+
+  {/* B. Needs Attention */}
+  <section className="owner-dash-section" aria-label="Needs Attention">
+   <div className="owner-dash-section-head">
+    <h2>Needs Attention</h2>
+    {attentionItems.length>0&&<span className="owner-dash-count">{attentionItems.length} item{attentionItems.length===1?'':'s'}</span>}
+   </div>
+   {attentionItems.length>0?(
+    <div className="owner-attention-list">
+     {attentionItems.map(({id,severity,title,meta,target,Icon})=>(
+      <button key={id} type="button" className={`owner-attention-item ${severity}`} onClick={()=>go(target)}>
+       <span className="owner-attention-icon"><Icon size={17} aria-hidden="true"/></span>
+       <span className="owner-attention-body">
+        <strong>{title}</strong>
+        <small>{meta}</small>
+       </span>
+       <FiChevronRight className="owner-attention-chevron" aria-hidden="true"/>
+      </button>
+     ))}
+    </div>
+   ):(
+    <div className="owner-attention-ok" role="status">
+     <FiCheckCircle size={18} aria-hidden="true"/>
+     <div>
+      <strong>Everything looks good</strong>
+      <small>No operational issues, low-stock alerts, or pending verifications right now.</small>
+     </div>
+    </div>
+   )}
+  </section>
+
+  {/* C. Operational Overview */}
+  <section className="owner-dash-section" aria-label="Operational Overview">
+   <div className="owner-dash-section-head">
+    <h2>Operational Overview</h2>
+    <button type="button" className="mgmt-link" onClick={()=>go('queue')}>Open Queue</button>
+   </div>
+   <div className="owner-kpi-grid">
+    <button type="button" className="owner-kpi-card" onClick={()=>go('queue')}>
+     <span className="owner-kpi-top"><span>Pending Collection</span><FiTruck size={16} aria-hidden="true"/></span>
+     <strong>{pendingCollection}</strong>
+     <small>Orders awaiting pickup</small>
+    </button>
+    <button type="button" className="owner-kpi-card" onClick={()=>go('queue')}>
+     <span className="owner-kpi-top"><span>Pending Refill</span><FiDroplet size={16} aria-hidden="true"/></span>
+     <strong>{pendingRefill}</strong>
+     <small>Station refill queue</small>
+    </button>
+    <button type="button" className="owner-kpi-card" onClick={()=>go('queue')}>
+     <span className="owner-kpi-top"><span>Ready Delivery</span><FiPackage size={16} aria-hidden="true"/></span>
+     <strong>{readyDelivery}</strong>
+     <small>Ready for dispatch</small>
+    </button>
+    <button type="button" className="owner-kpi-card" onClick={()=>go('collections')}>
+     <span className="owner-kpi-top"><span>Active Delivery</span><FiTruck size={16} aria-hidden="true"/></span>
+     <strong>{activeDelivery}</strong>
+     <small>{activeOperationalTrips} active trip{activeOperationalTrips===1?'':'s'}</small>
+    </button>
+   </div>
+   <p className="owner-dash-note">
+    {activeDelivery} active delivery order{activeDelivery===1?'':'s'} across {activeOperationalTrips} active trip{activeOperationalTrips===1?'':'s'} (one trip can carry multiple orders). Local browser queue only.
+   </p>
+  </section>
+
+  {/* D. Financial Overview */}
+  <section className="owner-dash-section" aria-label="Financial Overview">
+   <div className="owner-dash-section-head">
+    <h2>Financial Overview</h2>
+    <button type="button" className="mgmt-link" onClick={()=>go('reports')}>Sales & Reports</button>
+   </div>
+   <div className="owner-finance-grid">
+    <div className="owner-finance-card">
+     <span className="owner-kpi-top"><span>Recorded Sales</span><FiBarChart2 size={16} aria-hidden="true"/></span>
+     <strong>{formatMoney(sales)}</strong>
+     <small>Non-cancelled orders (not yet all collected)</small>
+    </div>
+    <div className="owner-finance-card verified">
+     <span className="owner-kpi-top"><span>Verified Collected</span><FiDollarSign size={16} aria-hidden="true"/></span>
+     <strong>{formatMoney(collected)}</strong>
+     <small>Orders marked Paid</small>
+    </div>
+    <div className="owner-finance-card pending">
+     <span className="owner-kpi-top"><span>Unpaid / Unverified</span><FiClock size={16} aria-hidden="true"/></span>
+     <strong>{formatMoney(outstanding)}</strong>
+     <small>Awaiting customer payment</small>
+    </div>
+    <div className="owner-finance-card pending">
+     <span className="owner-kpi-top"><span>Cash Pending Remittance</span><FiCreditCard size={16} aria-hidden="true"/></span>
+     <strong>{formatMoney(remittance)}</strong>
+     <small>Driver COD awaiting handover</small>
+    </div>
+    <div className="owner-finance-card">
+     <span className="owner-kpi-top"><span>Active Expenses</span><FiCreditCard size={16} aria-hidden="true"/></span>
+     <strong>{formatMoney(expenseTotal)}</strong>
+     <small>Recorded station operating expenses</small>
+    </div>
+   </div>
+  </section>
+
+  {/* E. Business & Operations Shortcuts */}
+  <section className="owner-dash-section" aria-label="Business and Operations Shortcuts">
+   <div className="owner-dash-section-head">
+    <h2>Business & Operations</h2>
+   </div>
+   <div className="owner-shortcut-grid">
+    {shortcuts.map(([target,title,desc,Icon])=>(
+     <button key={target} type="button" className="owner-shortcut-card" onClick={()=>go(target)}>
+      <span className="owner-shortcut-icon"><Icon size={18} aria-hidden="true"/></span>
+      <span className="owner-shortcut-text">
+       <strong>{title}</strong>
+       <small>{desc}</small>
+      </span>
+     </button>
+    ))}
+   </div>
+  </section>
+
+  {/* F. Recent Transactions */}
+  <section className="owner-dash-section" aria-label="Recent Transactions">
+   <div className="owner-dash-section-head">
+    <h2>Recent Transactions</h2>
+    <button type="button" className="mgmt-link" onClick={()=>go('orders')}>View All</button>
+   </div>
+   <div className="owner-tx-list">
+    {orders.slice(0,4).map(o=>(
+     <button key={o.id} type="button" className="owner-tx-row" onClick={()=>onOpenOrder?onOpenOrder(o):go('orders')}>
+      <div className="owner-tx-info">
+       <strong>{o.id} · {o.customer||'Walk-in Customer'}</strong>
+       <small>{o.source} • {o.service} • {o.date}</small>
+       <div className="owner-tx-badges">
+        <span className={`mgmt-pill ${o.status==='Completed'||o.status==='Delivered'?'ok':o.status==='Pending Confirmation'?'warn':''}`}>{o.status}</span>
+        <span className={`mgmt-pill ${o.paymentStatus==='Paid'?'ok':'warn'}`}>{o.paymentStatus}</span>
+       </div>
+      </div>
+      <div className="owner-tx-amount">
+       <strong>{formatMoney(o.amount)}</strong>
+       <FiChevronRight size={16} aria-hidden="true"/>
+      </div>
+     </button>
+    ))}
+   </div>
+  </section>
+  {demo}
+ </div>}
  {page==='reports'&&<SalesReports orders={orders} expenses={expenses} setExpenses={setExpenses} onNotice={record} isOwner/>}
  {page==='employees'&&<EmployeeDirectory availability={availability} orders={orders} onEvent={record}/>}
   {page==='approvals'&&<>
