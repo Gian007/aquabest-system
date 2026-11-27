@@ -1,18 +1,25 @@
 import {useEffect,useMemo,useState} from 'react';
-import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet,FiChevronRight,FiChevronDown,FiChevronUp,FiCalendar,FiTrendingUp,FiInfo,FiSliders,FiArrowUp,FiArrowDown,FiRotateCcw} from 'react-icons/fi';
+import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet,FiChevronRight,FiChevronDown,FiChevronUp,FiTrendingUp,FiInfo,FiSliders,FiArrowUp,FiArrowDown,FiRotateCcw,FiPlus,FiLayout,FiCheckSquare,FiGrid} from 'react-icons/fi';
 import {formatMoney} from '../data/managerDemo.js';
-import {getTodayLocalDate,shiftAnchorDate} from '../utils/reportDateUtils.js';
+import {getTodayLocalDate} from '../utils/reportDateUtils.js';
 import {buildOwnerDashboardData} from '../utils/buildOwnerDashboardData.js';
 import {
+ DATE_RANGE_PRESETS,
+ formatDateRangeDisplay,
+ resolveDateRangePreset
+} from '../utils/dateRangePresets.js';
+import {
  DASHBOARD_SECTIONS,
+ DASHBOARD_METRIC_OPTIONS,
  VALID_DEFAULT_METRICS,
- VALID_DEFAULT_PERIODS,
  VALID_DENSITIES,
+ getDefaultDashboardSettings,
  loadDashboardSettings,
  saveDashboardSettings,
  resetDashboardSettings,
  moveDashboardSection
 } from '../utils/ownerDashboardSettings.js';
+import DateRangeSelector from './DateRangeSelector.jsx';
 import EmployeeDirectory from './EmployeeDirectory.jsx';
 import ProductCatalog from './ProductCatalog.jsx';
 import SalesReports from './SalesReports.jsx';
@@ -23,8 +30,10 @@ function Stat({title,value,Icon}){return <div className="mgmt-stat"><div classNa
 const today=()=>new Date().toLocaleString('en-PH');
 const STAFF_ORDERS_KEY='aquabest-staff-operations-demo-v1';
 const STAFF_TRIPS_KEY='aquabest-staff-trips-demo-v1';
-const DASH_PERIODS=['Daily','Weekly','Monthly','Yearly','All Time','Custom'];
+const DEFAULT_PRESET_CHOICES=DATE_RANGE_PRESETS.filter(p=>p.id!=='custom');
+const METRIC_GROUPS=['Business Performance','Gallon & Container Activity'];
 const readList=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(value)?value:[];}catch{return [];}};
+
 export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,availability,onMessage,onOpenOrder,expenses,setExpenses}){
  const [settings,setSettings]=useState({deliveryFee:'0',lowStock:'15',hours:'Confirm operating hours with client'});
  const [draft,setDraft]=useState(settings);
@@ -34,44 +43,120 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
  const [auditFilter,setAuditFilter]=useState('All');
  const [staffOrders,setStaffOrders]=useState(()=>readList(STAFF_ORDERS_KEY));
  const [staffTrips,setStaffTrips]=useState(()=>readList(STAFF_TRIPS_KEY));
- const [dashSettings,setDashSettings]=useState(()=>loadDashboardSettings());
- const [confirmResetDash,setConfirmResetDash]=useState(false);
+
  const todayStr=getTodayLocalDate();
- const [dashPeriod,setDashPeriod]=useState(()=>loadDashboardSettings().defaultPeriod);
- const [dashAnchor,setDashAnchor]=useState(todayStr);
- const [customStart,setCustomStart]=useState(todayStr);
- const [customEnd,setCustomEnd]=useState(todayStr);
+ const [dashSettings,setDashSettings]=useState(()=>loadDashboardSettings());
+ const [draftDashSettings,setDraftDashSettings]=useState(()=>loadDashboardSettings());
+ const [custTab,setCustTab]=useState('sections');
+ const [confirmResetDash,setConfirmResetDash]=useState(false);
+
+ const [dateSelection,setDateSelection]=useState(()=>resolveDateRangePreset(loadDashboardSettings().defaultPreset,{todayStr}));
  const [chartMetric,setChartMetric]=useState(()=>loadDashboardSettings().defaultMetric);
  const [activeChartIdx,setActiveChartIdx]=useState(null);
  const [showSecondaryFinance,setShowSecondaryFinance]=useState(()=>loadDashboardSettings().showSecondaryFinance);
  const [showInventoryDetail,setShowInventoryDetail]=useState(()=>loadDashboardSettings().showContainerStock);
  const [showAllAlerts,setShowAllAlerts]=useState(false);
- useEffect(()=>{const refresh=()=>{setStaffOrders(readList(STAFF_ORDERS_KEY));setStaffTrips(readList(STAFF_TRIPS_KEY));};window.addEventListener('focus',refresh);window.addEventListener('storage',refresh);return()=>{window.removeEventListener('focus',refresh);window.removeEventListener('storage',refresh);};},[]);
+
+ useEffect(()=>{
+  const refresh=()=>{setStaffOrders(readList(STAFF_ORDERS_KEY));setStaffTrips(readList(STAFF_TRIPS_KEY));};
+  window.addEventListener('focus',refresh);
+  window.addEventListener('storage',refresh);
+  return()=>{window.removeEventListener('focus',refresh);window.removeEventListener('storage',refresh);};
+ },[]);
+
  const record=description=>{setAudit(old=>[{id:Date.now()+'-'+old.length,description,time:today()},...old]);onMessage(description+' (demo only)')};
- const updateDashSettings=updater=>{
-  setDashSettings(prev=>{
-   const next=saveDashboardSettings(typeof updater==='function'?updater(prev):updater);
-   return next;
-  });
+
+ const openCustomizeDashboard=()=>{
+  setDraftDashSettings(dashSettings);
+  setCustTab('sections');
+  setConfirmResetDash(false);
+  go('customize-dashboard');
  };
- const toggleDashVisibility=key=>{
-  updateDashSettings(prev=>({
+
+ const toggleDraftVisibility=key=>{
+  setDraftDashSettings(prev=>({
    ...prev,
    visibility:{...prev.visibility,[key]:!prev.visibility[key]}
   }));
  };
+
+ const toggleDraftMetric=key=>{
+  setDraftDashSettings(prev=>({
+   ...prev,
+   metrics:{...prev.metrics,[key]:!prev.metrics[key]}
+  }));
+ };
+
+ const restoreDraftDefaultVisibility=()=>{
+  const defaults=getDefaultDashboardSettings();
+  setDraftDashSettings(prev=>({...prev,visibility:{...defaults.visibility}}));
+ };
+
+ const restoreDraftDefaultArrangement=()=>{
+  const defaults=getDefaultDashboardSettings();
+  setDraftDashSettings(prev=>({
+   ...prev,
+   order:[...defaults.order],
+   density:defaults.density,
+   defaultPreset:defaults.defaultPreset,
+   defaultPeriod:defaults.defaultPeriod,
+   defaultMetric:defaults.defaultMetric,
+   showSecondaryFinance:defaults.showSecondaryFinance,
+   showContainerStock:defaults.showContainerStock
+  }));
+ };
+
+ const handleSaveCustomizeDashboard=()=>{
+  const saved=saveDashboardSettings(draftDashSettings);
+  setDashSettings(saved);
+  setDraftDashSettings(saved);
+  setDateSelection(resolveDateRangePreset(saved.defaultPreset,{todayStr,records:orders}));
+  setChartMetric(saved.defaultMetric);
+  setShowSecondaryFinance(saved.showSecondaryFinance);
+  setShowInventoryDetail(saved.showContainerStock);
+  setActiveChartIdx(null);
+  setConfirmResetDash(false);
+  onMessage('Dashboard customization saved');
+  go('dashboard');
+ };
+
+ const handleCancelCustomizeDashboard=()=>{
+  setDraftDashSettings(dashSettings);
+  setConfirmResetDash(false);
+  go('settings');
+ };
+
  const applyResetDash=()=>{
   const defaults=resetDashboardSettings();
   setDashSettings(defaults);
-  setDashPeriod(defaults.defaultPeriod);
+  setDraftDashSettings(defaults);
+  setDateSelection(resolveDateRangePreset(defaults.defaultPreset,{todayStr,records:orders}));
   setChartMetric(defaults.defaultMetric);
   setShowSecondaryFinance(defaults.showSecondaryFinance);
   setShowInventoryDetail(defaults.showContainerStock);
+  setActiveChartIdx(null);
   setConfirmResetDash(false);
   onMessage('Dashboard preferences reset to default');
  };
- const dashboardData=useMemo(()=>buildOwnerDashboardData({orders,expenses,trips,stock,stockLog,period:dashPeriod,anchorDate:dashAnchor,customStart,customEnd,todayStr}),[orders,expenses,trips,stock,stockLog,dashPeriod,dashAnchor,customStart,customEnd,todayStr]);
- const latestOrderDate=useMemo(()=>{const dates=orders.map(o=>o.date).filter(Boolean).sort();return dates.length?dates[dates.length-1]:null;},[orders]);
+
+ const dashboardData=useMemo(()=>buildOwnerDashboardData({
+  orders,
+  expenses,
+  trips,
+  stock,
+  stockLog,
+  period:dateSelection.period,
+  anchorDate:dateSelection.anchorDate,
+  customStart:dateSelection.startDate,
+  customEnd:dateSelection.endDate,
+  todayStr
+ }),[orders,expenses,trips,stock,stockLog,dateSelection,todayStr]);
+
+ const latestOrderDate=useMemo(()=>{
+  const dates=orders.map(o=>o.date).filter(Boolean).sort();
+  return dates.length?dates[dates.length-1]:null;
+ },[orders]);
+
  const unpaidOrders=orders.filter(o=>o.paymentStatus!=='Paid'&&o.status!=='Cancelled');
  const outstanding=orders.filter(o=>o.paymentStatus!=='Paid').reduce((n,o)=>n+o.amount,0);
  const remittance=trips.reduce((n,t)=>n+(t.remittance==='Awaiting Remittance'?t.collectedCash||0:0),0);
@@ -98,7 +183,17 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
  const chartValues=chartPts.map(p=>chartMetric==='revenue'?p.revenue:p.orders);
  const chartHasData=chartValues.some(v=>v>0);
  const chartMax=Math.max(chartMetric==='revenue'?100:4,...chartValues);
+ const activeRangeLabel=formatDateRangeDisplay(dateSelection);
  const demo=<p className="mgmt-demo">Super Admin GUI prototype only • All values and access controls are local demo state. No real permissions, payments, expenses or pricing changes are applied to the business.</p>;
+
+ const jumpToLatestDate=()=>{
+  if(!latestOrderDate)return;
+  setDateSelection(resolveDateRangePreset('custom',{todayStr,customStart:latestOrderDate,customEnd:latestOrderDate,records:orders}));
+  setActiveChartIdx(null);
+ };
+
+ const m=dashSettings.metrics||{};
+
  const sectionRenderers={
   summary:()=>(
    <section key="summary" className="owner-dash-section" aria-label="Business Performance Summary">
@@ -109,26 +204,34 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      </button>
     </div>
     <div className="owner-kpi-grid">
-     <div className="owner-finance-card">
-      <span className="owner-kpi-top"><span>Recorded Sales</span><FiBarChart2 size={16} aria-hidden="true"/></span>
-      <strong>{formatMoney(dashboardData.financials.grossSales)}</strong>
-      <small>Non-cancelled orders in range (not all collected)</small>
-     </div>
-     <div className="owner-finance-card">
-      <span className="owner-kpi-top"><span>Total Orders</span><FiClipboard size={16} aria-hidden="true"/></span>
-      <strong>{dashboardData.financials.totalOrders}</strong>
-      <small>Active orders in selected period</small>
-     </div>
-     <div className="owner-finance-card verified">
-      <span className="owner-kpi-top"><span>Verified Collected</span><FiDollarSign size={16} aria-hidden="true"/></span>
-      <strong>{formatMoney(dashboardData.financials.verifiedCollected)}</strong>
-      <small>Orders explicitly marked Paid</small>
-     </div>
-     <div className="owner-finance-card pending">
-      <span className="owner-kpi-top"><span>Unpaid / Unverified</span><FiClock size={16} aria-hidden="true"/></span>
-      <strong>{formatMoney(dashboardData.financials.outstandingBalance)}</strong>
-      <small>Unpaid balances not yet collected</small>
-     </div>
+     {m.recordedSales!==false&&(
+      <div className="owner-finance-card">
+       <span className="owner-kpi-top"><span>Recorded Sales</span><FiBarChart2 size={16} aria-hidden="true"/></span>
+       <strong>{formatMoney(dashboardData.financials.grossSales)}</strong>
+       <small>Non-cancelled orders in range (not all collected)</small>
+      </div>
+     )}
+     {m.totalOrders!==false&&(
+      <div className="owner-finance-card">
+       <span className="owner-kpi-top"><span>Total Orders</span><FiClipboard size={16} aria-hidden="true"/></span>
+       <strong>{dashboardData.financials.totalOrders}</strong>
+       <small>Active orders in selected period</small>
+      </div>
+     )}
+     {m.verifiedCollected!==false&&(
+      <div className="owner-finance-card verified">
+       <span className="owner-kpi-top"><span>Verified Collected</span><FiDollarSign size={16} aria-hidden="true"/></span>
+       <strong>{formatMoney(dashboardData.financials.verifiedCollected)}</strong>
+       <small>Orders explicitly marked Paid</small>
+      </div>
+     )}
+     {m.unpaidBalance!==false&&(
+      <div className="owner-finance-card pending">
+       <span className="owner-kpi-top"><span>Unpaid / Unverified</span><FiClock size={16} aria-hidden="true"/></span>
+       <strong>{formatMoney(dashboardData.financials.outstandingBalance)}</strong>
+       <small>Unpaid balances not yet collected</small>
+      </div>
+     )}
     </div>
     {showSecondaryFinance&&(
      <div className="owner-secondary-finance">
@@ -178,7 +281,7 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      <div>
       <h2>Sales Performance</h2>
       <p className="owner-dash-note">
-       {dashPeriod} • {dashboardData.range.label} • {formatMoney(dashboardData.financials.grossSales)} ({dashboardData.financials.totalOrders} order{dashboardData.financials.totalOrders===1?'':'s'})
+       {activeRangeLabel} • {formatMoney(dashboardData.financials.grossSales)} ({dashboardData.financials.totalOrders} order{dashboardData.financials.totalOrders===1?'':'s'})
        {dashboardData.previousComparison&&dashboardData.previousComparison.deltaPct!==null&&` • ${dashboardData.previousComparison.deltaPct>=0?'+':''}${dashboardData.previousComparison.deltaPct.toFixed(1)}% vs prev`}
       </p>
      </div>
@@ -188,13 +291,13 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      </div>
     </div>
     <div className="owner-chart-box">
-     {dashPeriod==='Daily'&&!dashboardData.chart.hasHourlyTimestamps?(
+     {dateSelection.period==='Daily'&&!dashboardData.chart.hasHourlyTimestamps?(
       <div className="owner-chart-empty">
        <FiClock size={20} color="#244ea3" aria-hidden="true"/>
-       <strong>{dashboardData.financials.totalOrders>0?`Daily Total: ${formatMoney(dashboardData.financials.grossSales)} (${dashboardData.financials.totalOrders} order${dashboardData.financials.totalOrders===1?'':'s'})`:`No transactions recorded for ${dashboardData.range.label}`}</strong>
-       <small>Hourly chart breakdown is unavailable because transaction timestamps are not recorded in local fixtures.</small>
-       {dashboardData.financials.totalOrders===0&&latestOrderDate&&latestOrderDate!==dashAnchor&&(
-        <button type="button" className="mgmt-btn secondary" onClick={()=>setDashAnchor(latestOrderDate)}>View latest recorded activity — {latestOrderDate}</button>
+       <strong>{dashboardData.financials.totalOrders>0?`Daily Total: ${formatMoney(dashboardData.financials.grossSales)} (${dashboardData.financials.totalOrders} order${dashboardData.financials.totalOrders===1?'':'s'})`:`No transactions recorded for ${activeRangeLabel}`}</strong>
+       <small>Hourly chart breakdown is unavailable when transaction timestamps are not recorded.</small>
+       {dashboardData.financials.totalOrders===0&&latestOrderDate&&latestOrderDate!==dateSelection.anchorDate&&(
+        <button type="button" className="mgmt-btn secondary" onClick={jumpToLatestDate}>View latest recorded activity — {latestOrderDate}</button>
        )}
       </div>
      ):chartHasData?(
@@ -249,10 +352,10 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      ):(
       <div className="owner-chart-empty">
        <FiTrendingUp size={20} color="#64748d" aria-hidden="true"/>
-       <strong>No transactions recorded for {dashboardData.range.label}</strong>
+       <strong>No transactions recorded for {activeRangeLabel}</strong>
        <small>Select another date range or record a new order in POS.</small>
        {latestOrderDate&&(
-        <button type="button" className="mgmt-btn secondary" onClick={()=>{setDashPeriod('Daily');setDashAnchor(latestOrderDate);setActiveChartIdx(null);}}>View latest recorded activity — {latestOrderDate}</button>
+        <button type="button" className="mgmt-btn secondary" onClick={jumpToLatestDate}>View latest recorded activity — {latestOrderDate}</button>
        )}
       </div>
      )}
@@ -270,32 +373,42 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      )}
     </div>
     <div className="owner-gallon-grid">
-     <div className="owner-gallon-card">
-      <span>Gallons Refilled</span>
-      <strong>{dashboardData.gallons.gallonsRefilled}</strong>
-      <small>Completed refills in period</small>
-     </div>
-     <div className="owner-gallon-card">
-      <span>New Gallons Sold</span>
-      <strong>{dashboardData.gallons.newGallonsSold}</strong>
-      <small>New containers sold (not refills)</small>
-     </div>
-     <div className="owner-gallon-card">
-      <span>Gallons Issued / Borrowed</span>
-      <strong>{dashboardData.gallons.gallonsBorrowed}</strong>
-      <small>Returnable containers issued</small>
-     </div>
-     <div className="owner-gallon-card">
-      <span>Gallons Returned / Collected</span>
-      <strong>{dashboardData.gallons.gallonsReturned}</strong>
-      <small>Empties collected & returns</small>
-     </div>
-     <div className="owner-gallon-card muted">
-      <span>Outstanding Borrowed</span>
-      <strong>Not Tracked</strong>
-      <small>Needs customer borrow-return IDs</small>
-     </div>
-     {dashSettings.visibility.containerStock&&(
+     {m.gallonsRefilled!==false&&(
+      <div className="owner-gallon-card">
+       <span>Gallons Refilled</span>
+       <strong>{dashboardData.gallons.gallonsRefilled}</strong>
+       <small>Completed refills in period</small>
+      </div>
+     )}
+     {m.newGallonsSold!==false&&(
+      <div className="owner-gallon-card">
+       <span>New Gallons Sold</span>
+       <strong>{dashboardData.gallons.newGallonsSold}</strong>
+       <small>New containers sold (not refills)</small>
+      </div>
+     )}
+     {m.gallonsBorrowed!==false&&(
+      <div className="owner-gallon-card">
+       <span>Gallons Issued / Borrowed</span>
+       <strong>{dashboardData.gallons.gallonsBorrowed}</strong>
+       <small>Returnable containers issued</small>
+      </div>
+     )}
+     {m.gallonsReturned!==false&&(
+      <div className="owner-gallon-card">
+       <span>Gallons Returned / Collected</span>
+       <strong>{dashboardData.gallons.gallonsReturned}</strong>
+       <small>Empties collected & returns</small>
+      </div>
+     )}
+     {m.outstandingBorrowed!==false&&(
+      <div className="owner-gallon-card muted">
+       <span>Outstanding Borrowed</span>
+       <strong>Not Tracked</strong>
+       <small>Needs customer borrow-return IDs</small>
+      </div>
+     )}
+     {dashSettings.visibility.containerStock&&m.availableGallonStock!==false&&(
       <div className="owner-gallon-card">
        <span>Available Gallon Stock (Current)</span>
        <strong>{dashboardData.gallons.totalAvailableStock}</strong>
@@ -370,16 +483,19 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
       </button>
      )):(
       <div className="owner-empty" style={{padding:18}}>
-       <p>No business activity recorded for {dashboardData.range.label}.</p>
+       <p>No business activity recorded for {activeRangeLabel}.</p>
       </div>
      )}
     </div>
    </section>
   )
  };
+
+ const visibleSectionCount=DASHBOARD_SECTIONS.filter(s=>draftDashSettings.visibility?.[s.id]).length;
+
  return <>
  {page==='dashboard'&&<div className={`owner-dash ${dashSettings.density==='compact'?'compact':''}`}>
-  {/* 1. Dashboard Header */}
+  {/* 1. Clean Dashboard Header (Title + Single Primary Action) */}
   <header className="owner-dash-header">
    <div className="owner-dash-title-row">
     <div>
@@ -388,37 +504,19 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
     </div>
     {dashSettings.visibility.quickActions&&(
      <div className="owner-dash-quick-links">
-      <button type="button" className="mgmt-btn secondary" onClick={()=>go('pos')}>New Order</button>
-      <button type="button" className="mgmt-btn secondary" onClick={()=>go('reports')}>Sales Reports</button>
-      <button type="button" className="mgmt-btn secondary" onClick={()=>go('dashboard-settings')}><FiSliders size={14} aria-hidden="true"/> Dashboard Settings</button>
+      <button type="button" className="mgmt-btn" onClick={()=>go('pos')}><FiPlus size={15} aria-hidden="true"/> New Order</button>
      </div>
     )}
    </div>
 
-   {/* 2. Date Range Controls */}
-   <div className="owner-date-controls">
-    <div className="owner-period-pills" role="tablist" aria-label="Dashboard date range">
-     {DASH_PERIODS.map(p=>(
-      <button key={p} type="button" className={dashPeriod===p?'active':''} onClick={()=>{setDashPeriod(p);setActiveChartIdx(null);}}>{p}</button>
-     ))}
-    </div>
-
-    {dashPeriod==='Custom'?(
-     <div className="owner-custom-range">
-      <label><span>From</span><input type="date" max={todayStr} value={customStart} onChange={e=>setCustomStart(e.target.value||todayStr)}/></label>
-      <label><span>To</span><input type="date" max={todayStr} min={customStart} value={customEnd} onChange={e=>setCustomEnd(e.target.value||customStart)}/></label>
-     </div>
-    ):dashPeriod!=='All Time'&&(
-     <div className="owner-date-nav">
-      <button type="button" className="mgmt-btn secondary" onClick={()=>{setDashAnchor(shiftAnchorDate(dashAnchor,dashPeriod,-1));setActiveChartIdx(null);}}>Prev</button>
-      <label className="owner-date-picker" title="Select business date">
-       <FiCalendar size={14} aria-hidden="true"/>
-       <span>{dashboardData.range.label}</span>
-       <input type="date" max={todayStr} value={dashAnchor} onChange={e=>{if(e.target.value){setDashAnchor(e.target.value>todayStr?todayStr:e.target.value);setActiveChartIdx(null);}}}/>
-      </label>
-      <button type="button" className="mgmt-btn secondary" disabled={shiftAnchorDate(dashAnchor,dashPeriod,1)>todayStr} onClick={()=>{const next=shiftAnchorDate(dashAnchor,dashPeriod,1);if(next<=todayStr){setDashAnchor(next);setActiveChartIdx(null);}}}>Next</button>
-     </div>
-    )}
+   {/* 2. Single Compact Date Range Dropdown */}
+   <div className="owner-date-bar">
+    <DateRangeSelector
+     value={dateSelection}
+     onChange={next=>{setDateSelection(next);setActiveChartIdx(null);}}
+     records={orders}
+     todayStr={todayStr}
+    />
    </div>
   </header>
 
@@ -438,96 +536,156 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
   {dashSettings.order.map(id=>dashSettings.visibility[id]?sectionRenderers[id]?.():null)}
   {demo}
  </div>}
- {page==='dashboard-settings'&&<div className="owner-dash-settings">
-  <Title eyebrow="Personalization" title="Dashboard Settings" description="Choose which sections appear on your Super Admin Dashboard, rearrange their order, and set default display preferences."/>
-  <div className="mgmt-notice">Personalization only — hiding a dashboard section does not restrict access to underlying modules or modify role permissions.</div>
 
-  <div className="mgmt-card">
-   <div className="mgmt-section-title" style={{marginTop:0}}><h2>Visible Sections & Controls</h2></div>
-   <div className="owner-settings-list">
-    {[
-     ...DASHBOARD_SECTIONS,
-     {id:'containerStock',label:'Container Stock',description:'Show current available gallon inventory inside Gallon & Container Activity.'},
-     {id:'quickActions',label:'Quick Actions',description:'Show New Order, Sales Reports, and Dashboard Settings buttons in header.'}
-    ].map(item=>(
-     <label key={item.id} className="owner-toggle-row">
-      <span><strong>{item.label}</strong><small>{item.description}</small></span>
-      <input type="checkbox" checked={Boolean(dashSettings.visibility[item.id])} onChange={()=>toggleDashVisibility(item.id)}/>
-     </label>
+ {(page==='customize-dashboard'||page==='dashboard-settings')&&<div className="owner-dash-settings">
+  <Title eyebrow="Settings › Customize Dashboard" title="Customize Dashboard" description="Choose which sections and metrics appear on your Super Admin Dashboard, and organize the layout to match your workflow."/>
+  <div className="mgmt-notice">Personalization only — hiding a dashboard section or metric does not restrict module access or modify real role permissions.</div>
+
+  <div className="owner-cust-tabs" role="tablist" aria-label="Customize Dashboard sections">
+   <button type="button" role="tab" aria-selected={custTab==='sections'} className={`owner-cust-tab ${custTab==='sections'?'active':''}`} onClick={()=>setCustTab('sections')}>
+    <FiCheckSquare size={15} aria-hidden="true"/> Sections
+   </button>
+   <button type="button" role="tab" aria-selected={custTab==='metrics'} className={`owner-cust-tab ${custTab==='metrics'?'active':''}`} onClick={()=>setCustTab('metrics')}>
+    <FiGrid size={15} aria-hidden="true"/> Metrics
+   </button>
+   <button type="button" role="tab" aria-selected={custTab==='layout'} className={`owner-cust-tab ${custTab==='layout'?'active':''}`} onClick={()=>setCustTab('layout')}>
+    <FiLayout size={15} aria-hidden="true"/> Layout
+   </button>
+  </div>
+
+  {custTab==='sections'&&(
+   <div className="mgmt-card" role="tabpanel" aria-label="Visible Dashboard Sections">
+    <div className="owner-dash-section-head" style={{marginBottom:8}}>
+     <div>
+      <h2>Visible Dashboard Sections</h2>
+      <p className="owner-dash-note">{visibleSectionCount} of {DASHBOARD_SECTIONS.length} main sections visible • Critical alerts stay accessible even if Needs Attention is hidden.</p>
+     </div>
+     <button type="button" className="mgmt-link" onClick={restoreDraftDefaultVisibility}>Restore Default Visibility</button>
+    </div>
+    <div className="owner-settings-list">
+     {[
+      ...DASHBOARD_SECTIONS,
+      {id:'containerStock',label:'Container Stock Breakdown',description:'Show current available gallon stock and expandable per-size detail inside Gallon & Container Activity.'},
+      {id:'quickActions',label:'Header New Order Button',description:'Show the primary New Order button in the Dashboard header.'}
+     ].map(item=>(
+      <label key={item.id} className="owner-toggle-row">
+       <span><strong>{item.label}</strong><small>{item.description}</small></span>
+       <input type="checkbox" checked={Boolean(draftDashSettings.visibility?.[item.id])} onChange={()=>toggleDraftVisibility(item.id)}/>
+      </label>
+     ))}
+    </div>
+   </div>
+  )}
+
+  {custTab==='metrics'&&(
+   <div className="mgmt-card" role="tabpanel" aria-label="Visible Metric Cards">
+    <div className="owner-dash-section-head" style={{marginBottom:8}}>
+     <div>
+      <h2>Visible Metric Cards</h2>
+      <p className="owner-dash-note">Select which KPI cards appear inside each dashboard section. At least one primary Business Performance card remains visible.</p>
+     </div>
+    </div>
+    {METRIC_GROUPS.map(group=>(
+     <div key={group} className="owner-metric-group">
+      <h3 className="owner-metric-group-title">{group}</h3>
+      <div className="owner-settings-list">
+       {DASHBOARD_METRIC_OPTIONS.filter(opt=>opt.group===group).map(opt=>(
+        <label key={opt.id} className="owner-toggle-row">
+         <span><strong>{opt.label}</strong><small>{opt.description}</small></span>
+         <input type="checkbox" checked={draftDashSettings.metrics?.[opt.id]!==false} onChange={()=>toggleDraftMetric(opt.id)}/>
+        </label>
+       ))}
+      </div>
+     </div>
     ))}
    </div>
-  </div>
+  )}
 
-  <div className="mgmt-card" style={{marginTop:14}}>
-   <div className="mgmt-section-title" style={{marginTop:0}}><h2>Section Arrangement</h2></div>
-   <div className="owner-settings-list">
-    {dashSettings.order.map((secId,idx)=>{
-     const meta=DASHBOARD_SECTIONS.find(s=>s.id===secId);
-     if(!meta)return null;
-     return (
-      <div key={secId} className="owner-order-row">
-       <span><strong>{idx+1}. {meta.label}</strong><small>{dashSettings.visibility[secId]?'Visible':'Hidden'}</small></span>
-       <div className="owner-order-actions">
-        <button type="button" className="mgmt-btn secondary" disabled={idx===0} aria-label={`Move ${meta.label} up`} onClick={()=>updateDashSettings(prev=>({...prev,order:moveDashboardSection(prev.order,secId,-1)}))}><FiArrowUp/></button>
-        <button type="button" className="mgmt-btn secondary" disabled={idx===dashSettings.order.length-1} aria-label={`Move ${meta.label} down`} onClick={()=>updateDashSettings(prev=>({...prev,order:moveDashboardSection(prev.order,secId,1)}))}><FiArrowDown/></button>
-       </div>
+  {custTab==='layout'&&(
+   <>
+    <div className="mgmt-card" role="tabpanel" aria-label="Dashboard Section Arrangement">
+     <div className="owner-dash-section-head" style={{marginBottom:8}}>
+      <div>
+       <h2>Section Order</h2>
+       <p className="owner-dash-note">Move sections up or down to match your priority from top to bottom.</p>
       </div>
-     );
-    })}
-   </div>
-  </div>
+      <button type="button" className="mgmt-link" onClick={restoreDraftDefaultArrangement}>Restore Default Arrangement</button>
+     </div>
+     <div className="owner-settings-list">
+      {draftDashSettings.order.map((secId,idx)=>{
+       const meta=DASHBOARD_SECTIONS.find(s=>s.id===secId);
+       if(!meta)return null;
+       return (
+        <div key={secId} className="owner-order-row">
+         <span><strong>{idx+1}. {meta.label}</strong><small>{draftDashSettings.visibility?.[secId]?'Visible on dashboard':'Hidden'}</small></span>
+         <div className="owner-order-actions">
+          <button type="button" className="mgmt-btn secondary" disabled={idx===0} aria-label={`Move ${meta.label} up`} onClick={()=>setDraftDashSettings(prev=>({...prev,order:moveDashboardSection(prev.order,secId,-1)}))}><FiArrowUp/></button>
+          <button type="button" className="mgmt-btn secondary" disabled={idx===draftDashSettings.order.length-1} aria-label={`Move ${meta.label} down`} onClick={()=>setDraftDashSettings(prev=>({...prev,order:moveDashboardSection(prev.order,secId,1)}))}><FiArrowDown/></button>
+         </div>
+        </div>
+       );
+      })}
+     </div>
+    </div>
 
-  <div className="mgmt-card" style={{marginTop:14}}>
-   <div className="mgmt-section-title" style={{marginTop:0}}><h2>Display Preferences</h2></div>
-   <div className="mgmt-formgrid">
-    <div className="mgmt-field">
-     <label>Default Date Range</label>
-     <select value={dashSettings.defaultPeriod} onChange={e=>{const val=e.target.value;updateDashSettings(prev=>({...prev,defaultPeriod:val}));setDashPeriod(val);}}>
-      {VALID_DEFAULT_PERIODS.map(p=><option key={p} value={p}>{p}</option>)}
-     </select>
+    <div className="mgmt-card" style={{marginTop:12}}>
+     <div className="mgmt-section-title" style={{marginTop:0}}><h2>Default Display Preferences</h2></div>
+     <div className="mgmt-formgrid">
+      <div className="mgmt-field">
+       <label>Default Date Range</label>
+       <select value={draftDashSettings.defaultPreset} onChange={e=>{const preset=e.target.value;const meta=DEFAULT_PRESET_CHOICES.find(p=>p.id===preset);setDraftDashSettings(prev=>({...prev,defaultPreset:preset,defaultPeriod:meta?.period||'Daily'}));}}>
+        {DEFAULT_PRESET_CHOICES.map(p=><option key={p.id} value={p.id}>{p.label}</option>)}
+       </select>
+      </div>
+      <div className="mgmt-field">
+       <label>Default Chart Metric</label>
+       <select value={draftDashSettings.defaultMetric} onChange={e=>setDraftDashSettings(prev=>({...prev,defaultMetric:e.target.value}))}>
+        {VALID_DEFAULT_METRICS.map(metric=><option key={metric} value={metric}>{metric==='revenue'?'Revenue (₱)':'Order Count'}</option>)}
+       </select>
+      </div>
+      <div className="mgmt-field">
+       <label>Dashboard Density</label>
+       <select value={draftDashSettings.density} onChange={e=>setDraftDashSettings(prev=>({...prev,density:e.target.value}))}>
+        {VALID_DENSITIES.map(d=><option key={d} value={d}>{d==='comfortable'?'Comfortable':'Compact'}</option>)}
+       </select>
+      </div>
+     </div>
+     <div className="owner-settings-list" style={{marginTop:10}}>
+      <label className="owner-toggle-row">
+       <span><strong>Expand Secondary Financial Metrics by Default</strong><small>Show Cash Pending Remittance and Recorded Expenses automatically.</small></span>
+       <input type="checkbox" checked={Boolean(draftDashSettings.showSecondaryFinance)} onChange={e=>setDraftDashSettings(prev=>({...prev,showSecondaryFinance:e.target.checked}))}/>
+      </label>
+      <label className="owner-toggle-row">
+       <span><strong>Expand Container Stock Detail by Default</strong><small>Show per-size inventory breakdown automatically.</small></span>
+       <input type="checkbox" checked={Boolean(draftDashSettings.showContainerStock)} onChange={e=>setDraftDashSettings(prev=>({...prev,showContainerStock:e.target.checked}))}/>
+      </label>
+     </div>
     </div>
-    <div className="mgmt-field">
-     <label>Default Chart Metric</label>
-     <select value={dashSettings.defaultMetric} onChange={e=>{const val=e.target.value;updateDashSettings(prev=>({...prev,defaultMetric:val}));setChartMetric(val);}}>
-      {VALID_DEFAULT_METRICS.map(m=><option key={m} value={m}>{m==='revenue'?'Revenue (₱)':'Order Count'}</option>)}
-     </select>
-    </div>
-    <div className="mgmt-field">
-     <label>Dashboard Density</label>
-     <select value={dashSettings.density} onChange={e=>updateDashSettings(prev=>({...prev,density:e.target.value}))}>
-      {VALID_DENSITIES.map(d=><option key={d} value={d}>{d==='comfortable'?'Comfortable':'Compact'}</option>)}
-     </select>
-    </div>
-   </div>
-   <div className="owner-settings-list" style={{marginTop:10}}>
-    <label className="owner-toggle-row">
-     <span><strong>Expand Secondary Financial Metrics by Default</strong><small>Show Cash Pending Remittance and Recorded Expenses automatically.</small></span>
-     <input type="checkbox" checked={dashSettings.showSecondaryFinance} onChange={e=>{const v=e.target.checked;updateDashSettings(prev=>({...prev,showSecondaryFinance:v}));setShowSecondaryFinance(v);}}/>
-    </label>
-    <label className="owner-toggle-row">
-     <span><strong>Expand Container Stock Detail by Default</strong><small>Show per-size inventory breakdown automatically.</small></span>
-     <input type="checkbox" checked={dashSettings.showContainerStock} onChange={e=>{const v=e.target.checked;updateDashSettings(prev=>({...prev,showContainerStock:v}));setShowInventoryDetail(v);}}/>
-    </label>
-   </div>
-  </div>
+   </>
+  )}
 
-  <div className="owner-actions" style={{marginTop:16}}>
-   <button type="button" className="mgmt-btn" onClick={()=>go('dashboard')}>Back to Dashboard</button>
-   {!confirmResetDash?(
-    <button type="button" className="mgmt-btn secondary" onClick={()=>setConfirmResetDash(true)}><FiRotateCcw/> Reset to Default</button>
-   ):(
-    <div className="owner-reset-confirm">
-     <span>Reset layout & preferences? Business data will not be deleted.</span>
+  <div className="owner-cust-footer">
+   <div className="owner-actions">
+    <button type="button" className="mgmt-btn" onClick={handleSaveCustomizeDashboard}><FiSave/> Save Changes</button>
+    <button type="button" className="mgmt-btn secondary" onClick={handleCancelCustomizeDashboard}>Cancel</button>
+    {!confirmResetDash&&(
+     <button type="button" className="mgmt-btn secondary" onClick={()=>setConfirmResetDash(true)}><FiRotateCcw/> Reset to Default</button>
+    )}
+   </div>
+   {confirmResetDash&&(
+    <div className="owner-reset-confirm" role="alert">
+     <span>Reset dashboard sections, metrics, and layout to defaults? Business data will not be deleted.</span>
      <button type="button" className="mgmt-btn" onClick={applyResetDash}>Confirm Reset</button>
-     <button type="button" className="mgmt-btn secondary" onClick={()=>setConfirmResetDash(false)}>Cancel</button>
+     <button type="button" className="mgmt-btn secondary" onClick={()=>setConfirmResetDash(false)}>Keep Current</button>
     </div>
    )}
   </div>
   {demo}
  </div>}
+
  {page==='reports'&&<SalesReports orders={orders} expenses={expenses} setExpenses={setExpenses} onNotice={record} isOwner/>}
  {page==='employees'&&<EmployeeDirectory availability={availability} orders={orders} onEvent={record}/>}
-  {page==='approvals'&&<>
+ {page==='approvals'&&<>
   <Title eyebrow="Payment review" title="Payment Verification" description="Check submitted GCash/bank references and cash received from drivers."/>
   <div className="mgmt-notice">A reference number alone does not prove payment. Check the actual AquaBest account or physically count cash before acknowledging any transaction.</div>
   <div className="mgmt-section-title"><h2>GCash & Bank Transfers</h2></div>
@@ -536,10 +694,17 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
   <div className="mgmt-card">{trips.filter(t=>t.remittance==='Awaiting Remittance').length?trips.filter(t=>t.remittance==='Awaiting Remittance').map(t=><div className="mgmt-row" key={t.id}><div><strong className="mgmt-row-title">{t.orderId} · {t.driver}</strong><p className="mgmt-sub">{formatMoney(t.collectedCash||0)} collected · Pending handover</p></div><button className="mgmt-btn secondary" disabled={approvals.includes(t.id)} onClick={()=>{setApprovals(old=>[...old,t.id]);record('Reviewed pending cash remittance for order '+t.orderId)}}>{approvals.includes(t.id)?'Reviewed':'Mark Reviewed'}</button></div>):<div className="owner-empty"><FiDollarSign size={22}/><strong>No cash awaiting remittance</strong><p>Driver COD collections will be listed after delivery records synchronize with this workspace.</p></div>}</div>
   <div className="mgmt-notice">Mark Reviewed is a demo checklist only. It does not set an order to Paid or acknowledge a real remittance. Production verification requires validated bank/GCash transactions, counting cash, and an immutable audit trail.</div>{demo}
  </>}
-  {page==='products'&&<ProductCatalog onEvent={record}/>}
+ {page==='products'&&<ProductCatalog onEvent={record}/>}
  {page==='settings'&&<>
-  <Title eyebrow="Configuration" title="Business Settings" description="Operating information, delivery fees and other business rules."/>
-  <div className="mgmt-card"><strong>Store Operating Rules</strong><div className="mgmt-formgrid">{[['deliveryFee','Delivery fee (₱)'],['lowStock','Low-stock threshold'],['hours','Operating hours']].map(([key,l])=><div className="mgmt-field" key={key}><label>{l}</label><input value={draft[key]} onChange={e=>setDraft(old=>({...old,[key]:e.target.value}))}/></div>)}</div><div className="owner-actions"><button className="mgmt-btn" onClick={()=>{setSettings({...draft});record('Updated business operating settings')}}><FiSave/> Save Settings</button><button className="mgmt-btn secondary" onClick={()=>go('products')}>Manage Products & Prices</button><button className="mgmt-btn secondary" onClick={()=>go('dashboard-settings')}><FiSliders/> Dashboard Settings</button></div><p className="mgmt-sub">Saved demo delivery fee: {settings.deliveryFee}</p></div>{demo}
+  <Title eyebrow="Configuration" title="Business Settings" description="Operating information, delivery fees, and Super Admin Dashboard customization."/>
+  <div className="mgmt-card owner-settings-entry">
+   <div className="owner-settings-entry-copy">
+    <strong><FiSliders size={16} aria-hidden="true"/> Dashboard Customization</strong>
+    <p className="mgmt-sub">Show or hide dashboard sections and KPI cards, reorder layout priority, and set default date range and density.</p>
+   </div>
+   <button type="button" className="mgmt-btn" onClick={openCustomizeDashboard}>Customize Dashboard <FiChevronRight aria-hidden="true"/></button>
+  </div>
+  <div className="mgmt-card" style={{marginTop:14}}><strong>Store Operating Rules</strong><div className="mgmt-formgrid">{[['deliveryFee','Delivery fee (₱)'],['lowStock','Low-stock threshold'],['hours','Operating hours']].map(([key,l])=><div className="mgmt-field" key={key}><label>{l}</label><input value={draft[key]} onChange={e=>setDraft(old=>({...old,[key]:e.target.value}))}/></div>)}</div><div className="owner-actions"><button className="mgmt-btn" onClick={()=>{setSettings({...draft});record('Updated business operating settings')}}><FiSave/> Save Settings</button><button className="mgmt-btn secondary" onClick={()=>go('products')}>Manage Products & Prices</button></div><p className="mgmt-sub">Saved demo delivery fee: {settings.deliveryFee}</p></div>{demo}
  </>}
  {page==='audit'&&<>
   <Title eyebrow="Change history" title="Audit & Activity Logs" description="Who changed employee, product, payment or business settings, and when."/>
@@ -548,9 +713,9 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
   <div className="mgmt-card">{audit.filter(e=>auditFilter==='All'||(auditFilter==='Employees'?/employee|profile|account|role/i.test(e.description):auditFilter==='Products'?/product/i.test(e.description):auditFilter==='Expenses'?/expense/i.test(e.description):auditFilter==='Payments'?/payment|remittance/i.test(e.description):/setting/i.test(e.description))).length?audit.filter(e=>auditFilter==='All'||(auditFilter==='Employees'?/employee|profile|account|role/i.test(e.description):auditFilter==='Products'?/product/i.test(e.description):auditFilter==='Expenses'?/expense/i.test(e.description):auditFilter==='Payments'?/payment|remittance/i.test(e.description):/setting/i.test(e.description))).map(e=><div className="mgmt-row" key={e.id}><div><strong className="mgmt-row-title">{e.description}</strong><p className="mgmt-sub">{e.time} · Demo Super Admin</p></div><FiCheckCircle color="#244ea3"/></div>):<div className="owner-empty"><FiShield size={22}/><strong>No changes found</strong><p>Try adding a product, updating an employee or recording an expense to generate demo audit activity.</p></div>}</div>
   <div className="mgmt-notice">For production, audit entries must be written server-side with employee identity and before/after values. Browser demo history is not tamper-proof.</div>{demo}
  </>}
-  {page==='more'&&<>
+ {page==='more'&&<>
   <Title eyebrow="Owner access" title="All Modules" description="Operational views and business administration."/>
-  <div className="mgmt-more">{[[FiClipboard,'Operations Queue','queue','Operational task execution'],[FiUsers,'Staff Monitoring','staff','Staff workload and availability'],[FiTruck,'Trips & Pickups','collections','Delivery trips and customer pickups'],[FiPackage,'Products & Services','products','Manage products, prices and stock alerts'],[FiClipboard,'Orders','orders','Order records and status tracking'],[FiTruck,'Delivery','delivery','Dispatch assignments and drop-offs'],[FiPackage,'Inventory','inventory','Bottle stock and movement logs'],[FiCreditCard,'Payments','payments','Collections and unpaid balances'],[FiUsers,'Employees & Access','employees','Accounts and role permissions'],[FiSettings,'Settings','settings','Product prices and business rules'],[FiSliders,'Dashboard Settings','dashboard-settings','Customize dashboard sections and layout'],[FiShield,'Audit Logs','audit','Administrative activity and audit history'],[FiAlertTriangle,'Verification','approvals','Electronic proofs and cash remittances']].map(([Icon,title,target,desc])=><button key={target} onClick={()=>go(target)}><Icon/><strong>{title}</strong><small>{desc}</small></button>)}</div>{demo}
+  <div className="mgmt-more">{[[FiClipboard,'Operations Queue','queue','Operational task execution'],[FiUsers,'Staff Monitoring','staff','Staff workload and availability'],[FiTruck,'Trips & Pickups','collections','Delivery trips and customer pickups'],[FiPackage,'Products & Services','products','Manage products, prices and stock alerts'],[FiClipboard,'Orders','orders','Order records and status tracking'],[FiTruck,'Delivery','delivery','Dispatch assignments and drop-offs'],[FiPackage,'Inventory','inventory','Bottle stock and movement logs'],[FiCreditCard,'Payments','payments','Collections and unpaid balances'],[FiUsers,'Employees & Access','employees','Accounts and role permissions'],[FiSettings,'Settings','settings','Business rules, prices, and dashboard customization'],[FiShield,'Audit Logs','audit','Administrative activity and audit history'],[FiAlertTriangle,'Verification','approvals','Electronic proofs and cash remittances']].map(([Icon,title,target,desc])=><button key={target} onClick={()=>go(target)}><Icon/><strong>{title}</strong><small>{desc}</small></button>)}</div>{demo}
  </>}
  </>;
 }

@@ -48,15 +48,17 @@
   > `"Hourly breakdown unavailable for historical records because transaction times were not recorded."`
 - If valid completed-sale totals exist for the selected day, display a compact summary of the completed total above or below the graph.
 
-## 5. Multi-Period Aggregation & Navigation Rules
-All six periods MUST support both `Revenue` / `Order Count` and `Order Source` / `Fulfillment Mode`:
-- **Daily:** 24 hourly buckets (`12 AM`–`11 PM`) in `Asia/Manila`.
-- **Weekly:** 7 daily buckets (Sunday through Saturday).
-- **Monthly:** 1 bucket per calendar day (handling 28/29/30/31-day months & leap years).
-- **Yearly:** 12 monthly buckets (`Jan`–`Dec`).
-- **All Time:** Monthly buckets (`<= 24` months) or Yearly buckets (`> 24` months).
-- **Custom:** Strictly bounded to `[customStart, customEnd]` — daily (`<= 31` days), weekly (`32–90` days), or monthly (`> 90` days).
-- **Boundary Controls:** Previous / Next / Pick Date MUST respect local calendar math; Next MUST be disabled when it would enter future dates.
+## 5. Multi-Period Aggregation & Single Date Filter Rules
+- **Mandatory Single Date Filter:** Dashboard and Sales Reports must use one compact date-range dropdown rather than displaying multiple permanent date-range buttons and separate navigation rows.
+- **Automatic Chart Grouping by Selected Preset:**
+  - **Today / Yesterday (`Daily`):** 24 hourly buckets (`12 AM`–`11 PM`) in `Asia/Manila`.
+  - **This Week / Last Week (`Weekly`):** 7 daily buckets (Sunday through Saturday).
+  - **This Month / Last Month (`Monthly`):** 1 bucket per calendar day (handling 28/29/30/31-day months & leap years).
+  - **This Year (`Yearly`):** 12 monthly buckets (`Jan`–`Dec`).
+  - **All Time:** Monthly buckets (`<= 24` months) or Yearly buckets (`> 24` months).
+  - **Custom Range:** Strictly bounded to `[startDate, endDate]` — daily (`<= 31` days), weekly (`32–90` days), or monthly (`> 90` days).
+- All presets MUST support both `Revenue` / `Order Count` and `Order Source` / `Fulfillment Mode`.
+- Previous/Next stepping (when available inside the date-range interaction) MUST respect local calendar math and never enter future dates.
 
 ## 6. Layout, Mobile Safety & Preserved Sections
 - Preserve `Sales Breakdown`, `Transactions`, `Expenses`, KPI cards, financial integrity notice, and PDF export controls (`Financial Summary` 1-page PDF and `Complete Financial Report` multi-page PDF).

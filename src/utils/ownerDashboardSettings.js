@@ -2,19 +2,33 @@
 // NOTE: Dashboard visibility settings are UI personalization only, NOT security permissions.
 
 export const DASHBOARD_SETTINGS_KEY = 'aquabest-super-admin-dashboard-settings-v1';
-export const DASHBOARD_SETTINGS_VERSION = 1;
+export const DASHBOARD_SETTINGS_VERSION = 2;
 
 export const DASHBOARD_SECTIONS = Object.freeze([
   { id: 'summary', label: 'Business Performance Summary', description: 'Recorded sales, total orders, verified collections, and unpaid balances.' },
   { id: 'attention', label: 'Needs Attention', description: 'Actionable alerts for operational issues, low stock, and pending verifications.' },
-  { id: 'salesChart', label: 'Sales Performance Summary', description: 'Revenue and order-count trends across date ranges.' },
+  { id: 'salesChart', label: 'Sales Performance', description: 'Revenue and order-count trends across the selected date range.' },
   { id: 'gallonActivity', label: 'Gallon & Container Activity', description: 'Period refills, new container sales, borrowed/returned gallons, and stock.' },
   { id: 'operations', label: 'Operations Overview', description: 'Live counts for collection, refill, ready, and active delivery queues.' },
   { id: 'recentActivity', label: 'Recent Business Activity', description: 'Compact feed of recent orders and container stock movements.' }
 ]);
 
+export const DASHBOARD_METRIC_OPTIONS = Object.freeze([
+  { id: 'recordedSales', group: 'Business Performance', label: 'Recorded Sales', description: 'Total non-cancelled billed orders in period (distinct from collected cash).' },
+  { id: 'totalOrders', group: 'Business Performance', label: 'Total Orders', description: 'Count of active orders in the selected date range.' },
+  { id: 'verifiedCollected', group: 'Business Performance', label: 'Verified Collected', description: 'Orders explicitly marked Paid.' },
+  { id: 'unpaidBalance', group: 'Business Performance', label: 'Unpaid / Unverified', description: 'Outstanding balances not yet collected.' },
+  { id: 'gallonsRefilled', group: 'Gallon & Container Activity', label: 'Gallons Refilled', description: 'Completed refill quantities in period.' },
+  { id: 'newGallonsSold', group: 'Gallon & Container Activity', label: 'New Gallons Sold', description: 'New store containers sold (separate from refills).' },
+  { id: 'gallonsBorrowed', group: 'Gallon & Container Activity', label: 'Gallons Issued / Borrowed', description: 'Returnable containers issued to customers.' },
+  { id: 'gallonsReturned', group: 'Gallon & Container Activity', label: 'Gallons Returned / Collected', description: 'Empty containers collected or returned.' },
+  { id: 'outstandingBorrowed', group: 'Gallon & Container Activity', label: 'Outstanding Borrowed', description: 'Unreturned borrowed container status (Not Tracked until linked).' },
+  { id: 'availableGallonStock', group: 'Gallon & Container Activity', label: 'Available Gallon Stock', description: 'Current station container inventory level.' }
+]);
+
 export const VALID_SECTION_IDS = DASHBOARD_SECTIONS.map(s => s.id);
 export const VALID_DEFAULT_PERIODS = ['Daily', 'Weekly', 'Monthly', 'Yearly', 'All Time'];
+export const VALID_DEFAULT_PRESETS = ['today', 'yesterday', 'this_week', 'last_week', 'this_month', 'last_month', 'this_year', 'all_time'];
 export const VALID_DEFAULT_METRICS = ['revenue', 'orders'];
 export const VALID_DENSITIES = ['comfortable', 'compact'];
 
@@ -31,13 +45,34 @@ export function getDefaultDashboardSettings() {
       recentActivity: true,
       quickActions: true
     },
+    metrics: {
+      recordedSales: true,
+      totalOrders: true,
+      verifiedCollected: true,
+      unpaidBalance: true,
+      gallonsRefilled: true,
+      newGallonsSold: true,
+      gallonsBorrowed: true,
+      gallonsReturned: true,
+      outstandingBorrowed: true,
+      availableGallonStock: true
+    },
     order: [...VALID_SECTION_IDS],
     defaultPeriod: 'Daily',
+    defaultPreset: 'today',
     defaultMetric: 'revenue',
     density: 'comfortable',
     showSecondaryFinance: false,
     showContainerStock: false
   };
+}
+
+function periodToPreset(period) {
+  if (period === 'Weekly') return 'this_week';
+  if (period === 'Monthly') return 'this_month';
+  if (period === 'Yearly') return 'this_year';
+  if (period === 'All Time') return 'all_time';
+  return 'today';
 }
 
 export function migrateDashboardSettings(raw) {
@@ -47,7 +82,6 @@ export function migrateDashboardSettings(raw) {
     return getDefaultDashboardSettings();
   }
 
-  // Support migrating legacy/unversioned or v0 objects while preserving valid user choices
   const legacyVisibility = { ...(raw.visibility && typeof raw.visibility === 'object' ? raw.visibility : {}) };
   if (typeof raw.showSalesChart === 'boolean' && legacyVisibility.salesChart === undefined) {
     legacyVisibility.salesChart = raw.showSalesChart;
@@ -56,11 +90,17 @@ export function migrateDashboardSettings(raw) {
     legacyVisibility.quickActions = raw.showQuickActions;
   }
 
+  const resolvedPeriod = raw.defaultPeriod ?? raw.period ?? 'Daily';
+  const resolvedPreset = VALID_DEFAULT_PRESETS.includes(raw.defaultPreset)
+    ? raw.defaultPreset
+    : periodToPreset(resolvedPeriod);
+
   return sanitizeDashboardSettings({
     ...raw,
     version: DASHBOARD_SETTINGS_VERSION,
     visibility: legacyVisibility,
-    defaultPeriod: raw.defaultPeriod ?? raw.period,
+    defaultPeriod: resolvedPeriod,
+    defaultPreset: resolvedPreset,
     defaultMetric: raw.defaultMetric ?? raw.metric
   });
 }
@@ -83,6 +123,18 @@ export function sanitizeDashboardSettings(raw) {
     visibility.summary = true;
   }
 
+  const rawMetrics = raw.metrics && typeof raw.metrics === 'object' ? raw.metrics : {};
+  const metrics = { ...defaults.metrics };
+  for (const key of Object.keys(defaults.metrics)) {
+    if (typeof rawMetrics[key] === 'boolean') {
+      metrics[key] = rawMetrics[key];
+    }
+  }
+  // Keep at least one primary business KPI visible if summary is enabled
+  if (!metrics.recordedSales && !metrics.totalOrders && !metrics.verifiedCollected && !metrics.unpaidBalance) {
+    metrics.recordedSales = true;
+  }
+
   const rawOrder = Array.isArray(raw.order) ? raw.order : [];
   const seen = new Set();
   const order = [];
@@ -96,11 +148,18 @@ export function sanitizeDashboardSettings(raw) {
     if (!seen.has(id)) order.push(id);
   }
 
+  const defaultPeriod = VALID_DEFAULT_PERIODS.includes(raw.defaultPeriod) ? raw.defaultPeriod : defaults.defaultPeriod;
+  const defaultPreset = VALID_DEFAULT_PRESETS.includes(raw.defaultPreset)
+    ? raw.defaultPreset
+    : periodToPreset(defaultPeriod);
+
   return {
     version: DASHBOARD_SETTINGS_VERSION,
     visibility,
+    metrics,
     order,
-    defaultPeriod: VALID_DEFAULT_PERIODS.includes(raw.defaultPeriod) ? raw.defaultPeriod : defaults.defaultPeriod,
+    defaultPeriod,
+    defaultPreset,
     defaultMetric: VALID_DEFAULT_METRICS.includes(raw.defaultMetric) ? raw.defaultMetric : defaults.defaultMetric,
     density: VALID_DENSITIES.includes(raw.density) ? raw.density : defaults.density,
     showSecondaryFinance: typeof raw.showSecondaryFinance === 'boolean' ? raw.showSecondaryFinance : defaults.showSecondaryFinance,

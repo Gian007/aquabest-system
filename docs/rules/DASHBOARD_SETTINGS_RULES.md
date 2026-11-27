@@ -2,18 +2,19 @@
 
 > **Status:** Permanent project requirement. Dashboard customization is a core feature and MUST NOT be removed, bypassed, or silently reset in future updates.
 
-## 1. Purpose
+## 1. Purpose & Access Path
 Dashboard Settings allows the Super Admin to personalize the Business Command Center layout and default views without modifying business records or security permissions.
 
-## 2. Required Customization Features
-1. **Show or hide dashboard sections** (independent ON/OFF controls for `summary`, `attention`, `salesChart`, `gallonActivity`, `containerStock`, `operations`, `recentActivity`, and `quickActions`).
-2. **Reorder dashboard sections** using accessible **Move Up** and **Move Down** controls.
-3. **Select default date range** (`Daily`, `Weekly`, `Monthly`, `Yearly`, `All Time`).
-4. **Select default chart metric** (`Revenue` or `Order Count`).
-5. **Select dashboard density** (`Comfortable` or `Compact`).
-6. **Show or hide secondary financial metrics** by default (`Cash Pending Remittance`, `Recorded Expenses`).
-7. **Show or hide detailed container stock information** by default.
-8. **Restore default dashboard settings** with explicit user confirmation.
+- **Mandatory Access Path:** Dashboard Settings must be accessed through `More > Settings > Customize Dashboard`. Do not render Dashboard Settings as a primary dashboard header action.
+- **Mandatory Separation:** Dashboard customization must be separate from dashboard viewing. The normal dashboard must remain focused on business information and operational actions.
+
+## 2. Required Customization Tabs & Features
+The dedicated **Customize Dashboard** page MUST organize controls into three tabs:
+1. **Sections Tab:** Independent ON/OFF controls for optional dashboard sections (`summary`, `attention`, `salesChart`, `gallonActivity`, `operations`, `recentActivity`, `containerStock`), with short descriptions and Restore Default Visibility.
+2. **Metrics Tab:** Independent ON/OFF controls for optional business & gallon metric cards while preserving required financial distinctions and keeping critical alerts accessible.
+3. **Layout Tab:** Reorder sections via **Move Up** and **Move Down** controls, choose **Comfortable** or **Compact** density, select default date range preset and default chart metric, and Restore Default Arrangement.
+
+The customization workflow MUST include **Save Changes**, **Cancel**, and **Reset to Default** (with explicit confirmation).
 
 ## 3. Section Visibility Rules
 - Each optional section has an independent boolean visibility flag.

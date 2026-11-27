@@ -1,8 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   FiBarChart2, FiClock, FiCreditCard, FiTrendingUp,
-  FiZoomIn, FiZoomOut, FiRefreshCw, FiCalendar, FiChevronLeft,
-  FiChevronRight, FiPieChart, FiShoppingBag, FiSearch, FiFileText,
+  FiZoomIn, FiZoomOut, FiRefreshCw,
+  FiPieChart, FiShoppingBag, FiSearch, FiFileText,
   FiCheckCircle, FiChevronDown, FiChevronUp, FiInfo, FiDownload,
   FiTruck, FiAlertCircle
 } from 'react-icons/fi';
@@ -10,15 +10,15 @@ import { formatMoney } from '../data/managerDemo.js';
 import { buildSalesReportData } from '../utils/buildSalesReportData.js';
 import { buildSalesChartData } from '../utils/buildSalesChartData.js';
 import ExpenseReport from './ExpenseReport.jsx';
-import { getTodayLocalDate, shiftAnchorDate, filterByDateRange } from '../utils/reportDateUtils.js';
-import { getPeriodLabel, getPeriodFilename, formatDateLabel } from '../utils/dateUtils.js';
+import DateRangeSelector from './DateRangeSelector.jsx';
+import { getTodayLocalDate, filterByDateRange } from '../utils/reportDateUtils.js';
+import { getPeriodFilename, formatDateLabel } from '../utils/dateUtils.js';
+import { formatDateRangeDisplay, resolveDateRangePreset } from '../utils/dateRangePresets.js';
 import {
   generateFinancialSummaryPDF,
   generateCompleteFinancialReportPDF
 } from '../utils/generateSalesReportPDF.js';
 import './salesReports.css';
-
-const PERIODS = ['Daily', 'Weekly', 'Monthly', 'Yearly', 'All Time', 'Custom'];
 
 export default function SalesReports({
   orders = [],
@@ -27,17 +27,21 @@ export default function SalesReports({
   onNotice = () => { },
   isOwner = false
 }) {
-  // Determine anchor date defaulting to latest order date or today
+  // Determine latest recorded order date for quick jump when current selection has no data
   const defaultDate = useMemo(() => {
     const dates = orders.map(o => o.date).filter(Boolean).sort();
     return dates.length ? dates[dates.length - 1] : getTodayLocalDate();
   }, [orders]);
 
   const todayStr = getTodayLocalDate();
-  const [period, setPeriod] = useState('Weekly');
-  const [anchorDate, setAnchorDate] = useState(defaultDate);
-  const [customStart, setCustomStart] = useState(defaultDate);
-  const [customEnd, setCustomEnd] = useState(defaultDate);
+  const [dateSelection, setDateSelection] = useState(() =>
+    resolveDateRangePreset('today', { todayStr })
+  );
+  const period = dateSelection.period;
+  const anchorDate = dateSelection.anchorDate;
+  const customStart = dateSelection.startDate;
+  const customEnd = dateSelection.endDate;
+
   const [chartMetric, setChartMetric] = useState('revenue');
   const [chartBreakdown, setChartBreakdown] = useState('source');
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -75,28 +79,20 @@ export default function SalesReports({
     };
   }, [exportMenuOpen]);
 
+  const handleDateSelectionChange = (next) => {
+    setDateSelection(next);
+    setZoomLevel(1);
+    setActivePoint(null);
+    if (chartViewportRef.current) chartViewportRef.current.scrollLeft = 0;
+  };
+
   // Period label for display
-  const periodLabel = useMemo(() => {
-    if (period === 'Custom') {
-      return customStart === customEnd ? formatDateLabel(customStart) : `${formatDateLabel(customStart)} – ${formatDateLabel(customEnd)}`;
-    }
-    return getPeriodLabel(period, anchorDate);
-  }, [period, anchorDate, customStart, customEnd]);
+  const periodLabel = useMemo(() => formatDateRangeDisplay(dateSelection), [dateSelection]);
 
   const periodFilename = useMemo(() => {
     if (period === 'Custom') return `${customStart}_to_${customEnd}`;
     return getPeriodFilename(period, anchorDate);
   }, [period, anchorDate, customStart, customEnd]);
-
-  // Navigate date range safely (capped at todayStr to prevent future navigation)
-  const shiftAnchor = (step) => {
-    const nextDate = shiftAnchorDate(anchorDate, period, step);
-    if (step > 0 && nextDate > todayStr) return;
-    setAnchorDate(nextDate);
-    setZoomLevel(1);
-    setActivePoint(null);
-    if (chartViewportRef.current) chartViewportRef.current.scrollLeft = 0;
-  };
 
   // One shared calculation source powers the visible report and PDF payload.
   const reportData = useMemo(() => {
@@ -345,98 +341,14 @@ export default function SalesReports({
         </div>
       </div>
 
-      {/* 2. Period Selector & Date Navigation */}
+      {/* 2. Single Compact Date Range Dropdown */}
       <div className="sales-filter-row">
-        <div className="sales-period-pillbar" role="tablist" aria-label="Reporting period">
-          {PERIODS.map(p => (
-            <button
-              key={p}
-              type="button"
-              className={`sales-period-pill ${period === p ? 'active' : ''}`}
-              onClick={() => {
-                setPeriod(p);
-                setZoomLevel(1);
-                setActivePoint(null);
-                if (chartViewportRef.current) chartViewportRef.current.scrollLeft = 0;
-              }}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-
-        {period === 'Custom' ? (
-          <div className="sales-date-toolbar" style={{ flexWrap: 'wrap' }}>
-            <label className="sales-pick-btn" style={{ flex: 1 }}>
-              <span>From</span>
-              <input
-                type="date"
-                max={todayStr}
-                value={customStart}
-                onChange={e => setCustomStart(e.target.value || todayStr)}
-                style={{ border: 0, background: 'transparent', fontSize: 12, fontWeight: 700, color: '#1b2f63' }}
-              />
-            </label>
-            <label className="sales-pick-btn" style={{ flex: 1 }}>
-              <span>To</span>
-              <input
-                type="date"
-                max={todayStr}
-                min={customStart}
-                value={customEnd}
-                onChange={e => setCustomEnd(e.target.value || customStart)}
-                style={{ border: 0, background: 'transparent', fontSize: 12, fontWeight: 700, color: '#1b2f63' }}
-              />
-            </label>
-          </div>
-        ) : period !== 'All Time' && (
-          <div className="sales-date-toolbar">
-            <div className="sales-range-nav">
-              <button
-                type="button"
-                className="sales-nav-arrow"
-                onClick={() => shiftAnchor(-1)}
-                aria-label="Previous period"
-                title="Previous period"
-              >
-                <FiChevronLeft />
-              </button>
-              <div className="sales-range-label">
-                <FiCalendar />
-                <span>{periodLabel}</span>
-              </div>
-              <button
-                type="button"
-                className="sales-nav-arrow"
-                onClick={() => shiftAnchor(1)}
-                disabled={shiftAnchorDate(anchorDate, period, 1) > todayStr}
-                aria-label="Next period"
-                title="Next period"
-              >
-                <FiChevronRight />
-              </button>
-            </div>
-
-            <label className="sales-pick-btn" title="Pick specific date">
-              <FiCalendar />
-              <span>Pick Date</span>
-              <input
-                type="date"
-                className="sales-pick-input"
-                max={todayStr}
-                value={anchorDate}
-                onChange={e => {
-                  if (e.target.value) {
-                    setAnchorDate(e.target.value > todayStr ? todayStr : e.target.value);
-                    setActivePoint(null);
-                    setZoomLevel(1);
-                    if (chartViewportRef.current) chartViewportRef.current.scrollLeft = 0;
-                  }
-                }}
-              />
-            </label>
-          </div>
-        )}
+        <DateRangeSelector
+          value={dateSelection}
+          onChange={handleDateSelectionChange}
+          records={orders}
+          todayStr={todayStr}
+        />
       </div>
 
       {/* 3. Four Primary KPI Cards (2x2 Grid) */}
@@ -597,6 +509,15 @@ export default function SalesReports({
             Completed Sales ({periodLabel}):{' '}
             <strong>{formatMoney(salesChart.totalRevenue)}</strong> ({salesChart.totalOrders} {salesChart.totalOrders === 1 ? 'completed sale' : 'completed sales'})
           </span>
+          {salesChart.totalOrders === 0 && orders.length > 0 && defaultDate && defaultDate !== anchorDate && (
+            <button
+              type="button"
+              className="sales-zoom-pill"
+              onClick={() => handleDateSelectionChange(resolveDateRangePreset('custom', { todayStr, customStart: defaultDate, customEnd: defaultDate, records: orders }))}
+            >
+              View latest recorded activity — {defaultDate}
+            </button>
+          )}
         </div>
 
         <div className="sales-chart-legend" aria-label="Chart series legend">
@@ -773,12 +694,7 @@ export default function SalesReports({
               <button
                 type="button"
                 className="sales-zoom-pill"
-                onClick={() => {
-                  setPeriod('Daily');
-                  setAnchorDate(defaultDate);
-                  setActivePoint(null);
-                  setZoomLevel(1);
-                }}
+                onClick={() => handleDateSelectionChange(resolveDateRangePreset('custom', { todayStr, customStart: defaultDate, customEnd: defaultDate, records: orders }))}
               >
                 View latest recorded activity — {defaultDate}
               </button>
