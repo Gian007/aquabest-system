@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useState} from 'react';
-import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet,FiChevronRight,FiChevronDown,FiChevronUp,FiTrendingUp,FiInfo,FiSliders,FiArrowUp,FiArrowDown,FiRotateCcw,FiPlus,FiLayout,FiCheckSquare,FiGrid} from 'react-icons/fi';
+import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet,FiChevronRight,FiChevronDown,FiChevronUp,FiTrendingUp,FiInfo,FiSliders,FiArrowUp,FiArrowDown,FiRotateCcw,FiLayout,FiCheckSquare,FiGrid} from 'react-icons/fi';
 import {formatMoney} from '../data/managerDemo.js';
 import {getTodayLocalDate} from '../utils/reportDateUtils.js';
 import {buildOwnerDashboardData} from '../utils/buildOwnerDashboardData.js';
@@ -34,8 +34,24 @@ const DEFAULT_PRESET_CHOICES=DATE_RANGE_PRESETS.filter(p=>p.id!=='custom');
 const METRIC_GROUPS=['Business Performance','Gallon & Container Activity'];
 const readList=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(value)?value:[];}catch{return [];}};
 
-export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,availability,onMessage,onOpenOrder,expenses,setExpenses}){
- const [settings,setSettings]=useState({deliveryFee:'0',lowStock:'15',hours:'Confirm operating hours with client'});
+export default function OwnerOperations({
+ page,
+ go,
+ orders,
+ stock,
+ stockLog=[],
+ containerMovements=[],
+ trips,
+ employees=[],
+ availability,
+ onMessage,
+ onOpenOrder,
+ expenses,
+ setExpenses,
+ isDemoMode=true,
+ onResetDemoData
+}){
+ const [settings,setSettings]=useState({deliveryFee:'0',lowStock:'15',hours:'7:00 AM – 7:00 PM (Mon–Sun · Demo)'});
  const [draft,setDraft]=useState(settings);
  const [audit,setAudit]=useState([]);
  const [verification,setVerification]=useState([]);
@@ -49,6 +65,7 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
  const [draftDashSettings,setDraftDashSettings]=useState(()=>loadDashboardSettings());
  const [custTab,setCustTab]=useState('sections');
  const [confirmResetDash,setConfirmResetDash]=useState(false);
+ const [confirmResetDemo,setConfirmResetDemo]=useState(false);
 
  const [dateSelection,setDateSelection]=useState(()=>resolveDateRangePreset(loadDashboardSettings().defaultPreset,{todayStr}));
  const [chartMetric,setChartMetric]=useState(()=>loadDashboardSettings().defaultMetric);
@@ -64,7 +81,7 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
   return()=>{window.removeEventListener('focus',refresh);window.removeEventListener('storage',refresh);};
  },[]);
 
- const record=description=>{setAudit(old=>[{id:Date.now()+'-'+old.length,description,time:today()},...old]);onMessage(description+' (demo only)')};
+ const record=description=>{setAudit(old=>[{id:Date.now()+'-'+old.length,description,time:today()},...old]);onMessage(description+(isDemoMode?' (demo only)':''))};
 
  const openCustomizeDashboard=()=>{
   setDraftDashSettings(dashSettings);
@@ -145,35 +162,37 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
   trips,
   stock,
   stockLog,
+  containerMovements,
   period:dateSelection.period,
   anchorDate:dateSelection.anchorDate,
   customStart:dateSelection.startDate,
   customEnd:dateSelection.endDate,
   todayStr
- }),[orders,expenses,trips,stock,stockLog,dateSelection,todayStr]);
+ }),[orders,expenses,trips,stock,stockLog,containerMovements,dateSelection,todayStr]);
 
  const latestOrderDate=useMemo(()=>{
   const dates=orders.map(o=>o.date).filter(Boolean).sort();
   return dates.length?dates[dates.length-1]:null;
  },[orders]);
 
- const unpaidOrders=orders.filter(o=>o.paymentStatus!=='Paid'&&o.status!=='Cancelled');
- const outstanding=orders.filter(o=>o.paymentStatus!=='Paid').reduce((n,o)=>n+o.amount,0);
+ const unpaidOrders=orders.filter(o=>o.paymentStatus==='Unpaid'&&o.status!=='Cancelled');
+ const outstanding=unpaidOrders.reduce((n,o)=>n+(Number(o.amount)||0),0);
  const remittance=trips.reduce((n,t)=>n+(t.remittance==='Awaiting Remittance'?t.collectedCash||0:0),0);
  const pendingElectronic=trips.filter(t=>t.paymentStatus==='Pending Verification'&&!verification.includes(t.id));
  const activity=orders.length+trips.length;
- const operationalQueue=staffOrders.length?staffOrders:orders.map(o=>({...o,stage:({'Pending Confirmation':'waiting',Confirmed:'pending',Preparing:'refilling',Ready:'ready','Out for Delivery':'out',Delivered:'delivered',Completed:'picked',Cancelled:'failed'})[o.status]||'pending'}));
+ const operationalQueue=staffOrders.length?staffOrders:orders.map(o=>({...o,stage:({'Pending Confirmation':'collection',Confirmed:'pending',Preparing:'pending',Ready:'ready','Out for Delivery':'out',Delivered:'delivered',Completed:'picked',Cancelled:'failed'})[o.status]||'pending'}));
  const pendingCollection=operationalQueue.filter(o=>o.stage==='collection').length;
  const pendingRefill=operationalQueue.filter(o=>o.stage==='pending').length;
  const readyDelivery=operationalQueue.filter(o=>o.stage==='ready').length;
  const activeDelivery=operationalQueue.filter(o=>['delivery','out'].includes(o.stage)).length;
- const operationalIssues=operationalQueue.filter(o=>o.stage==='failed'||o.issueReason||o.issue).length;
+ const failedTripsCount=trips.filter(t=>t.status==='Failed Delivery'||Boolean(t.failureReason)).length;
  const lowStockCount=stock.filter(s=>s.quantity<s.minimum).length;
  const activeOperationalTrips=staffTrips.length?staffTrips.filter(t=>t.status==='active').length:trips.filter(t=>!['Delivered','Failed Delivery','closed'].includes(t.status)).length;
  const attentionItems=[
-  operationalIssues>0&&{id:'issues',severity:'critical',title:`${operationalIssues} operational issue${operationalIssues===1?'':'s'} requiring review`,meta:'Check failed or flagged tasks in Operations Queue',target:'queue',Icon:FiAlertTriangle},
-  lowStockCount>0&&{id:'low-stock',severity:'critical',title:`${lowStockCount} low stock container${lowStockCount===1?'':'s'}`,meta:'Review bottle inventory & catalog thresholds',target:'products',Icon:FiPackage},
+  failedTripsCount>0&&{id:'issues',severity:'critical',title:`${failedTripsCount} failed or delayed delivery issue${failedTripsCount===1?'':'s'} requiring review`,meta:'Inspect delivery exceptions in Trips & Pickups',target:'collections',Icon:FiAlertTriangle},
+  lowStockCount>0&&{id:'low-stock',severity:'critical',title:`${lowStockCount} low stock container size${lowStockCount===1?'':'s'}`,meta:'Review bottle inventory & minimum stock thresholds',target:'inventory',Icon:FiPackage},
   pendingElectronic.length>0&&{id:'verify',severity:'warning',title:`${pendingElectronic.length} pending payment verification${pendingElectronic.length===1?'':'s'}`,meta:'Review submitted GCash or bank references',target:'approvals',Icon:FiCreditCard},
+  remittance>0&&{id:'remittance',severity:'warning',title:`${formatMoney(remittance)} driver cash awaiting remittance`,meta:'Confirm physical cash handover in Payment Verification',target:'approvals',Icon:FiDollarSign},
   unpaidOrders.length>0&&{id:'unpaid',severity:'warning',title:`${unpaidOrders.length} unpaid order${unpaidOrders.length===1?'':'s'} (${formatMoney(outstanding)})`,meta:'Track outstanding customer balances in Payments',target:'payments',Icon:FiClock},
   activeDelivery>0&&{id:'active-delivery',severity:'info',title:`${activeDelivery} active delivery order${activeDelivery===1?'':'s'} in progress`,meta:`Across ${activeOperationalTrips} active trip${activeOperationalTrips===1?'':'s'} — monitor in Trips & Pickups`,target:'collections',Icon:FiTruck}
  ].filter(Boolean);
@@ -184,7 +203,9 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
  const chartHasData=chartValues.some(v=>v>0);
  const chartMax=Math.max(chartMetric==='revenue'?100:4,...chartValues);
  const activeRangeLabel=formatDateRangeDisplay(dateSelection);
- const demo=<p className="mgmt-demo">Super Admin GUI prototype only • All values and access controls are local demo state. No real permissions, payments, expenses or pricing changes are applied to the business.</p>;
+ const opResult=dashboardData.financials.recordedOperatingResult;
+ const opResultSign=opResult>0?'positive':opResult<0?'negative':'neutral';
+ const demo=<p className="mgmt-demo">{isDemoMode?'Static Demo Mode · Synthetic demonstration data (September–November 2026). Browser-local changes are not synchronized across devices and do not represent live transactions.':'Local API Mode · Connected to temporary SQLite backend for local integration testing and backend handoff.'}</p>;
 
  const jumpToLatestDate=()=>{
   if(!latestOrderDate)return;
@@ -207,36 +228,49 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      {m.recordedSales!==false&&(
       <div className="owner-finance-card">
        <span className="owner-kpi-top"><span>Recorded Sales</span><FiBarChart2 size={16} aria-hidden="true"/></span>
-       <strong>{formatMoney(dashboardData.financials.grossSales)}</strong>
-       <small>Non-cancelled orders in range (not all collected)</small>
+       <strong>{formatMoney(dashboardData.financials.completedSales)}</strong>
+       <small>Completed sales in range (not all collected)</small>
       </div>
      )}
      {m.totalOrders!==false&&(
       <div className="owner-finance-card">
        <span className="owner-kpi-top"><span>Total Orders</span><FiClipboard size={16} aria-hidden="true"/></span>
-       <strong>{dashboardData.financials.totalOrders}</strong>
-       <small>Active orders in selected period</small>
+       <strong>{dashboardData.financials.completedOrdersCount}</strong>
+       <small>Completed orders in selected period</small>
       </div>
      )}
      {m.verifiedCollected!==false&&(
       <div className="owner-finance-card verified">
        <span className="owner-kpi-top"><span>Verified Collected</span><FiDollarSign size={16} aria-hidden="true"/></span>
-       <strong>{formatMoney(dashboardData.financials.verifiedCollected)}</strong>
-       <small>Orders explicitly marked Paid</small>
+       <strong>{formatMoney(dashboardData.financials.verifiedCollectedCompleted)}</strong>
+       <small>Completed sales explicitly marked Paid</small>
       </div>
      )}
      {m.unpaidBalance!==false&&(
       <div className="owner-finance-card pending">
-       <span className="owner-kpi-top"><span>Unpaid / Unverified</span><FiClock size={16} aria-hidden="true"/></span>
-       <strong>{formatMoney(dashboardData.financials.outstandingBalance)}</strong>
-       <small>Unpaid balances not yet collected</small>
+       <span className="owner-kpi-top"><span>Unpaid Completed</span><FiClock size={16} aria-hidden="true"/></span>
+       <strong>{formatMoney(dashboardData.financials.unpaidCompletedSales)}</strong>
+       <small>Completed orders awaiting collection</small>
       </div>
      )}
     </div>
+
+    <div className={`owner-op-result ${opResultSign}`} role="region" aria-label="Recorded Operating Result">
+     <div className="owner-op-result-main">
+      <span className="owner-op-result-label">Recorded Operating Result (Demo)</span>
+      <strong>{opResult>0?'+':opResult<0?'-':''}{formatMoney(Math.abs(opResult))}</strong>
+     </div>
+     <div className="owner-op-result-meta">
+      <span>Completed Sales ({formatMoney(dashboardData.financials.completedSales)}) − Active Expenses ({formatMoney(dashboardData.financials.recordedExpenses)})</span>
+      <small>Operating indicator only — not an audited net profit calculation.</small>
+     </div>
+    </div>
+
     {showSecondaryFinance&&(
      <div className="owner-secondary-finance">
+      <div><span>Active Recorded Expenses (Period)</span><strong>{formatMoney(dashboardData.financials.recordedExpenses)}</strong></div>
       <div><span>Cash Pending Remittance (Trips)</span><strong>{formatMoney(remittance)}</strong></div>
-      <div><span>Recorded Expenses (Period)</span><strong>{formatMoney(dashboardData.financials.recordedExpenses)}</strong></div>
+      <div><span>All Non-Cancelled Orders (Incl. Open)</span><strong>{formatMoney(dashboardData.financials.grossSales)}</strong></div>
      </div>
     )}
    </section>
@@ -281,7 +315,7 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      <div>
       <h2>Sales Performance</h2>
       <p className="owner-dash-note">
-       {activeRangeLabel} • {formatMoney(dashboardData.financials.grossSales)} ({dashboardData.financials.totalOrders} order{dashboardData.financials.totalOrders===1?'':'s'})
+       {activeRangeLabel} • {formatMoney(dashboardData.financials.completedSales)} ({dashboardData.financials.completedOrdersCount} completed sale{dashboardData.financials.completedOrdersCount===1?'':'s'})
        {dashboardData.previousComparison&&dashboardData.previousComparison.deltaPct!==null&&` • ${dashboardData.previousComparison.deltaPct>=0?'+':''}${dashboardData.previousComparison.deltaPct.toFixed(1)}% vs prev`}
       </p>
      </div>
@@ -294,9 +328,9 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      {dateSelection.period==='Daily'&&!dashboardData.chart.hasHourlyTimestamps?(
       <div className="owner-chart-empty">
        <FiClock size={20} color="#244ea3" aria-hidden="true"/>
-       <strong>{dashboardData.financials.totalOrders>0?`Daily Total: ${formatMoney(dashboardData.financials.grossSales)} (${dashboardData.financials.totalOrders} order${dashboardData.financials.totalOrders===1?'':'s'})`:`No transactions recorded for ${activeRangeLabel}`}</strong>
-       <small>Hourly chart breakdown is unavailable when transaction timestamps are not recorded.</small>
-       {dashboardData.financials.totalOrders===0&&latestOrderDate&&latestOrderDate!==dateSelection.anchorDate&&(
+       <strong>{dashboardData.financials.completedOrdersCount>0?`Daily Completed Total: ${formatMoney(dashboardData.financials.completedSales)} (${dashboardData.financials.completedOrdersCount} sale${dashboardData.financials.completedOrdersCount===1?'':'s'})`:`No completed sales recorded for ${activeRangeLabel}`}</strong>
+       <small>Hourly breakdown is unavailable when historical transaction timestamps are not recorded.</small>
+       {dashboardData.financials.completedOrdersCount===0&&latestOrderDate&&latestOrderDate!==dateSelection.anchorDate&&(
         <button type="button" className="mgmt-btn secondary" onClick={jumpToLatestDate}>View latest recorded activity — {latestOrderDate}</button>
        )}
       </div>
@@ -309,7 +343,7 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
         })}
         {(()=>{
          const stepX=(544-56)/Math.max(1,chartPts.length-1);
-         const showLabel=i=>chartPts.length<=12||i===0||i===chartPts.length-1||i%5===0;
+         const showLabel=i=>chartPts.length<=12||i===0||i===chartPts.length-1||i%4===0;
          if(chartMetric==='orders'){
           const barW=Math.max(8,Math.min(28,Math.floor(420/Math.max(1,chartPts.length))));
           return chartPts.map((pt,i)=>{
@@ -352,8 +386,8 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      ):(
       <div className="owner-chart-empty">
        <FiTrendingUp size={20} color="#64748d" aria-hidden="true"/>
-       <strong>No transactions recorded for {activeRangeLabel}</strong>
-       <small>Select another date range or record a new order in POS.</small>
+       <strong>No completed sales recorded for {activeRangeLabel}</strong>
+       <small>Select another date range to explore historical activity.</small>
        {latestOrderDate&&(
         <button type="button" className="mgmt-btn secondary" onClick={jumpToLatestDate}>View latest recorded activity — {latestOrderDate}</button>
        )}
@@ -402,10 +436,10 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
       </div>
      )}
      {m.outstandingBorrowed!==false&&(
-      <div className="owner-gallon-card muted">
+      <div className={`owner-gallon-card ${dashboardData.gallons.outstandingBorrowed===null?'muted':''}`}>
        <span>Outstanding Borrowed</span>
-       <strong>Not Tracked</strong>
-       <small>Needs customer borrow-return IDs</small>
+       <strong>{dashboardData.gallons.outstandingBorrowed!==null?dashboardData.gallons.outstandingBorrowed:'Not Tracked'}</strong>
+       <small>{dashboardData.gallons.outstandingBorrowed!==null?'Unreturned containers with customers':'Needs customer borrow-return IDs'}</small>
       </div>
      )}
      {dashSettings.visibility.containerStock&&m.availableGallonStock!==false&&(
@@ -424,7 +458,7 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
         <strong className={item.low?'low':''}>{item.quantity} on hand <small>(min {item.minimum})</small></strong>
        </div>
       ))}
-      <p className="owner-dash-note"><FiInfo size={12} style={{verticalAlign:'-2px'}}/> Empty vs. full separation, damaged/repair counts, and per-customer outstanding borrowed gallons require dedicated container-ledger fields.</p>
+      <p className="owner-dash-note"><FiInfo size={12} style={{verticalAlign:'-2px'}}/> Borrowed containers are tracked separately from new container sales and reconciled against return records.</p>
      </div>
     )}
    </section>
@@ -439,7 +473,7 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      <button type="button" className="owner-kpi-card" onClick={()=>go('queue')}>
       <span className="owner-kpi-top"><span>Pending Collection</span><FiTruck size={16} aria-hidden="true"/></span>
       <strong>{pendingCollection}</strong>
-      <small>Awaiting pickup</small>
+      <small>Awaiting confirmation / pickup</small>
      </button>
      <button type="button" className="owner-kpi-card" onClick={()=>go('queue')}>
       <span className="owner-kpi-top"><span>Pending Refill</span><FiDroplet size={16} aria-hidden="true"/></span>
@@ -495,18 +529,13 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
 
  return <>
  {page==='dashboard'&&<div className={`owner-dash ${dashSettings.density==='compact'?'compact':''}`}>
-  {/* 1. Clean Dashboard Header (Title + Single Primary Action) */}
+  {/* 1. Monitoring-First Dashboard Header (No New Order, No Sales Reports, No Dashboard Settings button) */}
   <header className="owner-dash-header">
    <div className="owner-dash-title-row">
     <div>
      <h1>Super Admin Dashboard</h1>
      <p>Business Overview</p>
     </div>
-    {dashSettings.visibility.quickActions&&(
-     <div className="owner-dash-quick-links">
-      <button type="button" className="mgmt-btn" onClick={()=>go('pos')}><FiPlus size={15} aria-hidden="true"/> New Order</button>
-     </div>
-    )}
    </div>
 
    {/* 2. Single Compact Date Range Dropdown */}
@@ -565,8 +594,7 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
     <div className="owner-settings-list">
      {[
       ...DASHBOARD_SECTIONS,
-      {id:'containerStock',label:'Container Stock Breakdown',description:'Show current available gallon stock and expandable per-size detail inside Gallon & Container Activity.'},
-      {id:'quickActions',label:'Header New Order Button',description:'Show the primary New Order button in the Dashboard header.'}
+      {id:'containerStock',label:'Container Stock Breakdown',description:'Show current available gallon stock and expandable per-size detail inside Gallon & Container Activity.'}
      ].map(item=>(
       <label key={item.id} className="owner-toggle-row">
        <span><strong>{item.label}</strong><small>{item.description}</small></span>
@@ -652,7 +680,7 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
      </div>
      <div className="owner-settings-list" style={{marginTop:10}}>
       <label className="owner-toggle-row">
-       <span><strong>Expand Secondary Financial Metrics by Default</strong><small>Show Cash Pending Remittance and Recorded Expenses automatically.</small></span>
+       <span><strong>Expand Secondary Financial Metrics by Default</strong><small>Show Expenses, Remittance, and Open Orders automatically.</small></span>
        <input type="checkbox" checked={Boolean(draftDashSettings.showSecondaryFinance)} onChange={e=>setDraftDashSettings(prev=>({...prev,showSecondaryFinance:e.target.checked}))}/>
       </label>
       <label className="owner-toggle-row">
@@ -684,15 +712,15 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
  </div>}
 
  {page==='reports'&&<SalesReports orders={orders} expenses={expenses} setExpenses={setExpenses} onNotice={record} isOwner/>}
- {page==='employees'&&<EmployeeDirectory availability={availability} orders={orders} onEvent={record}/>}
+ {page==='employees'&&<EmployeeDirectory initialEmployees={employees} availability={availability} orders={orders} onEvent={record}/>}
  {page==='approvals'&&<>
   <Title eyebrow="Payment review" title="Payment Verification" description="Check submitted GCash/bank references and cash received from drivers."/>
   <div className="mgmt-notice">A reference number alone does not prove payment. Check the actual AquaBest account or physically count cash before acknowledging any transaction.</div>
   <div className="mgmt-section-title"><h2>GCash & Bank Transfers</h2></div>
-  <div className="mgmt-card">{pendingElectronic.length?pendingElectronic.map(t=><div className="mgmt-row" key={t.id}><div><strong className="mgmt-row-title">{t.orderId} · {t.customer}</strong><p className="mgmt-sub">{t.paymentMethod} · {formatMoney(t.amount)} · Ref: {t.reference||'Missing'}</p><p className="mgmt-sub">Status: Pending verification</p></div><button className="mgmt-btn secondary" onClick={()=>{setVerification(old=>[...old,t.id]);record('Reviewed electronic payment proof for order '+t.orderId)}}>Mark Reviewed</button></div>):<div className="owner-empty"><FiCreditCard size={22}/><strong>No pending electronic payment proofs</strong><p>When a driver records a GCash or bank reference, it should appear here after the shared database is connected. This preview cannot verify real money.</p></div>}</div>
+  <div className="mgmt-card">{pendingElectronic.length?pendingElectronic.map(t=><div className="mgmt-row" key={t.id}><div><strong className="mgmt-row-title">{t.orderId} · {t.customer}</strong><p className="mgmt-sub">{t.paymentMethod} · {formatMoney(t.amount)} · Ref: {t.reference||'Missing'}</p><p className="mgmt-sub">Status: Pending verification</p></div><button className="mgmt-btn secondary" onClick={()=>{setVerification(old=>[...old,t.id]);record('Reviewed electronic payment proof for order '+t.orderId)}}>Mark Reviewed</button></div>):<div className="owner-empty"><FiCreditCard size={22}/><strong>No pending electronic payment proofs</strong><p>When a driver records a GCash or bank reference, it appears here for manual verification.</p></div>}</div>
   <div className="mgmt-section-title"><h2>Cash Collected by Drivers</h2></div>
-  <div className="mgmt-card">{trips.filter(t=>t.remittance==='Awaiting Remittance').length?trips.filter(t=>t.remittance==='Awaiting Remittance').map(t=><div className="mgmt-row" key={t.id}><div><strong className="mgmt-row-title">{t.orderId} · {t.driver}</strong><p className="mgmt-sub">{formatMoney(t.collectedCash||0)} collected · Pending handover</p></div><button className="mgmt-btn secondary" disabled={approvals.includes(t.id)} onClick={()=>{setApprovals(old=>[...old,t.id]);record('Reviewed pending cash remittance for order '+t.orderId)}}>{approvals.includes(t.id)?'Reviewed':'Mark Reviewed'}</button></div>):<div className="owner-empty"><FiDollarSign size={22}/><strong>No cash awaiting remittance</strong><p>Driver COD collections will be listed after delivery records synchronize with this workspace.</p></div>}</div>
-  <div className="mgmt-notice">Mark Reviewed is a demo checklist only. It does not set an order to Paid or acknowledge a real remittance. Production verification requires validated bank/GCash transactions, counting cash, and an immutable audit trail.</div>{demo}
+  <div className="mgmt-card">{trips.filter(t=>t.remittance==='Awaiting Remittance').length?trips.filter(t=>t.remittance==='Awaiting Remittance').map(t=><div className="mgmt-row" key={t.id}><div><strong className="mgmt-row-title">{t.orderId} · {t.driver}</strong><p className="mgmt-sub">{formatMoney(t.collectedCash||0)} collected · Pending handover</p></div><button className="mgmt-btn secondary" disabled={approvals.includes(t.id)} onClick={()=>{setApprovals(old=>[...old,t.id]);record('Reviewed pending cash remittance for order '+t.orderId)}}>{approvals.includes(t.id)?'Reviewed':'Mark Reviewed'}</button></div>):<div className="owner-empty"><FiDollarSign size={22}/><strong>No cash awaiting remittance</strong><p>Driver COD collections will be listed here when pending handover.</p></div>}</div>
+  <div className="mgmt-notice">Mark Reviewed is a demo checklist only. It does not simulate bank or GCash verification or alter authoritative ledgers.</div>{demo}
  </>}
  {page==='products'&&<ProductCatalog onEvent={record}/>}
  {page==='settings'&&<>
@@ -704,6 +732,25 @@ export default function OwnerOperations({page,go,orders,stock,stockLog=[],trips,
    </div>
    <button type="button" className="mgmt-btn" onClick={openCustomizeDashboard}>Customize Dashboard <FiChevronRight aria-hidden="true"/></button>
   </div>
+
+  {isDemoMode&&onResetDemoData&&(
+   <div className="mgmt-card owner-settings-entry" style={{marginTop:14}}>
+    <div className="owner-settings-entry-copy">
+     <strong><FiRotateCcw size={16} aria-hidden="true"/> Static Demo Dataset (Sep–Nov 2026)</strong>
+     <p className="mgmt-sub">Changes made in Demo Mode are saved locally in this browser only. Reset to restore the original three-month demonstration dataset.</p>
+    </div>
+    {!confirmResetDemo?(
+     <button type="button" className="mgmt-btn secondary" onClick={()=>setConfirmResetDemo(true)}><FiRotateCcw/> Reset Demo Data</button>
+    ):(
+     <div className="owner-reset-confirm" role="alert">
+      <span>Restore original September–November 2026 demo records?</span>
+      <button type="button" className="mgmt-btn" onClick={()=>{onResetDemoData();setConfirmResetDemo(false);}}>Confirm Reset</button>
+      <button type="button" className="mgmt-btn secondary" onClick={()=>setConfirmResetDemo(false)}>Cancel</button>
+     </div>
+    )}
+   </div>
+  )}
+
   <div className="mgmt-card" style={{marginTop:14}}><strong>Store Operating Rules</strong><div className="mgmt-formgrid">{[['deliveryFee','Delivery fee (₱)'],['lowStock','Low-stock threshold'],['hours','Operating hours']].map(([key,l])=><div className="mgmt-field" key={key}><label>{l}</label><input value={draft[key]} onChange={e=>setDraft(old=>({...old,[key]:e.target.value}))}/></div>)}</div><div className="owner-actions"><button className="mgmt-btn" onClick={()=>{setSettings({...draft});record('Updated business operating settings')}}><FiSave/> Save Settings</button><button className="mgmt-btn secondary" onClick={()=>go('products')}>Manage Products & Prices</button></div><p className="mgmt-sub">Saved demo delivery fee: {settings.deliveryFee}</p></div>{demo}
  </>}
  {page==='audit'&&<>

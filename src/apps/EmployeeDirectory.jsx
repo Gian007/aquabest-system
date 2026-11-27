@@ -1,15 +1,16 @@
 import {useState} from 'react';
 import {FiUserPlus,FiUser,FiClock,FiCheckCircle,FiActivity,FiBriefcase,FiEdit2} from 'react-icons/fi';
-const initial=[
- {id:'emp-manager',name:'Manager',role:'Manager',contact:'',active:true,pos:true},
- {id:'emp-staffa',name:'Staff A',role:'Staff / Operations',contact:'',active:true,pos:false},
- {id:'emp-staffb',name:'Staff B',role:'Staff / Operations',contact:'',active:true,pos:true},
- {id:'emp-drivera',name:'Driver A',role:'Staff / Operations',contact:'',active:true,pos:false},
- {id:'emp-driverb',name:'Driver B',role:'Staff / Operations',contact:'',active:true,pos:false}
+const defaultTeam=[
+ {id:'emp-owner',name:'Super Admin',fullName:'Elena Morales',role:'Super Admin',contact:'+63 917-000-0101 (Demo)',active:true,pos:true},
+ {id:'emp-manager',name:'Manager',fullName:'Marco Villanueva',role:'Manager',contact:'+63 917-000-0102 (Demo)',active:true,pos:true},
+ {id:'emp-staffa',name:'Staff A',fullName:'Carlo Mendoza',role:'Staff / Operations',contact:'+63 917-000-0103 (Demo)',active:true,pos:false},
+ {id:'emp-staffb',name:'Staff B',fullName:'Rina Bautista',role:'Staff / Operations',contact:'+63 917-000-0104 (Demo)',active:true,pos:true},
+ {id:'emp-drivera',name:'Driver A',fullName:'Jomar Castillo',role:'Staff / Operations',contact:'+63 917-000-0105 (Demo)',active:true,pos:false},
+ {id:'emp-driverb',name:'Driver B',fullName:'Paolo Navarro',role:'Staff / Operations',contact:'+63 917-000-0106 (Demo)',active:true,pos:false}
 ];
-const blank={name:'',role:'Staff / Operations',contact:'',pos:false};
-export default function EmployeeDirectory({availability,orders,onEvent}){
- const [people,setPeople]=useState(initial);
+const blank={name:'',fullName:'',role:'Staff / Operations',contact:'',pos:false};
+export default function EmployeeDirectory({initialEmployees,orders,onEvent}){
+ const [people,setPeople]=useState(()=>Array.isArray(initialEmployees)&&initialEmployees.length?initialEmployees:defaultTeam);
  const [selected,setSelected]=useState(null);
  const [adding,setAdding]=useState(false);
  const [draft,setDraft]=useState(blank);
@@ -21,10 +22,10 @@ export default function EmployeeDirectory({availability,orders,onEvent}){
  const save=()=>{
   if(!draft.name.trim()){onEvent('Please enter employee full name.');return}
   const id='employee-'+Date.now();
-  setPeople(old=>[...old,{...draft,id,active:true}]);setAdding(false);setDraft(blank);setSelected(id);onEvent('Created demo employee profile for '+draft.name);
+  setPeople(old=>[...old,{...draft,fullName:draft.name.trim(),id,active:true}]);setAdding(false);setDraft(blank);setSelected(id);onEvent('Created demo employee profile for '+draft.name);
  };
  return <>
-  <div className="mgmt-heading"><div className="overline">Team directory</div><h1>Employee Management</h1><p>Employee profiles, attendance and work performance in one place.</p></div>
+  <div className="mgmt-heading"><div className="overline">Team directory</div><h1>Employee Management</h1><p>Three-role team directory (Super Admin, Manager, Staff / Operations) with task workload visibility.</p></div>
   <div className="owner-actions" style={{justifyContent:'space-between',alignItems:'center'}}><span className="mgmt-sub">{people.filter(p=>p.active).length} active · {people.length} sample profiles</span><button className="mgmt-btn" onClick={()=>{setAdding(!adding);setSelected(null)}}><FiUserPlus/> Add Employee</button></div>
   {adding&&<div className="mgmt-card owner-form"><h2 className="owner-subtitle">New Employee Account (Demo)</h2>
    <div className="mgmt-formgrid"><div className="mgmt-field"><label>Full Name</label><input value={draft.name} onChange={e=>setDraft(v=>({...v,name:e.target.value}))} placeholder="Employee full name"/></div>
@@ -33,16 +34,16 @@ export default function EmployeeDirectory({availability,orders,onEvent}){
    <p className="mgmt-sub">This creates a sample profile only. Production accounts will use a secure invitation and authentication.</p>
    <div className="owner-actions"><button className="mgmt-btn" onClick={save}>Create Demo Profile</button><button className="mgmt-btn secondary" onClick={()=>setAdding(false)}>Cancel</button></div>
   </div>}
-  <div className="mgmt-card owner-directory">{people.map(e=><button key={e.id} className={'owner-person '+(selected===e.id?'selected':'')} onClick={()=>{setSelected(selected===e.id?null:e.id);setAdding(false);setAdvanced(false)}}><span className="owner-avatar"><FiUser/></span><span className="owner-person-name"><strong>{e.name}</strong><small>{e.role}</small></span><span className={'owner-state '+(e.active?'active':'')}>{e.active?'Active':'Inactive'}</span><FiEdit2/></button>)}</div>
+  <div className="mgmt-card owner-directory">{people.map(e=><button key={e.id} className={'owner-person '+(selected===e.id?'selected':'')} onClick={()=>{setSelected(selected===e.id?null:e.id);setAdding(false);setAdvanced(false)}}><span className="owner-avatar"><FiUser/></span><span className="owner-person-name"><strong>{e.fullName?`${e.fullName} (${e.name})`:e.name}</strong><small>{e.role}</small></span><span className={'owner-state '+(e.active?'active':'')}>{e.active?'Active':'Inactive'}</span><FiEdit2/></button>)}</div>
   {picked&&<div className="mgmt-card owner-profile">
-   <div className="mgmt-section-title"><h2>{picked.name}</h2><span className={'owner-state '+(picked.active?'active':'')}>{picked.active?'Active':'Inactive'}</span></div>
+   <div className="mgmt-section-title"><h2>{picked.fullName?`${picked.fullName} (${picked.name})`:picked.name}</h2><span className={'owner-state '+(picked.active?'active':'')}>{picked.active?'Active':'Inactive'}</span></div>
    <p className="mgmt-sub">{picked.role} · {picked.contact||'No contact information entered'}</p>
    <div className="mgmt-stats"><div className="mgmt-stat"><div className="mgmt-stat-top"><span>Assigned Orders</span><FiBriefcase/></div><strong>{assigned.length}</strong></div><div className="mgmt-stat"><div className="mgmt-stat-top"><span>Finished / Ready</span><FiCheckCircle/></div><strong>{finished}</strong></div></div>
    <div className="mgmt-section-title"><h2><FiClock/> Attendance & Hours</h2></div><p className="mgmt-sub">No verified attendance records yet. Days present, absences, total working hours, and shifts will appear once Time In / Time Out is connected. Online status is not attendance.</p>
    <div className="mgmt-section-title"><h2><FiActivity/> Task Performance</h2></div><p className="mgmt-sub">{assigned.length} sample assigned order(s); {finished} ready/completed. Refill and delivery productivity will be measured by actual task records, not login status.</p>
    <div className="owner-actions"><button className="mgmt-btn secondary" onClick={()=>update(picked.id,'active',!picked.active)}>{picked.active?'Deactivate Account':'Reactivate Account'}</button><button className="mgmt-btn secondary" onClick={()=>setAdvanced(!advanced)}>{advanced?'Hide':'Edit'} Role & Permissions</button></div>
-   {advanced&&<div className="mgmt-formgrid" style={{marginTop:12}}><div className="mgmt-field"><label>Role</label><select value={picked.role} onChange={e=>update(picked.id,'role',e.target.value)}><option>Manager</option><option>Staff / Operations</option></select></div><div className="mgmt-field"><label>POS Access</label><select value={picked.pos?'yes':'no'} onChange={e=>update(picked.id,'pos',e.target.value==='yes')}><option value="no">No</option><option value="yes">Yes</option></select></div></div>}
-   <p className="mgmt-demo">All employee accounts, role edits and performance values are local sample data; not real authorization or attendance.</p>
+   {advanced&&<div className="mgmt-formgrid" style={{marginTop:12}}><div className="mgmt-field"><label>Role</label><select value={picked.role} onChange={e=>update(picked.id,'role',e.target.value)}><option>Super Admin</option><option>Manager</option><option>Staff / Operations</option></select></div><div className="mgmt-field"><label>POS Access</label><select value={picked.pos?'yes':'no'} onChange={e=>update(picked.id,'pos',e.target.value==='yes')}><option value="no">No</option><option value="yes">Yes</option></select></div></div>}
+   <p className="mgmt-demo">All employee accounts, role edits and performance values are synthetic demonstration data; not real authorization or attendance.</p>
   </div>}
  </>;
 }

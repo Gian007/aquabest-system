@@ -32,11 +32,12 @@ The customization workflow MUST include **Save Changes**, **Cancel**, and **Rese
   - Navigating between dashboard modules.
 
 ## 5. Persistence & Safe Migration Rules
-- Use a namespaced, versioned `localStorage` key: `aquabest-super-admin-dashboard-settings-v1` (with `version: 1` and future migration support in `src/utils/ownerDashboardSettings.js`).
+- Use a namespaced, versioned `localStorage` key: `aquabest-super-admin-dashboard-settings-v1` (currently `version: 2`, with backward-compatible migration from `v0`/`v1` in `src/utils/ownerDashboardSettings.js`).
 - Safely handle missing, partial, or corrupted JSON without throwing runtime errors.
 - Support forward migration from older versions (and legacy unversioned keys/objects) so valid user preferences are preserved rather than silently overwritten on startup.
 - Never overwrite valid saved preferences with defaults during normal startup.
 - Reset to Default MUST require explicit user confirmation and MUST NEVER delete orders, inventory, payments, employees, proof photos, or other business data.
+- In Static Demo Mode (`VITE_DATA_MODE=demo`), an explicit **Reset Demo Data** action inside `More → Settings` resets synthetic browser-local business fixtures without disturbing saved dashboard layout preferences.
 
 ## 6. Separation from Authorization & Security
 - Dashboard personalization is **NOT** authorization or role-based access control.

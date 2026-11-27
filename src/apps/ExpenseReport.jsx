@@ -2,9 +2,20 @@ import { useState } from 'react';
 import { FiPlus, FiEdit2, FiCheck, FiX, FiFileText } from 'react-icons/fi';
 import { formatMoney } from '../data/managerDemo.js';
 import { getTodayLocalStr } from '../utils/dateUtils.js';
-import { apiClient } from '../services/apiClient.js';
+import { managementDataAdapter } from '../services/managementDataAdapter.js';
 
-const categories = ['Fuel', 'Electricity', 'Supplies', 'Maintenance', 'Wages', 'Other'];
+const categories = [
+  'Rent',
+  'Electricity',
+  'Water treatment supplies',
+  'Fuel',
+  'Delivery and transportation',
+  'Wages',
+  'Maintenance',
+  'Equipment',
+  'Supplies',
+  'Other'
+];
 const paymentStatuses = ['Paid', 'Unpaid'];
 const paymentMethods = ['Cash', 'GCash', 'Bank Transfer', 'Other'];
 
@@ -74,18 +85,18 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
 
     if (editing) {
       try {
-        const res = await apiClient.updateExpense(editing, { ...form, amount });
+        const res = await managementDataAdapter.updateExpense(editing, { ...form, amount });
         setExpenses(old => old.map(x => (x.id === editing ? res.expense : x)));
-        onEvent(`Updated expense in SQLite: ${form.description}`);
+        onEvent(managementDataAdapter.isDemo ? `Updated demo expense in this browser: ${form.description}` : `Updated expense in SQLite: ${form.description}`);
       } catch {
         setExpenses(old => old.map(x => (x.id === editing ? { ...x, ...form, amount } : x)));
         onEvent(`Updated expense locally: ${form.description}`);
       }
     } else {
       try {
-        const res = await apiClient.createExpense({ ...form, amount });
+        const res = await managementDataAdapter.createExpense({ ...form, amount });
         setExpenses(old => [res.expense, ...old]);
-        onEvent(`Recorded expense in SQLite: ${form.description} (${formatMoney(amount)})`);
+        onEvent(managementDataAdapter.isDemo ? `Recorded demo expense in this browser: ${form.description} (${formatMoney(amount)})` : `Recorded expense in SQLite: ${form.description} (${formatMoney(amount)})`);
       } catch {
         setExpenses(old => [
           {
@@ -115,9 +126,9 @@ export default function ExpenseReport({ expenses = [], setExpenses, onEvent = ()
 
   const confirmVoid = async (e) => {
     try {
-      await apiClient.updateExpense(e.id, { active: false });
+      await managementDataAdapter.updateExpense(e.id, { active: false });
       setExpenses(old => old.map(x => (x.id === e.id ? { ...x, active: false } : x)));
-      onEvent(`Voided expense in SQLite: ${e.description}`);
+      onEvent(managementDataAdapter.isDemo ? `Voided demo expense in this browser: ${e.description}` : `Voided expense in SQLite: ${e.description}`);
     } catch {
       setExpenses(old => old.map(x => (x.id === e.id ? { ...x, active: false } : x)));
       onEvent(`Voided expense locally: ${e.description}`);

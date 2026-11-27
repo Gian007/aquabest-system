@@ -13,7 +13,8 @@
   - `Outstanding Balance` = non-cancelled orders explicitly marked `Unpaid` (missing/unknown statuses are tracked separately as `Not Recorded`).
   - `Recorded Expenses` = active expenses (`active !== false`); voided expenses stay in the audit ledger only.
   - `Collections After Paid Expenses` = `Verified Collected - Paid Expenses` (cash-flow indicator only, never labeled Net Profit).
-- **Single Source of Truth:** Screen KPIs and both PDF formats MUST consume the exact same `buildSalesReportData()` output. Never compute independent totals in PDF code.
+  - `Recorded Operating Result (Demo)` = `Completed Sales - Active Recorded Expenses` (operating indicator only, never labeled Audited Net Profit).
+- **Single Source of Truth & Dual Data Modes:** Screen KPIs, charts, and both PDF formats MUST consume the exact same `buildSalesReportData()` / `buildSalesChartData()` outputs fed by `src/services/managementDataAdapter.js` (supporting both GitHub Pages static Demo Mode `VITE_DATA_MODE=demo` and local SQLite API Mode `VITE_DATA_MODE=api`). Never hardcode totals into UI cards.
 
 ## 2. Timestamp & Timezone Rules
 - **Business Timezone:** `Asia/Manila` (UTC+8) for all calendar date boundaries and hourly aggregation.

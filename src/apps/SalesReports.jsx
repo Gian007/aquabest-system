@@ -110,7 +110,10 @@ export default function SalesReports({
     periodOrders,
     periodExpenses,
     grossSales,
+    completedSales,
     verifiedCollected,
+    verifiedCollectedCompleted,
+    unpaidCompletedSales,
     outstandingBalance,
     unknownPaymentBalance,
     recordedExpenses,
@@ -118,6 +121,7 @@ export default function SalesReports({
     unpaidExpenses,
     unrecordedStatusExpenses,
     collectionsAfterPaidExpenses,
+    recordedOperatingResult,
     totalOrders,
     cancelledOrdersCount,
     paidOrdersCount,
@@ -358,8 +362,8 @@ export default function SalesReports({
             <FiBarChart2 />
           </div>
           <div className="sales-kpi-content">
-            <span className="sales-kpi-label">Gross Sales</span>
-            <strong className="sales-kpi-amount">{formatMoney(grossSales)}</strong>
+            <span className="sales-kpi-label">Completed Sales</span>
+            <strong className="sales-kpi-amount">{formatMoney(completedSales)}</strong>
           </div>
         </div>
 
@@ -369,7 +373,7 @@ export default function SalesReports({
           </div>
           <div className="sales-kpi-content">
             <span className="sales-kpi-label">Verified Collected</span>
-            <strong className="sales-kpi-amount">{formatMoney(verifiedCollected)}</strong>
+            <strong className="sales-kpi-amount">{formatMoney(verifiedCollectedCompleted)}</strong>
           </div>
         </div>
 
@@ -378,8 +382,8 @@ export default function SalesReports({
             <FiClock />
           </div>
           <div className="sales-kpi-content">
-            <span className="sales-kpi-label">Outstanding Balance</span>
-            <strong className="sales-kpi-amount">{formatMoney(outstandingBalance)}</strong>
+            <span className="sales-kpi-label">Unpaid Completed</span>
+            <strong className="sales-kpi-amount">{formatMoney(unpaidCompletedSales)}</strong>
           </div>
         </div>
 
@@ -388,34 +392,34 @@ export default function SalesReports({
             <FiCreditCard />
           </div>
           <div className="sales-kpi-content">
-            <span className="sales-kpi-label">Expenses Recorded</span>
+            <span className="sales-kpi-label">Active Expenses</span>
             <strong className="sales-kpi-amount">{formatMoney(recordedExpenses)}</strong>
           </div>
         </div>
       </div>
 
-      {/* 4. Compact Estimated Margin Banner */}
+      {/* 4. Recorded Operating Result (Demo) & Collections Cash-Flow Banner */}
       <div className="sales-margin-banner">
         <div className="sales-margin-left">
           <div className="sales-margin-kicker">
-            <FiTrendingUp /> COLLECTIONS AFTER PAID EXPENSES
+            <FiTrendingUp /> RECORDED OPERATING RESULT (DEMO)
           </div>
           <strong className="sales-margin-amount">
-            {formatMoney(collectionsAfterPaidExpenses)}
+            {recordedOperatingResult > 0 ? '+' : recordedOperatingResult < 0 ? '-' : ''}{formatMoney(Math.abs(recordedOperatingResult))}
           </strong>
         </div>
 
         <div className="sales-margin-center">
-          <span>Verified collections minus expenses explicitly marked Paid.</span>
-          <em>Cash-flow indicator only — not verified net profit.</em>
+          <span>Completed sales ({formatMoney(completedSales)}) minus active recorded expenses ({formatMoney(recordedExpenses)}).</span>
+          <em>Operating indicator only — not an audited net profit calculation. Collections after paid expenses: {formatMoney(collectionsAfterPaidExpenses)}.</em>
         </div>
 
         <div
-          className={`sales-margin-badge ${collectionsAfterPaidExpenses > 0 ? 'positive' : collectionsAfterPaidExpenses < 0 ? 'negative' : 'neutral'
+          className={`sales-margin-badge ${recordedOperatingResult > 0 ? 'positive' : recordedOperatingResult < 0 ? 'negative' : 'neutral'
             }`}
         >
           <span className="sales-status-dot" />
-          <span>{collectionsAfterPaidExpenses > 0 ? 'Positive' : collectionsAfterPaidExpenses < 0 ? 'Negative' : 'Neutral'}</span>
+          <span>{recordedOperatingResult > 0 ? 'Positive' : recordedOperatingResult < 0 ? 'Loss Period' : 'Neutral'}</span>
         </div>
       </div>
 

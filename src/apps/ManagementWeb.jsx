@@ -12,7 +12,7 @@ import { useEmployeeAvailability, availabilityFor, TeamAvailability } from './Em
 import ManagementHeaderActions from './ManagementHeaderActions.jsx';
 import ManagementNotifications from './ManagementNotifications.jsx';
 import DeliveryOperations, { INITIAL_DELIVERY_TRIPS } from './DeliveryOperations.jsx';
-import { apiClient } from '../services/apiClient.js';
+import { managementDataAdapter, loadDemoWorkspace } from '../services/managementDataAdapter.js';
 import OwnerOperations from './OwnerOperations.jsx';
 import SalesReports from './SalesReports.jsx';
 import ManagerControl from './ManagerControl.jsx';
@@ -45,16 +45,28 @@ export default function ManagementWeb({role='manager',onLogout}){
  const isDelivery=role==='delivery';
  const isOwner=role==='owner';
  const isManager=!isOwner&&!isStaff&&!isDelivery;
- const [trips,setTrips]=useState(INITIAL_DELIVERY_TRIPS);
+ const isDemo=managementDataAdapter.isDemo;
+ const initialDemo=useMemo(()=>isDemo?loadDemoWorkspace():null,[isDemo]);
+ const [trips,setTripsState]=useState(()=>initialDemo?initialDemo.trips:INITIAL_DELIVERY_TRIPS);
+ const setTrips=updater=>{
+  setTripsState(prev=>{
+   const next=typeof updater==='function'?updater(prev):updater;
+   if(isDemo)managementDataAdapter.persistTrips(next);
+   return next;
+  });
+ };
  const [page,setPage]=useState('dashboard');
  const {entries:availability,update:updateAvailability}=useEmployeeAvailability();
- const [orders,setOrders]=useState(()=>isStaff?[...INITIAL_ORDERS,
+ const [orders,setOrders]=useState(()=>initialDemo?initialDemo.orders:(isStaff?[...INITIAL_ORDERS,
  {id:'AB-1045',customer:'Office Refill',source:'Phone',items:[{sizeId:'slim5',quantity:3}],status:'Confirmed',paymentStatus:'Unpaid',amount:105,service:'Walk-in',assigned:'Staff A',date:'2026-10-31'},
- {id:'AB-1046',customer:'Anna Cruz',source:'Online',items:[{sizeId:'round5',quantity:2}],status:'Ready',paymentStatus:'Unpaid',amount:70,service:'Delivery',assigned:'Staff A',date:'2026-10-31'}]:INITIAL_ORDERS);
+ {id:'AB-1046',customer:'Anna Cruz',source:'Online',items:[{sizeId:'round5',quantity:2}],status:'Ready',paymentStatus:'Unpaid',amount:70,service:'Delivery',assigned:'Staff A',date:'2026-10-31'}]:INITIAL_ORDERS));
  const [staffHistory,setStaffHistory]=useState([]);
- const [stock,setStock]=useState(INITIAL_STOCK);
- const [expenses,setExpenses]=useState([]);
- const [stockLog,setStockLog]=useState([]);
+ const [stock,setStock]=useState(()=>initialDemo?initialDemo.stock:INITIAL_STOCK);
+ const [supplies,setSupplies]=useState(()=>initialDemo?initialDemo.supplies:[]);
+ const [expenses,setExpenses]=useState(()=>initialDemo?initialDemo.expenses:[]);
+ const [stockLog,setStockLog]=useState(()=>initialDemo?initialDemo.stockLog:[]);
+ const [containerMovements,setContainerMovements]=useState(()=>initialDemo?initialDemo.containerMovements:[]);
+ const [employees,setEmployees]=useState(()=>initialDemo?initialDemo.employees:[]);
  const [stockError,setStockError]=useState('');
  const [sale,setSale]=useState(initialSale);
  const [filter,setFilter]=useState('All');
@@ -64,21 +76,30 @@ export default function ManagementWeb({role='manager',onLogout}){
  const [notification,setNotification]=useState('');
  const [newStock,setNewStock]=useState({id:'round5',type:'IN',quantity:1,reason:''});
  const [stockOpen,setStockOpen]=useState(false);
- const [backendStatus,setBackendStatus]=useState('checking');
+ const [backendStatus,setBackendStatus]=useState(isDemo?'demo':'checking');
  const [backendError,setBackendError]=useState('');
  const [savingSale,setSavingSale]=useState(false);
+ const applyWorkspace=ws=>{
+  setOrders(ws.orders||[]);
+  setExpenses(ws.expenses||[]);
+  if(Array.isArray(ws.stock)&&ws.stock.length)setStock(ws.stock);
+  setStockLog(ws.stockLog||[]);
+  setContainerMovements(ws.containerMovements||[]);
+  if(Array.isArray(ws.trips)&&ws.trips.length)setTripsState(ws.trips);
+  if(Array.isArray(ws.employees))setEmployees(ws.employees);
+  if(Array.isArray(ws.supplies))setSupplies(ws.supplies);
+ };
  const syncFromBackend=async()=>{
+  if(isDemo){
+   const ws=await managementDataAdapter.loadWorkspace();
+   applyWorkspace(ws);
+   setBackendStatus('demo');
+   setBackendError('');
+   return true;
+  }
   try{
-   await apiClient.health();
-   const [ordRes,expRes,invRes]=await Promise.all([apiClient.getOrders(),apiClient.getExpenses(),apiClient.getInventory()]);
-   setOrders(ordRes.orders||[]);
-   setExpenses(expRes.expenses||[]);
-   if(Array.isArray(invRes.items)&&invRes.items.length){
-    setStock(invRes.items.map(i=>({id:i.id,quantity:i.quantity,minimum:i.minimum})));
-   }
-   if(Array.isArray(invRes.movements)){
-    setStockLog(invRes.movements.map(m=>({id:m.id,productId:m.product_id,type:m.movement_type,quantity:m.quantity,reason:m.reason,orderId:m.order_id,automatic:Boolean(m.order_id),time:m.created_at})));
-   }
+   const ws=await managementDataAdapter.loadWorkspace();
+   applyWorkspace(ws);
    setBackendStatus('online');
    setBackendError('');
    return true;
@@ -88,7 +109,12 @@ export default function ManagementWeb({role='manager',onLogout}){
    return false;
   }
  };
- useEffect(()=>{syncFromBackend();},[]);
+ const handleResetDemoData=()=>{
+  const fresh=managementDataAdapter.resetDemoData();
+  applyWorkspace(fresh);
+  setNotification('Static Demo Data reset to original September–November 2026 fixture.');
+ };
+ useEffect(()=>{if(!isDemo)syncFromBackend();},[isDemo]);
  const go=(p)=>{if(isDelivery&&!['dashboard','deliveries','bottles','collections','history','more','notifications'].includes(p))return;if(isStaff&&!['dashboard','refill','orders','inventory','activity','more','notifications'].includes(p))return;setPage(p);setSelected(null);window.scrollTo(0,0)};
  const assignedOrders=orders.filter(o=>o.assigned==='Staff A');
  const ownStatusName=isOwner?'Super Admin':isDelivery?'Driver A':isStaff?'Staff A':'Manager';
@@ -106,64 +132,47 @@ export default function ManagementWeb({role='manager',onLogout}){
  const saveSale=async()=>{
   if(isStaff||!selectedQty||savingSale)return;
   if(sale.ownership==='store' && Object.entries(sale.quantities).some(([id,q])=>q>(stock.find(x=>x.id===id)?.quantity||0))){setNotification('Insufficient AquaBest bottle stock.');return;}
-  if(backendStatus==='online'){
-   setSavingSale(true);
-   try{
-    await apiClient.createOrder({
-     customer:sale.customer.trim()||'Walk-in Customer',
-     source:sale.source,
-     service:sale.service,
-     paymentMethod:sale.paymentMethod,
-     paymentStatus:sale.paymentStatus,
-     reference:sale.reference,
-     notes:sale.notes,
-     ownership:sale.ownership,
-     arrangement:sale.arrangement,
-     date:today(),
-     items:Object.entries(sale.quantities).filter(([,q])=>q>0).map(([sizeId,quantity])=>({sizeId,quantity}))
-    });
+  setSavingSale(true);
+  try{
+   const payload={
+    customer:sale.customer.trim()||'Walk-in Customer',
+    source:sale.source,
+    service:sale.service,
+    paymentMethod:sale.paymentMethod,
+    paymentStatus:sale.paymentStatus,
+    reference:sale.reference,
+    notes:sale.notes,
+    ownership:sale.ownership,
+    arrangement:sale.arrangement,
+    date:today(),
+    items:Object.entries(sale.quantities).filter(([,q])=>q>0).map(([sizeId,quantity])=>({sizeId,quantity}))
+   };
+   const res=await managementDataAdapter.createOrder(payload);
+   if(isDemo&&res.workspace){
+    applyWorkspace(res.workspace);
+    setNotification('Demo order saved in this browser (not synced to other devices). '+(sale.ownership==='store'?'AquaBest bottle stock deducted.':'Customer-owned container.'));
+   }else{
     await syncFromBackend();
     setNotification('Order saved to local SQLite database.');
-    setSale(initialSale());setFilter('All');go('orders');
-   }catch(err){
-    setNotification('Failed to save order: '+err.message);
-   }finally{
-    setSavingSale(false);
    }
-   return;
+   setSale(initialSale());setFilter('All');go('orders');
+  }catch(err){
+   setNotification('Failed to save order: '+err.message);
+  }finally{
+   setSavingSale(false);
   }
-  const id='DEMO-'+String(Date.now()).slice(-6);
-  const isPaid=sale.paymentStatus==='Paid';
-  const nowIso=new Date().toISOString();
-  const nextStatus=sale.service==='Walk-in'?(isPaid?'Completed':'Confirmed'):'Pending Confirmation';
-  const record={id,customer:sale.customer.trim()||'Walk-in Customer',customerReference:sale.customerReference.trim(),source:sale.source,items:Object.entries(sale.quantities).filter(([,q])=>q>0).map(([sizeId,quantity])=>({sizeId,quantity})),
-   status:nextStatus,paymentStatus:sale.paymentStatus,method:sale.paymentMethod,
-   reference:sale.reference,amount:selectedTotal,service:sale.service,ownership:sale.ownership,assigned:'Unassigned',date:today(),business_date:today(),created_at:nowIso,updated_at:nowIso,completed_at:nextStatus==='Completed'?nowIso:null,notes:sale.notes};
-  if(sale.ownership==='store'){
-   const events=record.items.map(item=>({id:id+'-'+item.sizeId,productId:item.sizeId,type:'OUT',quantity:item.quantity,reason:sale.arrangement==='returnable'?'Returnable bottle issued':'Container sold',orderId:id,automatic:true,time:new Date().toLocaleString('en-PH')}));
-   setStock(old=>old.map(x=>({...x,quantity:x.quantity-(record.items.find(i=>i.sizeId===x.id)?.quantity||0)})));
-   setStockLog(old=>[...events,...old]);
-  }
-  setOrders(old=>[record,...old]);setNotification('Local demo order saved (SQLite backend offline). '+(sale.ownership==='store'?'AquaBest bottle stock deducted.':'Customer-owned container.'));
-  setSale(initialSale());go('orders');
  };
  const changeOrder=async(id,patch)=>{
-  if(backendStatus==='online'){
-   try{
-    await apiClient.updateOrder(id,patch);
+  try{
+   const res=await managementDataAdapter.updateOrder(id,patch);
+   if(isDemo&&res.workspace){
+    applyWorkspace(res.workspace);
+   }else{
     await syncFromBackend();
-    return;
-   }catch(err){
-    setNotification('Failed to update order: '+err.message);
-    return;
    }
+  }catch(err){
+   setNotification('Failed to update order: '+err.message);
   }
-  const nowIso=new Date().toISOString();
-  setOrders(old=>old.map(o=>{
-   if(o.id!==id)return o;
-   const completedAt=['Completed','Delivered','Picked Up'].includes(patch.status)&&!o.completed_at?nowIso:o.completed_at;
-   return {...o,...patch,updated_at:nowIso,completed_at:completedAt};
-  }));
  };
  const claimManagerRefill=(id,actor='Manager')=>setOrders(old=>old.map(o=>o.id===id&&['Pending Confirmation','Confirmed'].includes(o.status)&&!o.claimedBy?{...o,status:'Preparing',claimedBy:actor,assigned:actor,refillClaimedAt:new Date().toLocaleString('en-PH')}:o));
  const finishManagerRefill=(id,actor='Manager')=>setOrders(old=>old.map(o=>o.id===id&&o.claimedBy===actor&&o.status==='Preparing'?{...o,status:'Ready',claimedBy:null,refilledBy:actor,refillCompletedAt:new Date().toLocaleString('en-PH')}:o));
@@ -176,18 +185,18 @@ export default function ManagementWeb({role='manager',onLogout}){
  if(!Number.isInteger(n)||n<1){setStockError('Enter a valid positive whole number.');return}
  if(!reason){setStockError('Reason is required.');return}
  if(newStock.type==='OUT'&&n>item.quantity){setStockError('Insufficient bottle stock.');return}
- if(backendStatus==='online'){
-  try{
-   await apiClient.recordInventoryMovement({productId:newStock.id,type:newStock.type,quantity:n,reason});
+ try{
+  const res=await managementDataAdapter.recordInventoryMovement({productId:newStock.id,type:newStock.type,quantity:n,reason});
+  if(isDemo&&res.workspace){
+   applyWorkspace(res.workspace);
+   if(isStaff)setStaffHistory(h=>[{id:Date.now(),label:'Inventory '+newStock.type+' ('+n+'): '+reason,time:new Date().toLocaleString('en-PH')},...h]);
+   setNotification('Demo stock movement saved in this browser.');
+  }else{
    await syncFromBackend();
-   setStockOpen(false);setStockError('');setNewStock({id:'round5',type:'IN',quantity:1,reason:''});setNotification('Stock movement saved to SQLite.');
-  }catch(err){setStockError(err.message);}
-  return;
- }
- setStock(old=>old.map(s=>s.id===newStock.id?{...s,quantity:s.quantity+(newStock.type==='IN'?n:-n)}:s));
- setStockLog(old=>[{id:'MAN-'+Date.now(),productId:newStock.id,type:newStock.type,quantity:n,reason,automatic:false,time:new Date().toLocaleString('en-PH')},...old]);
- if(isStaff)setStaffHistory(h=>[{id:Date.now(),label:'Inventory '+newStock.type+' ('+n+'): '+reason,time:new Date().toLocaleString('en-PH')},...h]);
- setStockOpen(false);setStockError('');setNewStock({id:'round5',type:'IN',quantity:1,reason:''});setNotification('Demo stock movement saved with reason.');
+   setNotification('Stock movement saved to SQLite.');
+  }
+  setStockOpen(false);setStockError('');setNewStock({id:'round5',type:'IN',quantity:1,reason:''});
+ }catch(err){setStockError(err.message);}
  };
  const filtered=(isStaff?assignedOrders:orders).filter(o=>filter==='All'||(filter==='Unpaid'?o.paymentStatus!=='Paid':o.status===filter));
  const section=<div className="mgmt-demo">Prototype only • prices, names, sales, assignments and orders are sample values. Nothing is written to a backend.</div>;
@@ -203,12 +212,29 @@ export default function ManagementWeb({role='manager',onLogout}){
   <div className="mgmt-body">
    <aside className="mgmt-sidebar" aria-label="Management sections">{(isOwner?ownerModules:isDelivery?deliveryModules:isStaff?staffModules:modules).map(([id,label,Icon])=><button key={id} className={'mgmt-sidebtn '+(page===id||(id==='settings'&&(page==='customize-dashboard'||page==='dashboard-settings'))?'active':'')} onClick={()=>go(id)}><Icon/><span className="mgmt-side-text"><strong>{label}</strong><small>{({dashboard:'Daily operations overview',pos:'Walk-in and manual sales',orders:'Review and assign orders',refill:'Preparation work queue',delivery:'Dispatch and pickups',inventory:'Bottle stock and movement logs',payments:'Collections and balances',reports:'Revenue and sales breakdown',staff:'Personnel assignments',activity:'Your task and stock movement history',deliveries:'Your assigned trips and stops',bottles:'Loaded bottles, empties and returns',collections:'COD and remittance records',history:'Completed trips and activity',employees:'Accounts and role permissions',approvals:'Electronic proofs and cash remittances',settings:'Business rules and dashboard customization',audit:'Administrative activity and audit history',products:'Manage products, images and availability'})[id]}</small></span></button>)}<button className="mgmt-sidebtn mgmt-logout-link" onClick={logout}><FiLogOut/><span className="mgmt-side-text"><strong>Log Out</strong><small>Exit the demo workspace</small></span></button></aside>
    <main className="mgmt-main">
-    {backendStatus==='offline'&&<div className="mgmt-notice" role="status">Local SQLite backend offline ({backendError||'http://127.0.0.1:8787'}). Run <code>npm run dev:backend</code> for persistent storage. <button type="button" className="mgmt-link" onClick={syncFromBackend}>Retry</button></div>}
+    {isDemo?(
+     <div className="mgmt-demo-bar" role="status" aria-label="Demo Mode Indicator">
+      <div className="mgmt-demo-bar-left">
+       <span className="mgmt-demo-pill">DEMO MODE</span>
+       <span className="mgmt-demo-caption">Sample business data · September–November 2026</span>
+      </div>
+      <span className="mgmt-sub" style={{margin:0}}>Static browser demo · Not live production</span>
+     </div>
+    ):backendStatus==='offline'?(
+     <div className="mgmt-notice" role="status">Local API Mode: SQLite backend offline ({backendError||'http://127.0.0.1:8787'}). Start with <code>npm run dev:backend</code>. <button type="button" className="mgmt-link" onClick={syncFromBackend}>Retry</button></div>
+    ):(
+     <div className="mgmt-demo-bar" role="status" aria-label="Local API Mode Indicator">
+      <div className="mgmt-demo-bar-left">
+       <span className="mgmt-demo-pill api">API MODE</span>
+       <span className="mgmt-demo-caption">Local Temporary SQLite Backend (127.0.0.1:8787)</span>
+      </div>
+     </div>
+    )}
     {notification&&<div className="mgmt-notice" role="status">{notification} <button className="mgmt-link" onClick={()=>setNotification('')}>Dismiss</button></div>}
     {isManager&&page==='remittance'&&<ManagerControl page={page} go={go} orders={orders} availability={availability} onOpenOrder={openOrder} onNotice={setNotification}/>}
      {(isManager&&['dashboard','queue','collections','staff'].includes(page)||isOwner&&['queue','collections','staff'].includes(page))&&<ManagerSimplified page={page} go={go} orders={orders} availability={availability} isOwner={isOwner} onOpenOrder={openOrder} onFinishManagerRefill={finishManagerRefill} onClaimManagerRefill={claimManagerRefill} onNotice={setNotification}/>}
      {isManager&&page==='verification'&&<ManagerDeliveryVerification go={go} managerOrders={orders} onNotice={setNotification}/>}
-     {isOwner&&<OwnerOperations page={page} go={go} orders={orders} stock={stock} stockLog={stockLog} trips={trips} availability={availability} onMessage={setNotification} onOpenOrder={openOrder} expenses={expenses} setExpenses={setExpenses}/>}
+     {isOwner&&<OwnerOperations page={page} go={go} orders={orders} stock={stock} stockLog={stockLog} containerMovements={containerMovements} trips={trips} employees={employees} availability={availability} onMessage={setNotification} onOpenOrder={openOrder} expenses={expenses} setExpenses={setExpenses} isDemoMode={isDemo} onResetDemoData={handleResetDemoData}/>}
     {isDelivery&&<DeliveryOperations page={page} go={go} trips={trips} setTrips={setTrips} onMessage={setNotification} onLogout={logout}/>}
     {isStaff&&page==='dashboard'&&<>
      <Heading kicker="Staff workspace" title="My Work Today" subtitle="Assigned orders, refill preparation and container tasks."/>
@@ -275,7 +301,8 @@ export default function ManagementWeb({role='manager',onLogout}){
     {!isDelivery&&page==='inventory'&&<>
      <Heading kicker="Stock control" title="Inventory & Bottles" subtitle="Available containers, minimum stock and movement recording."/>
      <div className="mgmt-stats"><Stat label="Total Bottles (Demo)" value={stock.reduce((a,s)=>a+s.quantity,0)} Icon={FiPackage}/><Stat label="Low Stock" value={stock.filter(s=>s.quantity<s.minimum).length} Icon={FiAlertTriangle}/></div>
-     {stock.map(s=><div className="mgmt-card mgmt-order" key={s.id}><div className="mgmt-order-head"><strong>{DEMO_PRODUCTS.find(p=>p.id===s.id)?.label} · {DEMO_PRODUCTS.find(p=>p.id===s.id)?.shape}</strong><Pill>{s.quantity<s.minimum?'Low Stock':'Available'}</Pill></div><p>Quantity: {s.quantity} • Minimum: {s.minimum}</p></div>)}
+     {stock.map(s=><div className="mgmt-card mgmt-order" key={s.id}><div className="mgmt-order-head"><strong>{DEMO_PRODUCTS.find(p=>p.id===s.id)?.label} · {DEMO_PRODUCTS.find(p=>p.id===s.id)?.shape}</strong><Pill>{s.quantity<s.minimum?'Low Stock':'Available'}</Pill></div><p>Quantity: {s.quantity} • Minimum: {s.minimum}{s.openingQuantity!==undefined?` • Opening (Sep 1): ${s.openingQuantity}`:''}</p></div>)}
+     {supplies.length>0&&<><Section title="Refill & Station Supplies"/>{supplies.map(sup=><div className="mgmt-card mgmt-order" key={sup.id}><div className="mgmt-order-head"><strong>{sup.name}</strong><Pill>{sup.quantity<sup.minimum?'Low Stock':'Available'}</Pill></div><p>Quantity: {sup.quantity} • Minimum: {sup.minimum}</p></div>)}</>}
      <button className="mgmt-btn full" onClick={()=>{setStockError('');setStockOpen(true)}}><FiPlus/> Record Stock IN / OUT</button>
      <Section title="Movement History"/>
      <div className="mgmt-card">{stockLog.length?stockLog.map(m=><div className="mgmt-row" key={m.id}><div><div className="mgmt-row-title">{m.automatic?'Automatic':'Manual'} {m.type} · {DEMO_PRODUCTS.find(p=>p.id===m.productId)?.label} {DEMO_PRODUCTS.find(p=>p.id===m.productId)?.shape}</div><div className="mgmt-sub">{m.reason}{m.orderId?' · '+m.orderId:''}</div><div className="mgmt-sub">{m.time}</div></div><Pill>{(m.type==='IN'?'+':'−')+m.quantity}</Pill></div>):<p className="mgmt-sub">No stock movements recorded during this session. Save a store-owned POS order or record manual IN/OUT.</p>}</div>{section}

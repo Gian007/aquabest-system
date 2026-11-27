@@ -16,7 +16,7 @@ It must prioritize:
 ## 2. Approved Default Dashboard Sections & Order
 The default section arrangement MUST use this exact order unless explicitly approved otherwise:
 
-1. **Dashboard Header** (`Super Admin Dashboard`, short subtitle `Business Overview`, single primary action: `New Order`)
+1. **Dashboard Header** (`Super Admin Dashboard`, short subtitle `Business Overview` — **NO `New Order` button**, **NO `Sales Reports` button**, **NO `Dashboard Settings` button**)
 2. **Compact Date Range Selector** (ONE compact dropdown trigger defaulting to `Today`, e.g. `Today · Nov 27, 2026`)
 3. **Business Performance Summary** (`summary`)
 4. **Needs Attention** (`attention`)
@@ -27,11 +27,14 @@ The default section arrangement MUST use this exact order unless explicitly appr
 
 Stable section IDs (`summary`, `attention`, `salesChart`, `gallonActivity`, `operations`, `recentActivity`) MUST be preserved across updates so saved user arrangements never break.
 
-## 2.1 Mandatory Navigation, Date Filter & Customization Rules
+## 2.1 Mandatory Navigation, Date Filter, Mode & Customization Rules
+- **Super Admin Dashboard is NOT a POS screen:** Super Admin focuses on monitoring, financial overview, inventory health, operations, and exceptions. Never place a `New Order` or order-entry button on the Super Admin Dashboard. Keep POS and order creation in their proper operational modules (`POS`, `Orders`, Manager workspace).
 - **Dashboard Settings Placement:** Dashboard Settings must be accessed through `More > Settings > Customize Dashboard`. Do not render Dashboard Settings as a primary dashboard header action.
 - **Single Compact Date Filter:** Dashboard and Sales Reports must use one compact date-range dropdown rather than displaying multiple permanent date-range buttons and separate navigation rows.
 - **Viewing vs. Customization Separation:** Dashboard customization must be separate from dashboard viewing. The normal dashboard must remain focused on business information and operational actions.
-- **No Redundant Navigation:** Do not duplicate `Reports` as a dashboard header button when `Reports` is already in the primary bottom navigation.
+- **No Redundant Navigation:** Do not duplicate `Reports` as a dashboard header button when `Reports` is already in the primary bottom navigation (`Home`, `Reports`, `Employees`, `More`).
+- **Dual Execution Modes & Synthetic Disclosure:** GitHub Pages MUST run independently in Static Demo Mode (`VITE_DATA_MODE=demo`, bundling `src/data/demo/aquabest-demo-2026.json`) with a clear `DEMO MODE` indicator (`Sample business data · September–November 2026`). The local temporary backend (`server/`) MUST remain independently runnable via `VITE_DATA_MODE=api`.
+- **Operating Result Language:** Label `Completed Sales − Active Recorded Expenses` strictly as **`Recorded Operating Result (Demo)`** — never as audited net profit.
 
 ## 3. Dashboard Design Rules
 - Maintain the AquaBest brand identity (`#1B2F63` navy, `#244EA3` primary blue, `#2AA9C5` aqua, `#EAF1FF` light tint, `#D9E2EC` borders).
