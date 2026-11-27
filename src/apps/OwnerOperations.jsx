@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useState} from 'react';
-import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet,FiChevronRight,FiChevronDown,FiChevronUp,FiTrendingUp,FiInfo,FiSliders,FiArrowUp,FiArrowDown,FiRotateCcw,FiLayout,FiCheckSquare,FiGrid} from 'react-icons/fi';
+import {FiBarChart2,FiUsers,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet,FiChevronRight,FiChevronDown,FiChevronUp,FiTrendingUp,FiInfo,FiSliders,FiArrowUp,FiArrowDown,FiRotateCcw,FiLayout,FiCheckSquare,FiGrid} from 'react-icons/fi';
+import PesoIcon from '../components/PesoIcon.jsx';
 import {formatMoney} from '../data/managerDemo.js';
 import {getTodayLocalDate} from '../utils/reportDateUtils.js';
 import {buildOwnerDashboardData} from '../utils/buildOwnerDashboardData.js';
@@ -192,7 +193,7 @@ export default function OwnerOperations({
   failedTripsCount>0&&{id:'issues',severity:'critical',title:`${failedTripsCount} failed or delayed delivery issue${failedTripsCount===1?'':'s'} requiring review`,meta:'Inspect delivery exceptions in Trips & Pickups',target:'collections',Icon:FiAlertTriangle},
   lowStockCount>0&&{id:'low-stock',severity:'critical',title:`${lowStockCount} low stock container size${lowStockCount===1?'':'s'}`,meta:'Review bottle inventory & minimum stock thresholds',target:'inventory',Icon:FiPackage},
   pendingElectronic.length>0&&{id:'verify',severity:'warning',title:`${pendingElectronic.length} pending payment verification${pendingElectronic.length===1?'':'s'}`,meta:'Review submitted GCash or bank references',target:'approvals',Icon:FiCreditCard},
-  remittance>0&&{id:'remittance',severity:'warning',title:`${formatMoney(remittance)} driver cash awaiting remittance`,meta:'Confirm physical cash handover in Payment Verification',target:'approvals',Icon:FiDollarSign},
+  remittance>0&&{id:'remittance',severity:'warning',title:`${formatMoney(remittance)} driver cash awaiting remittance`,meta:'Confirm physical cash handover in Payment Verification',target:'approvals',Icon:PesoIcon},
   unpaidOrders.length>0&&{id:'unpaid',severity:'warning',title:`${unpaidOrders.length} unpaid order${unpaidOrders.length===1?'':'s'} (${formatMoney(outstanding)})`,meta:'Track outstanding customer balances in Payments',target:'payments',Icon:FiClock},
   activeDelivery>0&&{id:'active-delivery',severity:'info',title:`${activeDelivery} active delivery order${activeDelivery===1?'':'s'} in progress`,meta:`Across ${activeOperationalTrips} active trip${activeOperationalTrips===1?'':'s'} — monitor in Trips & Pickups`,target:'collections',Icon:FiTruck}
  ].filter(Boolean);
@@ -241,7 +242,7 @@ export default function OwnerOperations({
      )}
      {m.verifiedCollected!==false&&(
       <div className="owner-finance-card verified">
-       <span className="owner-kpi-top"><span>Verified Collected</span><FiDollarSign size={16} aria-hidden="true"/></span>
+       <span className="owner-kpi-top"><span>Verified Collected</span><PesoIcon size={16} aria-hidden="true"/></span>
        <strong>{formatMoney(dashboardData.financials.verifiedCollectedCompleted)}</strong>
        <small>Completed sales explicitly marked Paid</small>
       </div>
@@ -719,7 +720,7 @@ export default function OwnerOperations({
   <div className="mgmt-section-title"><h2>GCash & Bank Transfers</h2></div>
   <div className="mgmt-card">{pendingElectronic.length?pendingElectronic.map(t=><div className="mgmt-row" key={t.id}><div><strong className="mgmt-row-title">{t.orderId} · {t.customer}</strong><p className="mgmt-sub">{t.paymentMethod} · {formatMoney(t.amount)} · Ref: {t.reference||'Missing'}</p><p className="mgmt-sub">Status: Pending verification</p></div><button className="mgmt-btn secondary" onClick={()=>{setVerification(old=>[...old,t.id]);record('Reviewed electronic payment proof for order '+t.orderId)}}>Mark Reviewed</button></div>):<div className="owner-empty"><FiCreditCard size={22}/><strong>No pending electronic payment proofs</strong><p>When a driver records a GCash or bank reference, it appears here for manual verification.</p></div>}</div>
   <div className="mgmt-section-title"><h2>Cash Collected by Drivers</h2></div>
-  <div className="mgmt-card">{trips.filter(t=>t.remittance==='Awaiting Remittance').length?trips.filter(t=>t.remittance==='Awaiting Remittance').map(t=><div className="mgmt-row" key={t.id}><div><strong className="mgmt-row-title">{t.orderId} · {t.driver}</strong><p className="mgmt-sub">{formatMoney(t.collectedCash||0)} collected · Pending handover</p></div><button className="mgmt-btn secondary" disabled={approvals.includes(t.id)} onClick={()=>{setApprovals(old=>[...old,t.id]);record('Reviewed pending cash remittance for order '+t.orderId)}}>{approvals.includes(t.id)?'Reviewed':'Mark Reviewed'}</button></div>):<div className="owner-empty"><FiDollarSign size={22}/><strong>No cash awaiting remittance</strong><p>Driver COD collections will be listed here when pending handover.</p></div>}</div>
+  <div className="mgmt-card">{trips.filter(t=>t.remittance==='Awaiting Remittance').length?trips.filter(t=>t.remittance==='Awaiting Remittance').map(t=><div className="mgmt-row" key={t.id}><div><strong className="mgmt-row-title">{t.orderId} · {t.driver}</strong><p className="mgmt-sub">{formatMoney(t.collectedCash||0)} collected · Pending handover</p></div><button className="mgmt-btn secondary" disabled={approvals.includes(t.id)} onClick={()=>{setApprovals(old=>[...old,t.id]);record('Reviewed pending cash remittance for order '+t.orderId)}}>{approvals.includes(t.id)?'Reviewed':'Mark Reviewed'}</button></div>):<div className="owner-empty"><PesoIcon size={22}/><strong>No cash awaiting remittance</strong><p>Driver COD collections will be listed here when pending handover.</p></div>}</div>
   <div className="mgmt-notice">Mark Reviewed is a demo checklist only. It does not simulate bank or GCash verification or alter authoritative ledgers.</div>{demo}
  </>}
  {page==='products'&&<ProductCatalog onEvent={record}/>}

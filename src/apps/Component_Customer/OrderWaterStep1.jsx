@@ -1,8 +1,19 @@
 import { FiArrowRight, FiCheckCircle, FiMinus, FiPlus, FiTruck, FiHome } from 'react-icons/fi';
-import { bottleOptions, serviceOptions, countBottles, selectedBottles } from './orderData.js';
+import {
+  bottleOptions,
+  serviceOptions,
+  countBottles,
+  selectedBottles,
+  getUnitPrice,
+  calculateLineTotal,
+  calculateOrderTotal,
+  formatCustomerMoney
+} from './orderData.js';
 
 export default function OrderWaterStep1({ draft, updateDraft, onNext }) {
   const total = countBottles(draft.quantities);
+  const totalAmount = calculateOrderTotal(draft.quantities, draft.ownership, draft.arrangement);
+  const isPurchase = draft.ownership === 'store' && draft.arrangement === 'purchase';
   const setQuantity = (id, amount) => {
     updateDraft({ quantities: { ...draft.quantities, [id]: Math.max(0, Math.min(99, (draft.quantities[id] || 0) + amount)) } });
   };
@@ -11,7 +22,7 @@ export default function OrderWaterStep1({ draft, updateDraft, onNext }) {
   });
   return (
     <section className="order-screen" aria-labelledby="order-water-title">
-      <div className="order-page-heading"><span className="order-step-pill">Step 1 of 3</span><h1 id="order-water-title">Order Water</h1><p>Select all the container sizes you need in one order.</p></div>
+      <div className="order-page-heading"><span className="order-step-pill">Step 1 of 3</span><h1 id="order-water-title">Order Water</h1><p>Select all the container sizes you need in one order. Bulk orders are supported.</p></div>
 
       <div className="order-panel">
         <h2>1. Whose containers will you use?</h2>
@@ -30,26 +41,44 @@ export default function OrderWaterStep1({ draft, updateDraft, onNext }) {
               <option value="purchase">Buy AquaBest containers</option>
               <option value="returnable">Request returnable containers (subject to approval)</option>
             </select>
-            <small>Returnable container availability, deposits, and pricing require store confirmation.</small>
+            <small>Returnable container availability and deposits require store confirmation. Purchase rates include the container + water.</small>
           </div>
         )}
       </div>
 
       <div className="order-panel">
         <h2>2. Select sizes and quantities</h2>
-        <p className="panel-hint">Use + and − for each size. No cart needed.</p>
+        <p className="panel-hint">Use + and − for each size. Unit prices and bulk subtotals update automatically.</p>
         <div className="bottle-rows">
-          {bottleOptions.map((item) => (
-            <div className={'bottle-row ' + (draft.quantities[item.id] > 0 ? 'is-picked' : '')} key={item.id}>
-              <img src={item.image} alt={item.name + ' ' + item.shape} className="bottle-thumbnail" />
-              <div className="bottle-info"><strong>{item.name}</strong><small>{item.shape}</small></div>
-              <div className="bottle-qty">
-                <button type="button" aria-label={'Remove one ' + item.name + ' ' + item.shape} disabled={!draft.quantities[item.id]} onClick={() => setQuantity(item.id, -1)}><FiMinus /></button>
-                <output aria-label={'Quantity for ' + item.name + ' ' + item.shape}>{draft.quantities[item.id] || 0}</output>
-                <button type="button" aria-label={'Add one ' + item.name + ' ' + item.shape} disabled={draft.quantities[item.id] >= 99} onClick={() => setQuantity(item.id, 1)}><FiPlus /></button>
+          {bottleOptions.map((item) => {
+            const qty = draft.quantities[item.id] || 0;
+            const unitPrice = getUnitPrice(item.id, draft.ownership, draft.arrangement);
+            const lineTotal = calculateLineTotal(item.id, qty, draft.ownership, draft.arrangement);
+            return (
+              <div className={'bottle-row ' + (qty > 0 ? 'is-picked' : '')} key={item.id}>
+                <img src={item.image} alt={item.name + ' ' + item.shape} className="bottle-thumbnail" />
+                <div className="bottle-info">
+                  <strong>{item.name}</strong>
+                  <small>{item.shape}</small>
+                  <span className="bottle-price-line">
+                    <span className="bottle-unit-price">
+                      {formatCustomerMoney(unitPrice)} / {isPurchase ? 'container + water' : 'refill'}
+                    </span>
+                    {qty > 0 && (
+                      <span className="bottle-line-subtotal">
+                        {formatCustomerMoney(unitPrice)} × {qty} = <strong>{formatCustomerMoney(lineTotal)}</strong>
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="bottle-qty">
+                  <button type="button" aria-label={'Remove one ' + item.name + ' ' + item.shape} disabled={!qty} onClick={() => setQuantity(item.id, -1)}><FiMinus /></button>
+                  <output aria-label={'Quantity for ' + item.name + ' ' + item.shape}>{qty}</output>
+                  <button type="button" aria-label={'Add one ' + item.name + ' ' + item.shape} disabled={qty >= 99} onClick={() => setQuantity(item.id, 1)}><FiPlus /></button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -67,9 +96,29 @@ export default function OrderWaterStep1({ draft, updateDraft, onNext }) {
       </div>
 
       <div className="order-mini-summary">
-        <strong>Order summary</strong><span>{total} container{total === 1 ? '' : 's'}</span>
-        {selectedBottles(draft.quantities).map((item) => <p key={item.id}>{item.name} · {item.shape} <b>× {draft.quantities[item.id]}</b></p>)}
-        {total === 0 && <p>Select at least one container size to continue.</p>}
+        <div className="order-mini-head">
+          <strong>Order summary</strong>
+          <span>{total} container{total === 1 ? '' : 's'}</span>
+        </div>
+        {selectedBottles(draft.quantities).map((item) => {
+          const qty = draft.quantities[item.id];
+          const unitPrice = getUnitPrice(item.id, draft.ownership, draft.arrangement);
+          const lineTotal = calculateLineTotal(item.id, qty, draft.ownership, draft.arrangement);
+          return (
+            <p key={item.id}>
+              <span>{item.name} · {item.shape} ({formatCustomerMoney(unitPrice)} × {qty})</span>
+              <b className="tabular-money">{formatCustomerMoney(lineTotal)}</b>
+            </p>
+          );
+        })}
+        {total > 0 ? (
+          <div className="order-mini-total">
+            <span>Total Amount</span>
+            <strong className="tabular-money">{formatCustomerMoney(totalAmount)}</strong>
+          </div>
+        ) : (
+          <p>Select at least one container size to continue.</p>
+        )}
       </div>
       <button type="button" disabled={total === 0} className="btn order-primary" onClick={onNext}>Continue to Order Details <FiArrowRight /></button>
     </section>

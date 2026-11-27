@@ -1,15 +1,19 @@
-import { FiArrowLeft, FiArrowRight, FiCalendar, FiClock, FiMapPin, FiPhone, FiUser } from 'react-icons/fi';
-import { isDelivery } from './orderData.js';
+import { FiArrowLeft, FiArrowRight, FiCalendar, FiClock, FiCreditCard, FiMapPin, FiPhone, FiUser } from 'react-icons/fi';
+import { CUSTOMER_PAYMENT_METHODS, isDelivery } from './orderData.js';
 
 export default function OrderDetailsStep2({ draft, updateDraft, onBack, onNext, verifiedPhone }) {
   const delivery = isDelivery(draft.service);
   const details = draft.details;
+  const paymentMethod = draft.paymentMethod || 'Cash';
+  const paymentReference = draft.paymentReference || '';
   const setDetail = (key, value) => updateDraft({ details: { ...details, [key]: value } });
-  const valid = details.name.trim() && /^09\d{9}$/.test(details.phone.replace(/\s/g, '')) && details.date && details.time && (!delivery || (details.address.trim() && details.barangay.trim()));
+  const valid = details.name.trim() && /^09\d{9}$/.test(details.phone.replace(/\s/g, '')) && details.date && details.time && Boolean(paymentMethod) && (!delivery || (details.address.trim() && details.barangay.trim()));
   const change = (key) => (event) => setDetail(key, event.target.value);
+  const activePayment = CUSTOMER_PAYMENT_METHODS.find((m) => m.id === paymentMethod) || CUSTOMER_PAYMENT_METHODS[0];
+
   return (
     <form className="order-screen" onSubmit={(event) => { event.preventDefault(); if (valid) onNext(); }} aria-labelledby="order-details-title">
-      <div className="order-page-heading"><span className="order-step-pill">Step 2 of 3</span><h1 id="order-details-title">Order Details</h1><p>{delivery ? 'Where and when should we deliver?' : 'When would you like to collect your order?'}</p></div>
+      <div className="order-page-heading"><span className="order-step-pill">Step 2 of 3</span><h1 id="order-details-title">Order Details</h1><p>{delivery ? 'Where, when, and how would you like to pay?' : 'When would you like to collect and pay for your order?'}</p></div>
 
       {delivery && <div className="order-panel">
         <h2><FiMapPin /> Delivery address</h2>
@@ -41,7 +45,47 @@ export default function OrderDetailsStep2({ draft, updateDraft, onBack, onNext, 
             <option value="Afternoon (1 PM–5 PM)">Afternoon (1 PM–5 PM)</option>
           </select></div>
         </div>
-        <small className="panel-hint">These are preferred windows, not confirmed AquaBest operating hours.</small>
+        <small className="panel-hint">Station delivery windows: Morning (9 AM–12 PM) and Afternoon (1 PM–5 PM).</small>
+      </div>
+
+      <div className="order-panel">
+        <h2><FiCreditCard /> Payment method</h2>
+        <p className="panel-hint">Choose how you prefer to settle your order. No third-party payment gateway is required — electronic transfers are verified manually by AquaBest staff.</p>
+        <div className="payment-choices" role="radiogroup" aria-label="Payment method">
+          {CUSTOMER_PAYMENT_METHODS.map((item) => {
+            const selected = paymentMethod === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                className={'service-choice payment-choice ' + (selected ? 'is-selected' : '')}
+                onClick={() => updateDraft({ paymentMethod: item.id, paymentReference: item.requiresReference ? paymentReference : '' })}
+              >
+                <span>
+                  <strong>{delivery ? item.labelDelivery : item.labelPickup}</strong>
+                  <small>{delivery ? item.detailDelivery : item.detailPickup}</small>
+                </span>
+                <span className="radio-indicator" aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
+        {activePayment.requiresReference && (
+          <div className="payment-ref-box">
+            <label htmlFor="payment-reference">{paymentMethod} reference number (optional)</label>
+            <input
+              id="payment-reference"
+              className="form-control"
+              value={paymentReference}
+              onChange={(e) => updateDraft({ paymentReference: e.target.value })}
+              maxLength={80}
+              placeholder="Enter reference number if already transferred, or provide upon delivery"
+            />
+            <small className="panel-hint">Station staff will manually confirm receipt before marking your order Paid.</small>
+          </div>
+        )}
       </div>
 
       <div className="order-panel">

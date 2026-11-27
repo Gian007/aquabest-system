@@ -10,7 +10,7 @@
     "dev:backend": "node server/index.js",
     "db:migrate": "node server/db/migrate.js",
     "db:seed": "node server/db/seed.js",
-    "test:frontend": "node --test tests/salesReportData.test.js tests/salesChartData.test.js tests/salesChartFilter.test.js tests/ownerDashboardData.test.js tests/ownerDashboardSettings.test.js tests/dateRangePresets.test.js tests/demoDataReconciliation.test.js",
+    "test:frontend": "node --test tests/salesReportData.test.js tests/salesChartData.test.js tests/salesChartFilter.test.js tests/ownerDashboardData.test.js tests/ownerDashboardSettings.test.js tests/dateRangePresets.test.js tests/demoDataReconciliation.test.js tests/customerOrderPricing.test.js",
     "test:backend": "node --test server/tests/backend.test.js",
     "validate:demo": "node --test tests/demoDataReconciliation.test.js",
     "build": "vite build",

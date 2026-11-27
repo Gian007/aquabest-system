@@ -1,5 +1,6 @@
 import {useState} from 'react';
-import {FiTruck,FiPackage,FiCreditCard,FiClock,FiCheckCircle,FiArrowRight,FiAlertTriangle,FiMapPin,FiFileText,FiRefreshCcw,FiLogOut,FiDollarSign} from 'react-icons/fi';
+import {FiTruck,FiPackage,FiCreditCard,FiClock,FiCheckCircle,FiArrowRight,FiAlertTriangle,FiMapPin,FiFileText,FiRefreshCcw,FiLogOut} from 'react-icons/fi';
+import PesoIcon from '../components/PesoIcon.jsx';
 import {formatMoney} from '../data/managerDemo.js';
 
 // Demo fixtures. Source (Online/Phone) is not evidence of payment.
@@ -80,7 +81,7 @@ export default function DeliveryOperations({page,go,trips,setTrips,driver='Drive
  </article>;
  return <>
   {page==='dashboard'&&<><Title tag="Delivery workspace" title="My Delivery Overview" description="Assigned trips, delivery progress and collections."/>
-   <div className="mgmt-stats"><Summary title="Assigned Trips" value={mine.length} Icon={FiTruck}/><Summary title="Active Trips" value={active.length} Icon={FiClock}/><Summary title="Delivered / Failed" value={completed.length} Icon={FiCheckCircle}/><Summary title="Cash to Remit" value={formatMoney(cashToRemit)} Icon={FiDollarSign}/></div>
+   <div className="mgmt-stats"><Summary title="Assigned Trips" value={mine.length} Icon={FiTruck}/><Summary title="Active Trips" value={active.length} Icon={FiClock}/><Summary title="Delivered / Failed" value={completed.length} Icon={FiCheckCircle}/><Summary title="Cash to Remit" value={formatMoney(cashToRemit)} Icon={PesoIcon}/></div>
    <div className="mgmt-section-title"><h2>Quick Actions</h2></div>
    <div className="mgmt-grid"><button className="mgmt-quick" onClick={()=>go('deliveries')}><FiTruck/> My Deliveries</button><button className="mgmt-quick" onClick={()=>go('bottles')}><FiPackage/> Bottle Handling</button><button className="mgmt-quick" onClick={()=>go('collections')}><FiCreditCard/> Collections</button><button className="mgmt-quick" onClick={()=>go('history')}><FiClock/> Trip History</button></div>
    <div className="mgmt-section-title"><h2>Current Trips</h2><button className="mgmt-link" onClick={()=>go('deliveries')}>View All <FiArrowRight/></button></div>{active.map(card)}

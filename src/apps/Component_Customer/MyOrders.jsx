@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { FiArrowLeft, FiArrowRight, FiCheckCircle, FiClock, FiClipboard, FiTruck, FiRefreshCcw } from 'react-icons/fi';
-import { bottleOptions } from './orderData.js';
+import { bottleOptions, calculateLineTotal, formatCustomerMoney, getPaymentMethodLabel, isDelivery } from './orderData.js';
 
 function summary(items=[]) { return items.map(({sizeId,quantity}) => { const b=bottleOptions.find(v=>v.id===sizeId); return quantity+' × '+(b?.name||sizeId)+' '+(b?.shape||''); }).join(' · '); }
+function orderAmountOf(order) {
+  if (Number.isFinite(Number(order?.totalAmount)) && Number(order.totalAmount) > 0) return Number(order.totalAmount);
+  return (order.items || []).reduce((sum, item) => sum + calculateLineTotal(item.sizeId, item.quantity, order.ownership || 'own', order.arrangement || 'purchase'), 0);
+}
 export default function MyOrders({ orders=[], onBack, onNewOrder, onReorder }) {
   const [tab,setTab]=useState('ongoing');
   const [expanded,setExpanded]=useState(null);
@@ -15,16 +19,25 @@ export default function MyOrders({ orders=[], onBack, onNewOrder, onReorder }) {
       <button type="button" role="tab" aria-selected={tab==='ongoing'} onClick={()=>setTab('ongoing')}>Ongoing ({ongoing.length})</button>
       <button type="button" role="tab" aria-selected={tab==='history'} onClick={()=>setTab('history')}>Order History ({history.length})</button>
     </div>
-    {showing.map(order=><article className="order-panel saved-order-card" key={order.id}>
-      <div className="saved-order-head"><strong>Order #{order.id}</strong><span className={'order-status '+(order.status==='Completed'?'completed':'')}>{order.status}</span></div>
-      <p>{summary(order.items)}</p><div className="saved-order-meta"><FiClock /> {order.createdAt} <span>· {order.paymentStatus}</span></div>
-      {tab==='ongoing' && <><button type="button" className="btn order-primary" onClick={()=>setExpanded(expanded===order.id?null:order.id)}><FiTruck /> {expanded===order.id?'Hide Progress':'Track Progress'} <FiArrowRight /></button>
-        {expanded===order.id && <div className="progress-detail" aria-label={'Tracking for '+order.id}>
-          {['Pending Confirmation','Confirmed','Preparing','Out for Delivery','Delivered'].map((stage,i)=><div className={'progress-point '+((order.currentStep??0)>=i?'complete':'')} key={stage}>{(order.currentStep??0)>=i?<FiCheckCircle/>:<FiClock/>}<span>{stage}</span></div>)}
-        </div>}
-      </>}
-      {tab==='history' && <button className="btn order-secondary" type="button" onClick={()=>onReorder(order)}><FiRefreshCcw /> Order Again</button>}
-    </article>)}
+    {showing.map(order=>{
+      const amount = orderAmountOf(order);
+      const payMethod = getPaymentMethodLabel(order.paymentMethod || 'Cash', isDelivery(order.service || 'delivery'));
+      return <article className="order-panel saved-order-card" key={order.id}>
+        <div className="saved-order-head"><strong>Order #{order.id}</strong><span className={'order-status '+(order.status==='Completed'?'completed':'')}>{order.status}</span></div>
+        <p>{summary(order.items)}</p>
+        <div className="saved-order-amount-row">
+          <span>{payMethod}</span>
+          <strong className="tabular-money">{formatCustomerMoney(amount)}</strong>
+        </div>
+        <div className="saved-order-meta"><FiClock /> {order.createdAt} <span>· {order.paymentStatus}</span></div>
+        {tab==='ongoing' && <><button type="button" className="btn order-primary" onClick={()=>setExpanded(expanded===order.id?null:order.id)}><FiTruck /> {expanded===order.id?'Hide Progress':'Track Progress'} <FiArrowRight /></button>
+          {expanded===order.id && <div className="progress-detail" aria-label={'Tracking for '+order.id}>
+            {['Pending Confirmation','Confirmed','Preparing','Out for Delivery','Delivered'].map((stage,i)=><div className={'progress-point '+((order.currentStep??0)>=i?'complete':'')} key={stage}>{(order.currentStep??0)>=i?<FiCheckCircle/>:<FiClock/>}<span>{stage}</span></div>)}
+          </div>}
+        </>}
+        {tab==='history' && <button className="btn order-secondary" type="button" onClick={()=>onReorder(order)}><FiRefreshCcw /> Order Again</button>}
+      </article>;
+    })}
     {!showing.length && <div className="order-panel empty-orders"><FiClipboard size={30}/><h2>No orders here yet</h2></div>}
     <button type="button" className="btn order-primary" onClick={onNewOrder}>New Water Order <FiArrowRight /></button>
     <button className="btn order-text-back" type="button" onClick={onBack}><FiArrowLeft/> Back to Home</button>

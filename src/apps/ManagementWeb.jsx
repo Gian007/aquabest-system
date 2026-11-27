@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import {
  FiHome,FiMonitor,FiClipboard,FiMenu,FiBell,FiDroplet,FiTruck,
  FiPackage,FiCreditCard,FiBarChart2,FiUsers,FiPlus,FiMinus,FiArrowRight,
- FiCheckCircle,FiClock,FiX,FiAlertTriangle,FiActivity,FiDollarSign,
+ FiCheckCircle,FiClock,FiX,FiAlertTriangle,FiActivity,
  FiEdit3,FiRefreshCw,FiSave,FiLogOut,FiLogIn
 } from 'react-icons/fi';
+import PesoIcon from '../components/PesoIcon.jsx';
 import logo from '../assets/AquaBest logo.png';
 import { bottleOptions } from './Component_Customer/orderData.js';
 import { DEMO_PRICES, DEMO_PRODUCTS, INITIAL_ORDERS, INITIAL_STOCK, formatMoney, orderSummary } from '../data/managerDemo.js';
@@ -22,12 +23,12 @@ import './managementWeb.css';
 
 const modules=[
  ['dashboard','Dashboard',FiHome],['pos','POS',FiMonitor],['queue','Operations Queue',FiClipboard],['orders','Orders',FiClipboard],
- ['collections','Trips & Pickups',FiTruck],['verification','Order Verification',FiCheckCircle],['remittance','Cash Remittance',FiDollarSign],
+ ['collections','Trips & Pickups',FiTruck],['verification','Order Verification',FiCheckCircle],['remittance','Cash Remittance',PesoIcon],
  ['refill','Refill Tasks',FiDroplet],['delivery','Delivery',FiTruck],
  ['inventory','Inventory',FiPackage],['payments','Payments',FiCreditCard],
  ['reports','Sales Reports',FiBarChart2],['staff','Staff Tasks',FiUsers]
 ];
-const ownerModules=[['dashboard','Dashboard',FiHome],['queue','Operations Queue',FiClipboard],['staff','Staff Monitoring',FiUsers],['collections','Trips & Pickups',FiTruck],['reports','Sales Reports',FiBarChart2],['employees','Employees & Access',FiUsers],['products','Products & Services',FiPackage],['approvals','Verification',FiCreditCard],['orders','Orders',FiClipboard],['pos','POS',FiMonitor],['inventory','Inventory',FiPackage],['payments','Payments',FiDollarSign],['settings','Business Settings',FiEdit3],['audit','Audit Logs',FiActivity]];
+const ownerModules=[['dashboard','Dashboard',FiHome],['queue','Operations Queue',FiClipboard],['staff','Staff Monitoring',FiUsers],['collections','Trips & Pickups',FiTruck],['reports','Sales Reports',FiBarChart2],['employees','Employees & Access',FiUsers],['products','Products & Services',FiPackage],['approvals','Verification',FiCreditCard],['orders','Orders',FiClipboard],['pos','POS',FiMonitor],['inventory','Inventory',FiPackage],['payments','Payments',PesoIcon],['settings','Business Settings',FiEdit3],['audit','Audit Logs',FiActivity]];
 const staffModules=[['dashboard','Dashboard',FiHome],['refill','Refill Tasks',FiDroplet],['orders','Assigned Orders',FiClipboard],['inventory','Inventory',FiPackage],['activity','My Activity',FiActivity]];
 const deliveryModules=[['dashboard','Dashboard',FiHome],['deliveries','My Deliveries',FiTruck],['bottles','Bottle Handling',FiPackage],['collections','Collections',FiCreditCard],['history','Delivery History',FiActivity]];
 const stages=['Pending Confirmation','Confirmed','Preparing','Ready','Out for Delivery','Delivered','Completed'];
@@ -309,7 +310,7 @@ export default function ManagementWeb({role='manager',onLogout}){
     </>}
     {!isStaff&&!isDelivery&&page==='payments'&&<>
      <Heading kicker="Collections" title="Payments" subtitle="Keep payment status separate from order preparation."/>
-     <div className="mgmt-stats"><Stat label="Paid Total" value={formatMoney(revenue)} Icon={FiDollarSign}/><Stat label="Outstanding" value={formatMoney(unpaid)} Icon={FiClock}/></div>
+     <div className="mgmt-stats"><Stat label="Paid Total" value={formatMoney(revenue)} Icon={PesoIcon}/><Stat label="Outstanding" value={formatMoney(unpaid)} Icon={FiClock}/></div>
      {orders.map(o=><div className="mgmt-card mgmt-order" key={o.id}><div className="mgmt-order-head"><strong>{o.id} · {o.customer}</strong><Pill>{o.paymentStatus}</Pill></div><p>{o.source} • {formatMoney(o.amount)}</p>{o.paymentStatus!=='Paid'&&<button className="mgmt-btn secondary" onClick={()=>openOrder(o)}>Review Payment <FiCreditCard/></button>}</div>)}{section}
     </>}
     {!isOwner&&!isStaff&&!isDelivery&&page==='reports'&&<SalesReports orders={orders} expenses={expenses} setExpenses={setExpenses} onNotice={setNotification}/>}

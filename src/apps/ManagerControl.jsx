@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FiAlertTriangle, FiArrowRight, FiCheckCircle, FiClipboard, FiDollarSign, FiFilter, FiPackage, FiSearch, FiTruck, FiUsers } from 'react-icons/fi';
+import { FiAlertTriangle, FiArrowRight, FiCheckCircle, FiClipboard, FiFilter, FiPackage, FiSearch, FiTruck, FiUsers } from 'react-icons/fi';
+import PesoIcon from '../components/PesoIcon.jsx';
 import { formatMoney, orderSummary } from '../data/managerDemo.js';
 import './managerControl.css';
 
@@ -90,14 +91,14 @@ export default function ManagerControl({page,go,orders,availability,onOpenOrder,
     <MiniMetric label="Orders in queue" value={ordered.filter(active).length} Icon={FiClipboard}/>
     <MiniMetric label="Gallons in orders" value={totalGallons} Icon={FiPackage}/>
     <MiniMetric label="Collection issues" value={unresolved.length} Icon={FiAlertTriangle} tone={unresolved.length?'alert':''}/>
-    <MiniMetric label="Remittance entries" value={remittances.length} Icon={FiDollarSign}/>
+    <MiniMetric label="Remittance entries" value={remittances.length} Icon={PesoIcon}/>
    </div>
    <div className="manager-control-banner"><FiAlertTriangle/><span>Browser-only management demo. Staff orders, collection photos and remittances are <strong>not synced</strong> across devices.</span></div>
    <h2>Daily Operations</h2>
    <div className="manager-control-actions">
     <button onClick={()=>go('queue')}><FiClipboard/> Operations Queue <FiArrowRight/></button>
     <button onClick={()=>go('collections')}><FiTruck/> Collection Batches <FiArrowRight/></button>
-    <button onClick={()=>go('remittance')}><FiDollarSign/> Cash Remittance <FiArrowRight/></button>
+    <button onClick={()=>go('remittance')}><PesoIcon/> Cash Remittance <FiArrowRight/></button>
     <button onClick={()=>go('staff')}><FiUsers/> Staff Monitoring <FiArrowRight/></button>
    </div>
    <div className="manager-control-sectionhead"><h2>Queue at a Glance</h2><button onClick={()=>go('queue')}>View queue <FiArrowRight/></button></div>
@@ -136,7 +137,7 @@ export default function ManagerControl({page,go,orders,availability,onOpenOrder,
   </>}
   {page==='remittance'&&<>
    <div className="manager-control-title"><span>MANAGER FINANCE</span><h1>Cash Remittance</h1><p>Reconcile expected COD from selected orders against cash actually submitted. Record discrepancies rather than silently marking orders paid.</p></div>
-   <div className="manager-control-kpis"><MiniMetric label="Entries recorded" value={remittances.length} Icon={FiClipboard}/><MiniMetric label="Cash received (demo)" value={formatMoney(sumRemitted)} Icon={FiDollarSign}/></div>
+   <div className="manager-control-kpis"><MiniMetric label="Entries recorded" value={remittances.length} Icon={FiClipboard}/><MiniMetric label="Cash received (demo)" value={formatMoney(sumRemitted)} Icon={PesoIcon}/></div>
    <section className="manager-control-panel"><h2>Record a Remittance</h2><p className="manager-control-help">Unpaid delivery orders are possible COD candidates, not verified cash debts. Select only the orders covered by this submission.</p>
     <Field name="Submitting employee"><select value={remitWorker} onChange={e=>setRemitWorker(e.target.value)}>{Object.keys(availability).filter(x=>x!=='Owner'&&x!=='Manager').map(name=><option key={name}>{name}</option>)}</select></Field>
     <div className="manager-control-checks">{readyRemit.length?readyRemit.map(o=><label key={o.id}><input type="checkbox" checked={remitSelection.includes(o.id)} onChange={e=>setRemitSelection(prev=>e.target.checked?[...prev,o.id]:prev.filter(id=>id!==o.id))}/><span><strong>{o.id} · {o.customer}</strong><small>{o.assigned||'Unassigned'} · {formatMoney(o.amount)} possible COD</small></span></label>):<p className="manager-control-help">No unrecorded COD candidate orders.</p>}</div>

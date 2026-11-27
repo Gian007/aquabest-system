@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { FiArrowRight, FiDroplet, FiPackage, FiShield, FiTruck, FiActivity, FiMapPin } from 'react-icons/fi';
+import { FiArrowRight, FiDroplet, FiShield, FiActivity, FiMapPin } from 'react-icons/fi';
 import NavBarCustomer from './Component_Customer/navBarCustomer.jsx';
 import CustomerOnboarding from './Component_Customer/CustomerOnboarding.jsx';
 import OrderWaterStep1 from './Component_Customer/OrderWaterStep1.jsx';
 import OrderDetailsStep2 from './Component_Customer/OrderDetailsStep2.jsx';
 import ReviewOrderStep3 from './Component_Customer/ReviewOrderStep3.jsx';
 import MyOrders from './Component_Customer/MyOrders.jsx';
+import { calculateOrderTotal } from './Component_Customer/orderData.js';
 import sampleData from '../data/sampleData.json';
 import model from '../assets/Model_Imgs/model.png';
 import explainingModel from '../assets/Model_Imgs/ExplainingModel.png';
@@ -19,6 +20,7 @@ import './onboarding.css';
 const tips=['Keep drinking water within reach throughout your day.','Wash reusable water bottles regularly.','Store drinking water in clean, covered containers.'];
 const makeDraft = (customer, quantities={round5:0,slim25:0,slim5:0})=>({
   ownership:'own', arrangement:'purchase', quantities, service:'pickup-return',
+  paymentMethod:'Cash', paymentReference:'',
   details:{address:customer?.address?.street||'',barangay:customer?.address?.barangay||'',landmark:customer?.address?.landmark||'',name:customer?.fullName||'',phone:customer?.phone||'',date:'',time:'',notes:''},
 });
 export default function CustomerWeb(){
@@ -47,9 +49,12 @@ export default function CustomerWeb(){
   const moveStep=next=>{setStep(next);scrollTop();};
   const previewRequest=()=>{
     // This is an in-memory sample record. No server request is made.
+    const totalAmount = calculateOrderTotal(draft.quantities, draft.ownership, draft.arrangement);
     const order={
       id:'LOCAL-'+String(Date.now()).slice(-6),createdAt:new Date().toLocaleDateString('en-CA'),customerId:customer?.id,
-      status:'Pending Confirmation',paymentStatus:'Unpaid',currentStep:0,service:draft.service,
+      status:'Pending Confirmation',paymentStatus:'Unpaid',paymentMethod:draft.paymentMethod||'Cash',paymentReference:draft.paymentReference||'',
+      ownership:draft.ownership,arrangement:draft.arrangement,totalAmount,
+      currentStep:0,service:draft.service,
       items:Object.entries(draft.quantities).filter(([,quantity])=>quantity>0).map(([sizeId,quantity])=>({sizeId,quantity})),sample:true
     };
     setOrders(current=>[order,...current]);goOrders();
