@@ -58,6 +58,13 @@
 .mgmt-brand-button:focus-visible{outline:2px solid #244ea3;outline-offset:4px}
 .mgmt-brand-label{display:block}
 
+/* Orders search and date filter bar */
+.mgmt-order-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px}
+.mgmt-order-search{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--a-line);border-radius:12px;background:white;color:var(--a-muted)}
+.mgmt-order-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#182c49;font-size:13px}
+.mgmt-order-date{display:flex;align-items:center;gap:6px;flex:0 1 auto;min-width:0}
+.mgmt-order-date input{min-height:44px;padding:8px 10px;border:1px solid var(--a-line);border-radius:12px;background:white;color:#182c49;font-size:12px;max-width:100%}
+
 /* Shared employee availability component: same palette on Manager and Staff. */
 .availability-card{margin-bottom:14px}
 .availability-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-weight:750;font-size:11px;white-space:nowrap;background:#eff3f8;color:#586577}

@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet} from 'react-icons/fi';
+import {FiBarChart2,FiUsers,FiDollarSign,FiCreditCard,FiSettings,FiShield,FiSave,FiClock,FiCheckCircle,FiActivity,FiPackage,FiTruck,FiClipboard,FiAlertTriangle,FiDroplet,FiMonitor} from 'react-icons/fi';
 import {formatMoney} from '../data/managerDemo.js';
 import EmployeeDirectory from './EmployeeDirectory.jsx';
 import ProductCatalog from './ProductCatalog.jsx';
@@ -85,7 +85,21 @@ export default function OwnerOperations({page,go,orders,stock,trips,availability
  </>}
   {page==='more'&&<>
   <Title eyebrow="Owner access" title="All Modules" description="Operational views and business administration."/>
-  <div className="mgmt-more">{[[FiClipboard,'Operations Queue','queue'],[FiUsers,'Staff Monitoring','staff'],[FiTruck,'Trips & Pickups','collections'],[FiPackage,'Products & Services','products'],[FiClipboard,'Orders','orders'],[FiTruck,'Delivery','delivery'],[FiPackage,'Inventory','inventory'],[FiCreditCard,'Payments','payments'],[FiUsers,'Employees & Access','employees'],[FiSettings,'Settings','settings'],[FiShield,'Audit Logs','audit'],[FiAlertTriangle,'Verification','approvals']].map(([Icon,title,target])=><button key={target} onClick={()=>go(target)}><Icon/><strong>{title}</strong><small>Open {title.toLowerCase()}</small></button>)}</div>{demo}
+  <div className="mgmt-more">{[
+   [FiClipboard,'Operations Queue','queue','Operational task execution'],
+   [FiTruck,'Trips & Pickups','collections','Delivery trips and customer pickups'],
+   [FiClipboard,'Orders','orders','Order records and status tracking'],
+   [FiMonitor,'POS','pos','Create and encode new orders'],
+   [FiUsers,'Staff Monitoring','staff','Staff workload and availability'],
+   [FiPackage,'Products & Services','products','Manage products, prices and availability'],
+   [FiTruck,'Delivery','delivery','Dispatch assignments and drop-offs'],
+   [FiPackage,'Inventory','inventory','Bottle stock and movement logs'],
+   [FiCreditCard,'Payments','payments','Collections and unpaid balances'],
+   [FiUsers,'Employees & Access','employees','Accounts and role permissions'],
+   [FiSettings,'Settings','settings','Product prices and business rules'],
+   [FiShield,'Audit Logs','audit','Administrative activity and audit history'],
+   [FiAlertTriangle,'Verification','approvals','Electronic proofs and cash remittances']
+  ].map(([Icon,title,target,desc])=><button key={target} onClick={()=>go(target)}><Icon/><strong>{title}</strong><small>{desc}</small></button>)}</div>{demo}
  </>}
  </>;
 }
