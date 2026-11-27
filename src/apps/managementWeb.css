@@ -278,4 +278,67 @@
  .owner-kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
  .owner-finance-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
  .owner-shortcut-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .owner-gallon-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* Command Center Date Filter, Chart, Gallon Activity & Secondary Financials */
+.owner-dash-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.owner-dash-quick-links{display:flex;gap:8px;flex-wrap:wrap}
+.owner-dash-quick-links .mgmt-btn{min-height:40px;padding:8px 12px;font-size:12px}
+.owner-date-controls{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.owner-period-pills{display:flex;flex-wrap:wrap;gap:6px}
+.owner-period-pills button{min-height:36px;padding:6px 11px;border:1px solid var(--a-line);border-radius:999px;background:white;color:#52657d;font-size:11px;font-weight:700}
+.owner-period-pills button.active{background:var(--a-primary);border-color:var(--a-primary);color:white}
+.owner-date-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.owner-date-nav .mgmt-btn{min-height:40px;padding:8px 12px;font-size:12px}
+.owner-date-picker{position:relative;display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:8px 12px;border:1px solid var(--a-line);border-radius:12px;background:white;color:var(--a-navy);font-size:12px;font-weight:700;cursor:pointer}
+.owner-date-picker input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.owner-custom-range{display:flex;flex-wrap:wrap;gap:8px}
+.owner-custom-range label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--a-navy);background:white;border:1px solid var(--a-line);border-radius:12px;padding:4px 10px;min-height:40px}
+.owner-custom-range input{border:0;background:transparent;color:var(--a-navy);font-size:12px}
+
+.owner-secondary-finance{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;padding:12px;border:1px solid var(--a-line);border-radius:12px;background:#f4f8fe}
+.owner-secondary-finance>div{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:#52657d}
+.owner-secondary-finance strong{color:var(--a-navy);font-weight:800}
+
+.owner-metric-toggle{display:inline-flex;padding:3px;border:1px solid var(--a-line);border-radius:10px;background:white;gap:3px}
+.owner-metric-toggle button{border:0;background:transparent;color:#52657d;font-size:11px;font-weight:750;padding:6px 10px;border-radius:7px}
+.owner-metric-toggle button.active{background:#eaf1ff;color:var(--a-primary)}
+.owner-chart-box{border:1px solid var(--a-line);border-radius:16px;background:white;padding:14px;min-width:0}
+.owner-chart-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.owner-svg-chart{width:100%;min-width:300px;height:auto;display:block}
+.owner-chart-tooltip{margin-top:8px;padding:7px 10px;border-radius:9px;background:#eef4ff;color:var(--a-navy);font-size:12px;text-align:center}
+.owner-chart-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:20px 10px;color:var(--a-navy)}
+.owner-chart-empty small{font-size:11px;color:#52657d;max-width:340px;line-height:1.4}
+
+.owner-gallon-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.owner-gallon-card{border:1px solid var(--a-line);border-radius:14px;background:white;padding:13px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.owner-gallon-card span{font-size:11px;font-weight:700;color:#52657d}
+.owner-gallon-card strong{font-size:clamp(18px,3.8vw,22px);font-weight:800;color:var(--a-navy)}
+.owner-gallon-card small{font-size:11px;color:#5f7187;line-height:1.3}
+.owner-gallon-card.muted strong{font-size:14px;color:#64748d}
+.owner-inventory-detail{border:1px solid var(--a-line);border-radius:12px;background:#f8fbff;padding:12px;display:flex;flex-direction:column;gap:8px}
+.owner-inv-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--a-navy)}
+.owner-inv-row strong.low{color:#b45309}
+.owner-inv-row small{font-weight:500;color:#52657d}
+@media(max-width:359px){.owner-gallon-grid{grid-template-columns:1fr}}
+
+/* Compact density & Dashboard Settings UI */
+.owner-dash.compact{gap:12px}
+.owner-dash.compact .owner-kpi-card,.owner-dash.compact .owner-finance-card,.owner-dash.compact .owner-gallon-card{padding:10px 12px}
+.owner-dash.compact .owner-tx-row{padding:10px 12px;min-height:48px}
+.owner-dash-settings{display:flex;flex-direction:column;gap:8px;min-width:0}
+.owner-settings-list{display:flex;flex-direction:column}
+.owner-toggle-row,.owner-order-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid #ecf0f6;min-height:48px}
+.owner-toggle-row:first-child,.owner-order-row:first-child{border-top:0;padding-top:0}
+.owner-toggle-row:last-child,.owner-order-row:last-child{padding-bottom:0}
+.owner-toggle-row span,.owner-order-row span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.owner-toggle-row strong,.owner-order-row strong{font-size:13px;color:var(--a-navy)}
+.owner-toggle-row small,.owner-order-row small{font-size:11px;color:#52657d;line-height:1.35}
+.owner-toggle-row input[type="checkbox"]{width:20px;height:20px;accent-color:var(--a-primary);flex-shrink:0;cursor:pointer}
+.owner-order-actions{display:flex;gap:6px;flex-shrink:0}
+.owner-order-actions .mgmt-btn{min-height:40px;min-width:40px;padding:8px}
+.owner-reset-confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;border:1px solid #f5d0a9;border-radius:12px;background:#fff8ed;font-size:12px;color:#8a5d00}
+@media(max-width:849px){
+ .mgmt-body{padding-bottom:max(164px,calc(128px + env(safe-area-inset-bottom,0px)))}
 }
