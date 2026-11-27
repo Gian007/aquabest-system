@@ -866,3 +866,97 @@
     width: 100%;
   }
 }
+
+/* Multi-Series Hourly & Period Line Chart Controls, Legend & Disclosures */
+.sales-chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.sales-zoom-pill.active {
+  background: var(--a-primary, #244ea3);
+  border-color: var(--a-primary, #244ea3);
+  color: #fff;
+}
+
+.sales-completed-summary {
+  font-size: 12px;
+  color: #52657d;
+  margin: 4px 0 8px;
+}
+
+.sales-completed-summary strong {
+  color: var(--a-navy, #1b2f63);
+  font-weight: 800;
+}
+
+.sales-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 10px;
+}
+
+.sales-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #4b5d75;
+}
+
+.sales-legend-item strong {
+  color: var(--a-navy, #1b2f63);
+  font-weight: 750;
+}
+
+.sales-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.sales-chart-disclosure {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 9px 11px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: #f1f6ff;
+  border: 1px solid #d7e5fb;
+  color: #365985;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.sales-chart-disclosure svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sales-tooltip-series {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 10px;
+  margin-top: 6px;
+  font-size: 10px;
+  color: #4b5d75;
+}
+
+.sales-tooltip-series span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sales-tooltip-series i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}

@@ -135,9 +135,10 @@ export default function ManagementWeb({role='manager',onLogout}){
   const id='DEMO-'+String(Date.now()).slice(-6);
   const isPaid=sale.paymentStatus==='Paid';
   const nowIso=new Date().toISOString();
+  const nextStatus=sale.service==='Walk-in'?(isPaid?'Completed':'Confirmed'):'Pending Confirmation';
   const record={id,customer:sale.customer.trim()||'Walk-in Customer',customerReference:sale.customerReference.trim(),source:sale.source,items:Object.entries(sale.quantities).filter(([,q])=>q>0).map(([sizeId,quantity])=>({sizeId,quantity})),
-   status:sale.service==='Walk-in'?(isPaid?'Completed':'Confirmed'):'Pending Confirmation',paymentStatus:sale.paymentStatus,method:sale.paymentMethod,
-   reference:sale.reference,amount:selectedTotal,service:sale.service,ownership:sale.ownership,assigned:'Unassigned',date:today(),created_at:nowIso,updated_at:nowIso,notes:sale.notes};
+   status:nextStatus,paymentStatus:sale.paymentStatus,method:sale.paymentMethod,
+   reference:sale.reference,amount:selectedTotal,service:sale.service,ownership:sale.ownership,assigned:'Unassigned',date:today(),business_date:today(),created_at:nowIso,updated_at:nowIso,completed_at:nextStatus==='Completed'?nowIso:null,notes:sale.notes};
   if(sale.ownership==='store'){
    const events=record.items.map(item=>({id:id+'-'+item.sizeId,productId:item.sizeId,type:'OUT',quantity:item.quantity,reason:sale.arrangement==='returnable'?'Returnable bottle issued':'Container sold',orderId:id,automatic:true,time:new Date().toLocaleString('en-PH')}));
    setStock(old=>old.map(x=>({...x,quantity:x.quantity-(record.items.find(i=>i.sizeId===x.id)?.quantity||0)})));
@@ -157,7 +158,12 @@ export default function ManagementWeb({role='manager',onLogout}){
     return;
    }
   }
-  setOrders(old=>old.map(o=>o.id===id?{...o,...patch}:o));
+  const nowIso=new Date().toISOString();
+  setOrders(old=>old.map(o=>{
+   if(o.id!==id)return o;
+   const completedAt=['Completed','Delivered','Picked Up'].includes(patch.status)&&!o.completed_at?nowIso:o.completed_at;
+   return {...o,...patch,updated_at:nowIso,completed_at:completedAt};
+  }));
  };
  const claimManagerRefill=(id,actor='Manager')=>setOrders(old=>old.map(o=>o.id===id&&['Pending Confirmation','Confirmed'].includes(o.status)&&!o.claimedBy?{...o,status:'Preparing',claimedBy:actor,assigned:actor,refillClaimedAt:new Date().toLocaleString('en-PH')}:o));
  const finishManagerRefill=(id,actor='Manager')=>setOrders(old=>old.map(o=>o.id===id&&o.claimedBy===actor&&o.status==='Preparing'?{...o,status:'Ready',claimedBy:null,refilledBy:actor,refillCompletedAt:new Date().toLocaleString('en-PH')}:o));

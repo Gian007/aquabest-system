@@ -82,6 +82,29 @@ test('sanitizing prevents a completely blank dashboard when all sections are tog
   assert.equal(sanitized.visibility.summary, true);
 });
 
+test('migrates older/legacy saved settings while preserving valid user preferences', () => {
+  const legacyStorage = createMemoryStorage({
+    [DASHBOARD_SETTINGS_KEY]: JSON.stringify({
+      version: 0,
+      period: 'Weekly',
+      metric: 'orders',
+      density: 'compact',
+      showSalesChart: false,
+      order: ['operations', 'summary']
+    })
+  });
+
+  const migrated = loadDashboardSettings(legacyStorage);
+  assert.equal(migrated.version, 1);
+  assert.equal(migrated.defaultPeriod, 'Weekly');
+  assert.equal(migrated.defaultMetric, 'orders');
+  assert.equal(migrated.density, 'compact');
+  assert.equal(migrated.visibility.salesChart, false);
+  assert.equal(migrated.order[0], 'operations');
+  assert.equal(migrated.order[1], 'summary');
+  assert.equal(migrated.order.length, VALID_SECTION_IDS.length);
+});
+
 test('resetting dashboard settings restores defaults without touching other storage keys', () => {
   const storage = createMemoryStorage({
     [DASHBOARD_SETTINGS_KEY]: JSON.stringify({ ...getDefaultDashboardSettings(), density: 'compact' }),

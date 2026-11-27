@@ -7,7 +7,7 @@ export const DASHBOARD_SETTINGS_VERSION = 1;
 export const DASHBOARD_SECTIONS = Object.freeze([
   { id: 'summary', label: 'Business Performance Summary', description: 'Recorded sales, total orders, verified collections, and unpaid balances.' },
   { id: 'attention', label: 'Needs Attention', description: 'Actionable alerts for operational issues, low stock, and pending verifications.' },
-  { id: 'salesChart', label: 'Sales Performance Graph', description: 'Revenue line chart and order-count bar chart across date ranges.' },
+  { id: 'salesChart', label: 'Sales Performance Summary', description: 'Revenue and order-count trends across date ranges.' },
   { id: 'gallonActivity', label: 'Gallon & Container Activity', description: 'Period refills, new container sales, borrowed/returned gallons, and stock.' },
   { id: 'operations', label: 'Operations Overview', description: 'Live counts for collection, refill, ready, and active delivery queues.' },
   { id: 'recentActivity', label: 'Recent Business Activity', description: 'Compact feed of recent orders and container stock movements.' }
@@ -38,6 +38,31 @@ export function getDefaultDashboardSettings() {
     showSecondaryFinance: false,
     showContainerStock: false
   };
+}
+
+export function migrateDashboardSettings(raw) {
+  if (!raw || typeof raw !== 'object') return getDefaultDashboardSettings();
+  // Reject unknown future schema versions cleanly
+  if (typeof raw.version === 'number' && raw.version > DASHBOARD_SETTINGS_VERSION) {
+    return getDefaultDashboardSettings();
+  }
+
+  // Support migrating legacy/unversioned or v0 objects while preserving valid user choices
+  const legacyVisibility = { ...(raw.visibility && typeof raw.visibility === 'object' ? raw.visibility : {}) };
+  if (typeof raw.showSalesChart === 'boolean' && legacyVisibility.salesChart === undefined) {
+    legacyVisibility.salesChart = raw.showSalesChart;
+  }
+  if (typeof raw.showQuickActions === 'boolean' && legacyVisibility.quickActions === undefined) {
+    legacyVisibility.quickActions = raw.showQuickActions;
+  }
+
+  return sanitizeDashboardSettings({
+    ...raw,
+    version: DASHBOARD_SETTINGS_VERSION,
+    visibility: legacyVisibility,
+    defaultPeriod: raw.defaultPeriod ?? raw.period,
+    defaultMetric: raw.defaultMetric ?? raw.metric
+  });
 }
 
 export function sanitizeDashboardSettings(raw) {
@@ -91,10 +116,13 @@ export function loadDashboardSettings(storage = typeof window !== 'undefined' ? 
     const raw = storage.getItem(DASHBOARD_SETTINGS_KEY);
     if (!raw) return getDefaultDashboardSettings();
     const parsed = JSON.parse(raw);
-    if (!parsed || parsed.version !== DASHBOARD_SETTINGS_VERSION) {
+    if (!parsed || typeof parsed !== 'object') {
       return getDefaultDashboardSettings();
     }
-    return sanitizeDashboardSettings(parsed);
+    if (typeof parsed.version === 'number' && parsed.version > DASHBOARD_SETTINGS_VERSION) {
+      return getDefaultDashboardSettings();
+    }
+    return migrateDashboardSettings(parsed);
   } catch {
     return getDefaultDashboardSettings();
   }

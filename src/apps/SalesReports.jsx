@@ -8,9 +8,10 @@ import {
 } from 'react-icons/fi';
 import { formatMoney } from '../data/managerDemo.js';
 import { buildSalesReportData } from '../utils/buildSalesReportData.js';
+import { buildSalesChartData } from '../utils/buildSalesChartData.js';
 import ExpenseReport from './ExpenseReport.jsx';
 import { getTodayLocalDate, shiftAnchorDate, filterByDateRange } from '../utils/reportDateUtils.js';
-import { getPeriodLabel, getPeriodFilename, getWeekRange, formatDateLabel, parseLocalDate } from '../utils/dateUtils.js';
+import { getPeriodLabel, getPeriodFilename, formatDateLabel } from '../utils/dateUtils.js';
 import {
   generateFinancialSummaryPDF,
   generateCompleteFinancialReportPDF
@@ -18,33 +19,6 @@ import {
 import './salesReports.css';
 
 const PERIODS = ['Daily', 'Weekly', 'Monthly', 'Yearly', 'All Time', 'Custom'];
-
-function getOrderHour(order) {
-  const raw = order?.time || order?.createdAt || order?.created_at;
-  if (typeof raw !== 'string' || !raw.trim()) return null;
-  const value = raw.trim();
-  const timeMatch = value.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
-  if (timeMatch) {
-    let hour = Number(timeMatch[1]);
-    const meridiem = (timeMatch[3] || '').toUpperCase();
-    if (meridiem === 'PM' && hour < 12) hour += 12;
-    if (meridiem === 'AM' && hour === 12) hour = 0;
-    return hour >= 0 && hour <= 23 ? hour : null;
-  }
-  if (value.includes('T')) {
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) {
-      const hourStr = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Manila',
-        hour: 'numeric',
-        hour12: false
-      }).format(parsed);
-      const hr = Number(hourStr) % 24;
-      return Number.isFinite(hr) ? hr : null;
-    }
-  }
-  return null;
-}
 
 export default function SalesReports({
   orders = [],
@@ -65,6 +39,7 @@ export default function SalesReports({
   const [customStart, setCustomStart] = useState(defaultDate);
   const [customEnd, setCustomEnd] = useState(defaultDate);
   const [chartMetric, setChartMetric] = useState('revenue');
+  const [chartBreakdown, setChartBreakdown] = useState('source');
   const [zoomLevel, setZoomLevel] = useState(1);
   const [activePoint, setActivePoint] = useState(null);
   const [searchTx, setSearchTx] = useState('');
@@ -137,7 +112,6 @@ export default function SalesReports({
 
   const {
     periodOrders,
-    activePeriodOrders,
     periodExpenses,
     grossSales,
     verifiedCollected,
@@ -163,119 +137,20 @@ export default function SalesReports({
     expensesList
   } = reportData;
 
-  // Only display hourly data when the selected day has real transaction times.
-  const hasHourlyTimestamps = useMemo(
-    () => activePeriodOrders.some(order => getOrderHour(order) !== null),
-    [activePeriodOrders]
+  // Multi-series completed sales chart engine (Asia/Manila, Source & Fulfillment breakdowns)
+  const salesChart = useMemo(
+    () => buildSalesChartData({
+      orders,
+      period,
+      anchorDate,
+      customStart,
+      customEnd,
+      breakdown: chartBreakdown,
+      metric: chartMetric,
+      todayStr
+    }),
+    [orders, period, anchorDate, customStart, customEnd, chartBreakdown, chartMetric, todayStr]
   );
-
-  const chartPoints = useMemo(() => {
-    if (period === 'Daily') {
-      if (!hasHourlyTimestamps) {
-        if (activePeriodOrders.length === 0) return [];
-        return [{
-          label: 'Daily Total',
-          fullLabel: `${formatDateLabel(anchorDate)} (Daily Total — no hourly timestamps)`,
-          sales: grossSales,
-          orders: activePeriodOrders.length
-        }];
-      }
-      return Array.from({ length: 24 }, (_, hour) => {
-        const label = hour === 0 ? '12 AM' : hour < 12 ? hour + ' AM' : hour === 12 ? '12 PM' : (hour - 12) + ' PM';
-        const matchOrders = activePeriodOrders.filter(order => getOrderHour(order) === hour);
-        return {
-          label,
-          fullLabel: label + ' (' + formatDateLabel(anchorDate) + ')',
-          sales: matchOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0),
-          orders: matchOrders.length
-        };
-      });
-    }
-
-    if (period === 'Weekly') {
-      const week = getWeekRange(anchorDate);
-      const days = [];
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      for (let i = 0; i < 7; i++) {
-        const current = new Date(week.startDate);
-        current.setDate(current.getDate() + i);
-        const dateString = [
-          current.getFullYear(),
-          String(current.getMonth() + 1).padStart(2, '0'),
-          String(current.getDate()).padStart(2, '0')
-        ].join('-');
-        const dayOrders = activePeriodOrders.filter(order => order.date === dateString);
-        days.push({
-          date: dateString,
-          label: dayNames[i],
-          fullLabel: dayNames[i] + ', ' + formatDateLabel(dateString),
-          sales: dayOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0),
-          orders: dayOrders.length
-        });
-      }
-      return days;
-    }
-
-    if (period === 'Monthly') {
-      const parts = anchorDate.split('-');
-      const year = Number(parts[0]);
-      const month = Number(parts[1]);
-      const dayCount = new Date(year, month, 0).getDate();
-      return Array.from({ length: dayCount }, (_, index) => {
-        const day = index + 1;
-        const dateString = year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-        const dayOrders = activePeriodOrders.filter(order => order.date === dateString);
-        return {
-          date: dateString,
-          label: String(day),
-          fullLabel: formatDateLabel(dateString),
-          sales: dayOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0),
-          orders: dayOrders.length
-        };
-      });
-    }
-
-    if (period === 'Yearly') {
-      const year = anchorDate.slice(0, 4);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return months.map((monthName, index) => {
-        const prefix = year + '-' + String(index + 1).padStart(2, '0');
-        const monthOrders = activePeriodOrders.filter(order => order.date && order.date.startsWith(prefix));
-        return {
-          label: monthName,
-          fullLabel: monthName + ' ' + year,
-          sales: monthOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0),
-          orders: monthOrders.length
-        };
-      });
-    }
-
-    // All Time is grouped by month so long-running histories remain readable.
-    const months = Array.from(new Set(
-      activePeriodOrders
-        .map(order => String(order.date || '').slice(0, 7))
-        .filter(value => /^\d{4}-\d{2}$/.test(value))
-    )).sort();
-
-    if (!months.length) return [];
-
-    const first = parseLocalDate(months[0] + '-01');
-    const last = parseLocalDate(months[months.length - 1] + '-01');
-    const points = [];
-    const cursor = new Date(first);
-    while (cursor <= last) {
-      const prefix = cursor.getFullYear() + '-' + String(cursor.getMonth() + 1).padStart(2, '0');
-      const monthOrders = activePeriodOrders.filter(order => order.date && order.date.startsWith(prefix));
-      points.push({
-        label: cursor.toLocaleDateString('en-PH', { month: 'short', year: '2-digit' }),
-        fullLabel: cursor.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' }),
-        sales: monthOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0),
-        orders: monthOrders.length
-      });
-      cursor.setMonth(cursor.getMonth() + 1);
-    }
-    return points;
-  }, [period, anchorDate, activePeriodOrders, hasHourlyTimestamps, grossSales]);
 
   // Zoom Handlers
   const handleZoomIn = () => setZoomLevel(prev => Math.min(3, prev + 1));
@@ -286,47 +161,42 @@ export default function SalesReports({
     if (chartViewportRef.current) chartViewportRef.current.scrollLeft = 0;
   };
 
-  // SVG Chart Geometry
-  const chartHeight = 195;
-  const paddingLeft = 45;
-  const paddingRight = 25;
-  const paddingTop = 20;
-  const paddingBottom = 28;
+  // Multi-series SVG Chart Geometry
+  const chartHeight = 205;
+  const paddingLeft = 48;
+  const paddingRight = 24;
+  const paddingTop = 18;
+  const paddingBottom = 30;
+  const chartBuckets = salesChart.buckets;
 
-  const hasSales = useMemo(() => chartPoints.some(pt => pt.sales > 0), [chartPoints]);
-  const maxVal = Math.max(100, ...chartPoints.map(p => p.sales));
-  const niceMax = Math.ceil(maxVal / 50) * 50;
+  const seriesMaxVal = useMemo(() => {
+    let max = 0;
+    for (const b of chartBuckets) {
+      for (const s of salesChart.series) {
+        const val = chartMetric === 'revenue' ? (b.bySeries[s.key]?.revenue || 0) : (b.bySeries[s.key]?.orders || 0);
+        if (val > max) max = val;
+      }
+    }
+    return max;
+  }, [chartBuckets, salesChart.series, chartMetric]);
 
-  const basePointGap = Math.max(48, 480 / Math.max(1, chartPoints.length - 1));
-  const effectiveWidth = Math.max(540, (chartPoints.length - 1) * basePointGap * zoomLevel + paddingLeft + paddingRight);
+  const niceMax = chartMetric === 'revenue'
+    ? Math.max(100, Math.ceil(seriesMaxVal / 50) * 50)
+    : Math.max(4, Math.ceil(seriesMaxVal));
+
+  const minGap = period === 'Daily' ? 38 : 46;
+  const basePointGap = Math.max(minGap, 480 / Math.max(1, chartBuckets.length - 1));
+  const effectiveWidth = Math.max(540, (chartBuckets.length - 1) * basePointGap * zoomLevel + paddingLeft + paddingRight);
 
   const getCoordinates = (index, val) => {
-    const x = paddingLeft + (index / Math.max(1, chartPoints.length - 1)) * (effectiveWidth - paddingLeft - paddingRight);
+    const spanX = effectiveWidth - paddingLeft - paddingRight;
+    const x = chartBuckets.length <= 1
+      ? paddingLeft + spanX / 2
+      : paddingLeft + (index / Math.max(1, chartBuckets.length - 1)) * spanX;
     const usableHeight = chartHeight - paddingTop - paddingBottom;
     const y = chartHeight - paddingBottom - (val / niceMax) * usableHeight;
     return { x, y };
   };
-
-  const linePath = useMemo(() => {
-    if (chartPoints.length === 0) return '';
-    const usableHeight = chartHeight - paddingTop - paddingBottom;
-    const spanX = effectiveWidth - paddingLeft - paddingRight;
-    return chartPoints.map((pt, i) => {
-      const x = paddingLeft + (i / Math.max(1, chartPoints.length - 1)) * spanX;
-      const y = chartHeight - paddingBottom - (pt.sales / niceMax) * usableHeight;
-      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    }).join(' ');
-  }, [chartPoints, effectiveWidth, niceMax]);
-
-  const areaPath = useMemo(() => {
-    if (!linePath) return '';
-    const lastIdx = chartPoints.length - 1;
-    const spanX = effectiveWidth - paddingLeft - paddingRight;
-    const firstX = paddingLeft;
-    const lastX = paddingLeft + (lastIdx / Math.max(1, chartPoints.length - 1)) * spanX;
-    const bottomY = chartHeight - paddingBottom;
-    return `${linePath} L ${lastX.toFixed(1)} ${bottomY} L ${firstX.toFixed(1)} ${bottomY} Z`;
-  }, [linePath, chartPoints.length, effectiveWidth]);
 
   // Filtered Transactions for UI list
   const filteredTransactions = useMemo(() => {
@@ -650,13 +520,29 @@ export default function SalesReports({
             </div>
           </div>
 
-          {/* Metric Toggle & Zoom controls */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div className="sales-zoom-actions">
+          {/* Metric Toggle, Breakdown Selector & Zoom controls */}
+          <div className="sales-chart-controls">
+            <div className="sales-zoom-actions" role="group" aria-label="Chart breakdown dimension">
+              <button
+                type="button"
+                className={`sales-zoom-pill ${chartBreakdown === 'source' ? 'active' : ''}`}
+                onClick={() => { setChartBreakdown('source'); setActivePoint(null); }}
+              >
+                Order Source
+              </button>
+              <button
+                type="button"
+                className={`sales-zoom-pill ${chartBreakdown === 'fulfillment' ? 'active' : ''}`}
+                onClick={() => { setChartBreakdown('fulfillment'); setActivePoint(null); }}
+              >
+                Fulfillment Mode
+              </button>
+            </div>
+
+            <div className="sales-zoom-actions" role="group" aria-label="Chart metric">
               <button
                 type="button"
                 className={`sales-zoom-pill ${chartMetric === 'revenue' ? 'active' : ''}`}
-                style={chartMetric === 'revenue' ? { background: '#244ea3', color: '#fff', borderColor: '#244ea3' } : undefined}
                 onClick={() => { setChartMetric('revenue'); setActivePoint(null); }}
               >
                 Revenue
@@ -664,91 +550,89 @@ export default function SalesReports({
               <button
                 type="button"
                 className={`sales-zoom-pill ${chartMetric === 'orders' ? 'active' : ''}`}
-                style={chartMetric === 'orders' ? { background: '#244ea3', color: '#fff', borderColor: '#244ea3' } : undefined}
                 onClick={() => { setChartMetric('orders'); setActivePoint(null); }}
               >
-                Orders
+                Order Count
               </button>
             </div>
-            {chartPoints.length > 1 && (
+
+            {chartBuckets.length > 1 && (
               <div className="sales-zoom-actions">
-              <button
-                type="button"
-                className="sales-zoom-pill"
-                onClick={handleZoomIn}
-                disabled={zoomLevel >= 3}
-                title="Zoom in timeline"
-              >
-                <FiZoomIn /> Zoom In
-              </button>
-              <button
-                type="button"
-                className="sales-zoom-pill"
-                onClick={handleZoomOut}
-                disabled={zoomLevel <= 1}
-                title="Zoom out timeline"
-              >
-                <FiZoomOut /> Zoom Out
-              </button>
-              {zoomLevel > 1 && (
                 <button
                   type="button"
                   className="sales-zoom-pill"
-                  onClick={handleResetZoom}
-                  title="Reset zoom to 1x"
+                  onClick={handleZoomIn}
+                  disabled={zoomLevel >= 3}
+                  title="Zoom in timeline"
                 >
-                  <FiRefreshCw /> Reset
+                  <FiZoomIn /> Zoom In
                 </button>
-              )}
+                <button
+                  type="button"
+                  className="sales-zoom-pill"
+                  onClick={handleZoomOut}
+                  disabled={zoomLevel <= 1}
+                  title="Zoom out timeline"
+                >
+                  <FiZoomOut /> Zoom Out
+                </button>
+                {zoomLevel > 1 && (
+                  <button
+                    type="button"
+                    className="sales-zoom-pill"
+                    onClick={handleResetZoom}
+                    title="Reset zoom to 1x"
+                  >
+                    <FiRefreshCw /> Reset
+                  </button>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Daily view: Mode 2 Daily Total bar fallback if no hourly timestamps */}
-        {period === 'Daily' && !hasHourlyTimestamps && chartPoints.length > 0 ? (
-          <div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '14px 12px 6px' }}>
-              <div style={{ width: '100%', maxWidth: 220, background: '#f4f8ff', border: '1px solid #d9e2ec', borderRadius: 12, padding: 14, textAlign: 'center' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#52657d', marginBottom: 8 }}>Daily Total ({formatDateLabel(anchorDate)})</div>
-                <div style={{ height: 74, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: 8 }}>
-                  <div
-                    style={{
-                      width: 64,
-                      height: '100%',
-                      background: 'linear-gradient(180deg, #2aa9c5 0%, #244ea3 100%)',
-                      borderRadius: '8px 8px 3px 3px'
-                    }}
-                    aria-label="Daily Total Bar"
-                  />
-                </div>
-                <strong style={{ fontSize: 18, color: '#1b2f63', display: 'block' }}>
-                  {chartMetric === 'revenue' ? formatMoney(grossSales) : `${activePeriodOrders.length} ${activePeriodOrders.length === 1 ? 'order' : 'orders'}`}
-                </strong>
-                <span style={{ fontSize: 11, color: '#64748d' }}>
-                  {chartMetric === 'revenue' ? `${activePeriodOrders.length} ${activePeriodOrders.length === 1 ? 'order' : 'orders'}` : formatMoney(grossSales)}
-                </span>
-              </div>
-              <p style={{ margin: '10px 0 0', fontSize: 11, color: '#64748d', textAlign: 'center', maxWidth: 420 }}>
-                Historical hourly breakdown unavailable — these records do not contain transaction timestamps.
-              </p>
-            </div>
+        {/* Completed Sales Summary & Multi-Series Legend */}
+        <div className="sales-completed-summary">
+          <span>
+            Completed Sales ({periodLabel}):{' '}
+            <strong>{formatMoney(salesChart.totalRevenue)}</strong> ({salesChart.totalOrders} {salesChart.totalOrders === 1 ? 'completed sale' : 'completed sales'})
+          </span>
+        </div>
+
+        <div className="sales-chart-legend" aria-label="Chart series legend">
+          {salesChart.series.map(s => (
+            <span key={s.key} className="sales-legend-item">
+              <span className="sales-legend-swatch" style={{ background: s.color }} />
+              <span>{s.label}</span>
+              <strong>{chartMetric === 'revenue' ? formatMoney(s.totalRevenue) : s.totalOrders}</strong>
+            </span>
+          ))}
+        </div>
+
+        {/* Historical missing timestamp disclosure (Daily mode keeps 24-hour axis layout) */}
+        {period === 'Daily' && salesChart.hasMissingTimestamps && (
+          <div className="sales-chart-disclosure" role="status">
+            <FiInfo size={14} aria-hidden="true" />
+            <span>
+              Hourly breakdown unavailable for historical records because transaction times were not recorded.
+              {!salesChart.hasHourlyTimestamps && salesChart.totalOrders > 0
+                ? ` Completed total for ${formatDateLabel(anchorDate)}: ${formatMoney(salesChart.totalRevenue)} (${salesChart.totalOrders} ${salesChart.totalOrders === 1 ? 'sale' : 'sales'}).`
+                : ''}
+            </span>
           </div>
-        ) : chartPoints.length > 0 && hasSales ? (
+        )}
+
+        {/* Multi-Series Hourly / Multi-Period Line Chart */}
+        {chartBuckets.length > 0 && (period === 'Daily' || salesChart.hasPlottedData) ? (
           <div className="sales-chart-viewport" ref={chartViewportRef}>
             <svg
               className="sales-svg-chart"
               width={effectiveWidth}
               height={chartHeight}
               viewBox={`0 0 ${effectiveWidth} ${chartHeight}`}
+              role="img"
+              aria-label={`${period} completed sales ${chartMetric} multi-line chart by ${chartBreakdown}`}
             >
-              <defs>
-                <linearGradient id="chartGradMobile" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#2aa9c5" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#244ea3" stopOpacity="0.02" />
-                </linearGradient>
-              </defs>
-
               {/* Y Gridlines and Labels */}
               {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
                 const usable = chartHeight - paddingTop - paddingBottom;
@@ -769,74 +653,114 @@ export default function SalesReports({
                       textAnchor="end"
                       className="chart-axis-text"
                     >
-                      {formatMoney(val)}
+                      {chartMetric === 'revenue' ? formatMoney(val) : val}
                     </text>
                   </g>
                 );
               })}
 
-              {/* Gradient Area under line */}
-              {areaPath && (
-                <path d={areaPath} fill="url(#chartGradMobile)" />
-              )}
-
-              {/* Line path */}
-              {linePath && (
-                <path
-                  d={linePath}
-                  fill="none"
-                  stroke="#244ea3"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              )}
-
-              {/* Data points, labels, and generous touch targets */}
-              {chartPoints.map((pt, i) => {
-                const { x, y } = getCoordinates(i, pt.sales);
-                const isSelected = activePoint === i;
+              {/* X Axis Labels (always visible, including 12 AM - 11 PM in Daily mode) */}
+              {chartBuckets.map((bucket, i) => {
+                const { x } = getCoordinates(i, 0);
                 return (
-                  <g key={i}>
-                    <text
-                      x={x}
-                      y={chartHeight - 8}
-                      textAnchor="middle"
-                      className="chart-axis-text"
-                    >
-                      {pt.label}
-                    </text>
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={isSelected ? 6 : 3.5}
-                      className={`chart-point ${isSelected ? 'active' : ''}`}
-                    />
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={24}
-                      className="chart-hit-point"
-                      onMouseEnter={() => setActivePoint(i)}
-                      onClick={() => setActivePoint(i)}
-                    />
+                  <text
+                    key={`xlabel-${i}`}
+                    x={x}
+                    y={chartHeight - 8}
+                    textAnchor="middle"
+                    className="chart-axis-text"
+                  >
+                    {bucket.label}
+                  </text>
+                );
+              })}
+
+              {/* Multi-series Lines & Data Points (only plotted from actual timestamped/dated completed sales) */}
+              {salesChart.hasPlottedData && salesChart.series.map(s => {
+                const pathD = chartBuckets.map((bucket, i) => {
+                  const val = chartMetric === 'revenue'
+                    ? (bucket.bySeries[s.key]?.revenue || 0)
+                    : (bucket.bySeries[s.key]?.orders || 0);
+                  const { x, y } = getCoordinates(i, val);
+                  return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+                }).join(' ');
+
+                return (
+                  <g key={s.key}>
+                    {chartBuckets.length > 1 && (
+                      <path
+                        d={pathD}
+                        fill="none"
+                        stroke={s.color}
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    )}
+                    {chartBuckets.map((bucket, i) => {
+                      const val = chartMetric === 'revenue'
+                        ? (bucket.bySeries[s.key]?.revenue || 0)
+                        : (bucket.bySeries[s.key]?.orders || 0);
+                      if (val === 0 && activePoint !== i) return null;
+                      const { x, y } = getCoordinates(i, val);
+                      const isSelected = activePoint === i;
+                      return (
+                        <circle
+                          key={`${s.key}-${i}`}
+                          cx={x}
+                          cy={y}
+                          r={isSelected ? 5.5 : 3.5}
+                          fill={s.color}
+                          stroke="#fff"
+                          strokeWidth="1.5"
+                        />
+                      );
+                    })}
                   </g>
+                );
+              })}
+
+              {/* Generous vertical hit zones for bucket selection */}
+              {salesChart.hasPlottedData && chartBuckets.map((_bucket, i) => {
+                const { x } = getCoordinates(i, 0);
+                return (
+                  <rect
+                    key={`hit-${i}`}
+                    x={x - 16}
+                    y={paddingTop}
+                    width={32}
+                    height={chartHeight - paddingTop - paddingBottom}
+                    fill="transparent"
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={() => setActivePoint(i)}
+                    onClick={() => setActivePoint(i)}
+                  />
                 );
               })}
             </svg>
 
-            {/* Tooltip */}
-            {activePoint !== null && chartPoints[activePoint] && (
+            {/* Multi-Series Tooltip */}
+            {activePoint !== null && chartBuckets[activePoint] && (
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
                 <div className="sales-tooltip-bubble">
                   <div className="sales-tooltip-date">
-                    {chartPoints[activePoint].fullLabel}
+                    {chartBuckets[activePoint].fullLabel}
                   </div>
                   <div className="sales-tooltip-val">
-                    {formatMoney(chartPoints[activePoint].sales)}
+                    {chartMetric === 'revenue'
+                      ? formatMoney(chartBuckets[activePoint].totalRevenue)
+                      : `${chartBuckets[activePoint].totalOrders} ${chartBuckets[activePoint].totalOrders === 1 ? 'sale' : 'sales'}`}
                   </div>
-                  <div className="sales-tooltip-meta">
-                    {chartPoints[activePoint].orders === 1 ? '1 order' : `${chartPoints[activePoint].orders} orders`}
+                  <div className="sales-tooltip-series">
+                    {salesChart.series.map(s => {
+                      const cell = chartBuckets[activePoint].bySeries[s.key] || { revenue: 0, orders: 0 };
+                      return (
+                        <span key={s.key}>
+                          <i style={{ background: s.color }} />
+                          {s.label}: {chartMetric === 'revenue' ? formatMoney(cell.revenue) : cell.orders}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -844,7 +768,7 @@ export default function SalesReports({
           </div>
         ) : (
           <div style={{ padding: '22px 12px', textAlign: 'center', color: '#64748d', fontSize: 12 }}>
-            <p style={{ margin: '0 0 10px' }}>No transactions recorded for this period ({periodLabel}).</p>
+            <p style={{ margin: '0 0 10px' }}>No completed sales recorded for this period ({periodLabel}).</p>
             {orders.length > 0 && defaultDate && defaultDate !== anchorDate && (
               <button
                 type="button"
